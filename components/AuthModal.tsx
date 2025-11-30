@@ -182,15 +182,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const getStepTitle = () => {
     switch (step) {
       case 'initial':
-        return 'Welcome to PropSafeHub'
+        return 'Welcome to PropSafe Hub'
       case 'email':
-        return 'Sign in or create account'
+        return 'Sign in or create an account'
       case 'password':
         return 'Enter your password'
       case 'register':
         return 'Create your account'
       default:
-        return 'Welcome to PropSafeHub'
+        return 'Welcome to PropSafe Hub'
     }
   }
 
@@ -198,19 +198,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md p-0 gap-0 bg-white rounded-2xl overflow-hidden">
         {/* Header */}
-        <DialogHeader className="flex flex-row items-center justify-between p-6 border-b">
+        <DialogHeader className="flex flex-row items-center justify-between py-4 px-6 border-b">
           <DialogTitle className="text-xl font-semibold text-gray-900">
             {getStepTitle()}
           </DialogTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            className="h-8 w-8 rounded-full hover:bg-gray-100"
-            disabled={isLoading}
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         {/* Content */}
@@ -235,11 +226,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full h-12 border-gray-300 hover:bg-gray-50"
+                  className="w-full cursor-pointer h-12 border-gray-300 hover:text-emerald-50 bg-linear-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-4 text-base font-semibold rounded-xl transition-all duration-200"
                   onClick={() => setStep('email')}
                   disabled={isLoading}
                 >
-                  <Mail className="h-5 w-5 mr-3 text-gray-600" />
                   Continue with Email
                 </Button>
               </div>
@@ -277,7 +267,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 cursor-pointer h-12 border-gray-300  bg-linear-to-r hover:from-emerald-50 hover:to-emerald-100 py-4 text-base font-semibold rounded-xl transition-all duration-200 "
                   onClick={() => setStep('initial')}
                   disabled={isLoading}
                 >
@@ -285,7 +275,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-emerald-600 hover:bg-blue-700"
+                  className="flex-1 cursor-pointer h-12 border-gray-300 hover:text-emerald-50 bg-linear-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-4 text-base font-semibold rounded-xl transition-all duration-200 "
                   disabled={isLoading || !email}
                 >
                   {isLoading ? 'Checking...' : 'Continue'}
@@ -483,7 +473,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <Button
                   type="button"
                   variant="outline"
-                  className="flex-1"
+                  className="flex-1 cursor-pointer h-12 border-gray-300 bg-linear-to-r  py-4 text-base font-semibold rounded-xl transition-all duration-200"
                   onClick={() => setStep('email')}
                   disabled={isLoading}
                 >
@@ -491,7 +481,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </Button>
                 <Button
                   type="submit"
-                  className="flex-1 bg-emerald-600 hover:bg-blue-700"
+                  className="flex-1 cursor-pointer h-12 border-gray-300 hover:text-emerald-50 bg-linear-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-4 text-base font-semibold rounded-xl transition-all duration-200"
                   disabled={
                     isLoading || !name || !password || password.length < 8
                   }
