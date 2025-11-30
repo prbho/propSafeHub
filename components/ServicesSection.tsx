@@ -133,33 +133,35 @@ export default function ServicesSection() {
         </div>
 
         {/* Features Section */}
-        <div className="bg-emerald-50 rounded-2xl p-12 mb-16 max-w-7xl mx-auto">
-          <div className="text-center mb-12">
-            <h3 className="text-3xl font-bold text-gray-900 mb-4">
-              Why Choose PropSafeHub?
-            </h3>
-            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-              We&aposre committed to making real estate transactions secure,
-              transparent, and efficient for everyone.
-            </p>
-          </div>
+        <section className="p-4 max-w-7xl mx-auto">
+          <div className="bg-emerald-50 rounded-2xl p-12 mb-16">
+            <div className="text-center mb-12">
+              <h3 className="text-3xl font-bold text-gray-900 mb-4">
+                Why Choose PropSafeHub?
+              </h3>
+              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                We&aposre committed to making real estate transactions secure,
+                transparent, and efficient for everyone.
+              </p>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <div key={index} className="text-center">
-                <div className="flex items-center justify-center w-12 h-12 bg-white rounded-lg mx-auto mb-4">
-                  <feature.icon className="h-6 w-6 text-emerald-600" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {features.map((feature, index) => (
+                <div key={index} className="text-center">
+                  <div className="flex items-center justify-center w-12 h-12 bg-white rounded-lg mx-auto mb-4">
+                    <feature.icon className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                    {feature.title}
+                  </h4>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {feature.description}
+                  </p>
                 </div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                  {feature.title}
-                </h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {feature.description}
-                </p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        </section>
 
         {/* CTA Section */}
         <div className="text-center">
