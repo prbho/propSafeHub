@@ -155,7 +155,7 @@ export default function PropertyCarousel({
 
   return (
     <section className="py-16 bg-linear-to-b from-white to-gray-50/30">
-      <div className="px-4">
+      <div className="lg:px-4">
         {/* Enhanced Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-12 max-w-7xl mx-auto ">
           <div className="flex-1 mb-6 lg:mb-0">
@@ -229,7 +229,7 @@ export default function PropertyCarousel({
             <div className="absolute right-0 top-0 bottom-0 w-8 lg:bg-linear-to-l from-gray-50 to-transparent z-10 pointer-events-none" />
 
             {/* Carousel */}
-            <div ref={carouselRef} className="lg:overflow-hidden">
+            <div ref={carouselRef} className="overflow-hidden">
               <div
                 className="flex gap-4 transition-transform duration-500 ease-out"
                 style={{
