@@ -129,7 +129,7 @@ export default function PropertyCarousel({
   if (properties.length === 0) {
     return (
       <section className=" bg-white">
-        <div className="max-w-7xl mx-auto px-4 text-center">
+        <div className="text-center">
           <div className="bg-gray-50 rounded-2xl p-12 border-2 border-dashed border-gray-200">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Zap className="h-8 w-8 text-gray-400" />
@@ -155,9 +155,9 @@ export default function PropertyCarousel({
 
   return (
     <section className="py-16 bg-linear-to-b from-white to-gray-50/30">
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="px-4">
         {/* Enhanced Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-12">
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-12 max-w-7xl mx-auto ">
           <div className="flex-1 mb-6 lg:mb-0">
             {showFeaturedBadge && (
               <div className="inline-flex items-center gap-2 bg-linear-to-r from-amber-400 to-amber-500 text-white px-4 py-2 rounded-full text-xs font-medium mb-4">
@@ -223,57 +223,36 @@ export default function PropertyCarousel({
           onTouchEnd={handleTouchEnd}
         >
           {/* Gradient Overlays for better UX */}
-          <div
-            className="hidden lg:absolute lg:left-0 lg:top-0 lg:bottom-0 lg:w-8 lg:bg-linear-to-r lg:from-gray-50 lg:to-transparent 
-            lg:z-10 lg:pointer-events-none"
-          />
-          <div
-            className="hidden lg:absolute lg:right-0 lg:top-0 lg:bottom-0 lg:w-8 lg:bg-linear-to-l lg:from-gray-50 lg:to-transparent 
-            lg:z-10 lg:pointer-events-none"
-          />
 
-          {/* Carousel */}
-          <div ref={carouselRef} className="overflow-hidden">
-            <div
-              className="flex gap-4 transition-transform duration-500 ease-out"
-              style={{
-                transform: `translateX(-${currentIndex * (100 / cardsToShow)}%)`,
-              }}
-            >
-              {properties.map((property, index) => (
-                <div
-                  key={property.$id}
-                  className="shrink-0 transition-all duration-300 hover:scale-[1.02]"
-                  style={{ width: `${100 / cardsToShow}%` }}
-                >
-                  <PropertyCard
-                    property={property}
-                    userId={userId}
-                    featured={property.isFeatured}
-                    priority={index < 4} // Load first 4 images eagerly
-                  />
-                </div>
-              ))}
+          <div className="lg:max-w-7xl mx-auto relative">
+            <div className="absolute left-0 top-0 bottom-0 w-8 lg:bg-linear-to-r from-gray-50 to-transparent z-10 pointer-events-none" />
+            <div className="absolute right-0 top-0 bottom-0 w-8 lg:bg-linear-to-l from-gray-50 to-transparent z-10 pointer-events-none" />
+
+            {/* Carousel */}
+            <div ref={carouselRef} className="lg:overflow-hidden">
+              <div
+                className="flex gap-4 transition-transform duration-500 ease-out"
+                style={{
+                  transform: `translateX(-${currentIndex * (100 / cardsToShow)}%)`,
+                }}
+              >
+                {properties.map((property, index) => (
+                  <div
+                    key={property.$id}
+                    className="shrink-0 transition-all duration-300 hover:scale-[1.02]"
+                    style={{ width: `${100 / cardsToShow}%` }}
+                  >
+                    <PropertyCard
+                      property={property}
+                      userId={userId}
+                      featured={property.isFeatured}
+                      priority={index < 4} // Load first 4 images eagerly
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-
-          {/* Mobile Dot Indicators */}
-          {totalSlides > 1 && (
-            <div className="flex sm:hidden justify-center items-center gap-2 mt-8">
-              {Array.from({ length: totalSlides }).map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => goToSlide(index)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    index === currentIndex
-                      ? 'bg-emerald-600 w-6'
-                      : 'bg-gray-300'
-                  }`}
-                  aria-label={`Go to slide ${index + 1}`}
-                />
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Progress Bar */}
