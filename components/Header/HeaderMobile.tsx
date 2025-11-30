@@ -25,11 +25,11 @@ export default function HeaderMobile({ openAuth }: HeaderMobileProps) {
       {/* Logo */}
       <Link href="/" className="flex items-center">
         <Image
-          width={160}
-          height={32}
+          width={150}
+          height={64}
           src="/logo.png"
           alt="PropSafe Hub"
-          className="h-6 w-auto"
+          className="h-15 w-auto"
         />
       </Link>
 

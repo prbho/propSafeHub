@@ -34,11 +34,8 @@ export default function MobileNavContent({
 
   return (
     <div className="space-y-6 mt-6">
-      {/* Mobile Search */}
-      <HeaderSearch />
-
       {/* Mobile Nav Links */}
-      <nav className="flex flex-col space-y-4">
+      <nav className="flex flex-col space-y-4 px-6">
         <Link
           href="/properties?type=buy"
           className="text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors"
@@ -84,7 +81,7 @@ export default function MobileNavContent({
 
       {/* Auth / Profile Section */}
       {isAuthenticated ? (
-        <div className="space-y-4">
+        <div className="space-y-4 px-6">
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12">
               <AvatarImage src={user?.avatar} alt={user?.name} />
@@ -144,7 +141,7 @@ export default function MobileNavContent({
           </Button>
         </div>
       ) : (
-        <div className="flex flex-col space-y-3">
+        <div className="flex flex-col space-y-3 px-6">
           <Button
             className="w-full bg-emerald-600 hover:bg-blue-700"
             onClick={() => {
