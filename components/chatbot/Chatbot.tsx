@@ -1390,9 +1390,9 @@ What would you like to explore first?`,
 
       {/* Chatbot Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200">
+        <div className="fixed bottom-0 lg:bottom-6 right-0 lg:right-6 w-full lg:w-96 lg:h-[600px] h-screen bg-white lg:rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200">
           {/* Header */}
-          <div className="bg-emerald-600 text-white p-4 rounded-t-2xl flex justify-between items-center">
+          <div className="bg-emerald-600 text-white p-4 lg:rounded-t-2xl flex justify-between items-center">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
                 <Avatar>

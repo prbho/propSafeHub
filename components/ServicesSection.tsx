@@ -42,7 +42,7 @@ export default function ServicesSection() {
       id: 3,
       title: 'Rent a Home',
       description:
-        'Discover quality rental properties with verified listings and secure application processes.',
+        'Discover high-quality rental properties with thoroughly verified listings and a secure, reliable application proces',
       icon: Key,
       buttonText: 'Find Rentals',
       href: '/properties?type=rent',
@@ -120,7 +120,10 @@ export default function ServicesSection() {
                 {/* Button */}
                 <Button
                   asChild
-                  className={`w-full ${service.buttonColor} py-4 font-semibold rounded-lg`}
+                  className="w-full bg-secondary py-4 font-semibold rounded-lg
+                  h-12
+                  text-base transition-all duration-200
+                  "
                 >
                   <Link href={service.href}>{service.buttonText}</Link>
                 </Button>
@@ -177,14 +180,14 @@ export default function ServicesSection() {
                   <>
                     <Button
                       asChild
-                      className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-lg"
+                      className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-lg h-12"
                     >
                       <Link href="/signup">Create Free Account</Link>
                     </Button>
                     <Button
                       asChild
                       variant="outline"
-                      className="border-white text-white hover:bg-white hover:text-gray-900 px-8 py-4 text-lg font-semibold rounded-lg"
+                      className="border-white bg-transparent h-12 text-white hover:bg-white hover:text-gray-900 px-8 py-4 text-lg font-semibold rounded-lg"
                     >
                       <Link href="/properties">Browse Properties</Link>
                     </Button>
@@ -195,7 +198,7 @@ export default function ServicesSection() {
                     {user?.userType === 'seller' && (
                       <Button
                         asChild
-                        className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-lg"
+                        className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-lg h-12"
                       >
                         <Link href="/dashboard">Seller Dashboard</Link>
                       </Button>
@@ -203,7 +206,7 @@ export default function ServicesSection() {
                     {user?.userType === 'agent' && (
                       <Button
                         asChild
-                        className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-lg"
+                        className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-lg h-12"
                       >
                         <Link href="/agent/dashboard">Agent Dashboard</Link>
                       </Button>
@@ -211,7 +214,7 @@ export default function ServicesSection() {
                     {user?.userType === 'admin' && (
                       <Button
                         asChild
-                        className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-lg"
+                        className="bg-white text-gray-900 hover:bg-gray-100 px-8 py-4 text-lg font-semibold rounded-lg h-12"
                       >
                         <Link href="/admin/dashboard">Admin Dashboard</Link>
                       </Button>
@@ -219,7 +222,7 @@ export default function ServicesSection() {
                     <Button
                       asChild
                       variant="outline"
-                      className="border-emerald-100 bg-transparent text-white hover:bg-white hover:text-gray-900 px-8 py-4 text-lg font-semibold rounded-lg"
+                      className="border-emerald-100 bg-emerald-100 h-12  hover:bg-white hover:text-gray-900 px-8 py-4 text-lg font-semibold rounded-lg"
                     >
                       <Link href="/properties">Browse Properties</Link>
                     </Button>

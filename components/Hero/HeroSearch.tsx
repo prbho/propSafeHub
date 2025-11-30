@@ -291,7 +291,7 @@ export default function HeroSearch({ searchType, onSearch }: HeroSearchProps) {
                     setOpen(true)
                   }
                 }}
-                className="pl-12 pr-12 py-4 h-16 text-base border-2 border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl transition-all duration-200 bg-white/95 text-gray-900 placeholder-gray-500"
+                className="pl-12 pr-12 py-4 h-12 text-base border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 rounded-xl transition-all duration-200 bg-white/95 text-gray-900 placeholder-gray-500"
               />
               {searchQuery && (
                 <button
@@ -367,7 +367,7 @@ export default function HeroSearch({ searchType, onSearch }: HeroSearchProps) {
 
           <Button
             type="submit"
-            className="bg-linear-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-4 h-16 text-base font-semibold rounded-xl shadow-lg transition-all duration-200 hover:shadow-xl min-w-[140px]"
+            className="bg-linear-to-r from-emerald-900 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-4 h-12 text-base font-semibold rounded-xl transition-all duration-200 min-w-[140px]"
           >
             <Search className="h-5 w-5 mr-2" />
             Search

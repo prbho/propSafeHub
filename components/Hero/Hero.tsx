@@ -10,7 +10,6 @@ export default function Hero() {
 
   const handleSearch = (query: string, type: 'buy' | 'rent') => {
     if (query.trim()) {
-      // Dispatch event for other components
       window.dispatchEvent(
         new CustomEvent('propertySearch', {
           detail: {
@@ -21,7 +20,6 @@ export default function Hero() {
         })
       )
 
-      // Scroll to properties section if on home page
       document.getElementById('properties-section')?.scrollIntoView({
         behavior: 'smooth',
       })
@@ -29,59 +27,67 @@ export default function Hero() {
   }
 
   return (
-    <section className="relative bg-linear-to-br from-[#0D2A52] via-[#0A1E3A] to-[#0D2A52] text-white overflow-hidden">
-      {/* Background with overlay */}
-      <div className="absolute inset-0 bg-black/40">
+    <section className="relative bg-black min-h-[70vh] flex items-center justify-center border-b border-gray-200">
+      {/* Clean Background */}
+      <div className="absolute inset-0">
         <div
-          className="absolute inset-0 bg-cover bg-center opacity-20"
+          className="absolute inset-0 bg-cover bg-center opacity-50"
           style={{
-            backgroundImage:
-              'url(https://images.unsplash.com/photo-1560518883-ce09059eeffa?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2073&q=80)',
+            backgroundImage: 'url(/luxury-home.jpg)',
           }}
         />
       </div>
 
-      <div className="relative container mx-auto px-4 py-10 lg:py-10">
-        <div className="max-w-6xl mx-auto">
-          {/* Main Content */}
-          <div className="text-center mb-12 max-w-5xl mx-auto">
-            <h1 className="text-3xl md:text-4xl font-bold mb-6 leading-tight text-emerald-600 block">
-              Nigeria&apos;s Trusted Property Hub
-            </h1>
-
-            <p className="text-lg md:text-lg mb-8 text-gray-200 max-w-3xl mx-auto leading-relaxed">
-              Discover verified properties across Nigeria. We are your trusted
-              partner for safe, secure, and profitable real estate investments.
+      {/* Content Container */}
+      <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="flex flex-col items-center justify-center text-center">
+          {/* Main Heading Section */}
+          <div className="mb-12 max-w-3xl mx-auto">
+            {/* Simple Headline */}
+            <div className="max-w-3xl mx-auto">
+              <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white leading-tight">
+                Find your perfect home in Nigeria
+              </h1>
+            </div>
+            {/* Clean Subtitle */}
+            <p className="text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
+              Search thousands of verified properties for sale and rent across
+              Nigeria&quot;s top cities
             </p>
           </div>
 
-          {/* Search Section */}
-          <div className="rounded-2xl p-6 md:pb-8 md:pt-1 md:px-6 mb-16 shadow-2xl border border-gray-200 backdrop-blur-sm bg-white/95 max-w-3xl mx-auto">
-            {/* Search Tabs */}
-            <div className="flex mb-6 border-b">
-              <button
-                onClick={() => setSearchType('buy')}
-                className={`flex-1 py-4 font-semibold text-lg transition-all duration-300 ${
-                  searchType === 'buy'
-                    ? 'text-[#0D2A52] border-b-2 border-[#0FA36B]'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                🏠 Buy Property
-              </button>
-              <button
-                onClick={() => setSearchType('rent')}
-                className={`flex-1 py-4 font-semibold text-lg transition-all duration-300 ${
-                  searchType === 'rent'
-                    ? 'text-[#0D2A52] border-b-2 border-[#0FA36B]'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                🔑 Rent Property
-              </button>
-            </div>
+          {/* Search Section - Clean and Professional */}
+          <div className="w-full max-w-3xl mx-auto">
+            <div className="bg-white rounded-lg shadow-lg border border-gray-200">
+              {/* Simple Search Tabs */}
+              <div className="flex border-b border-gray-200">
+                <button
+                  onClick={() => setSearchType('buy')}
+                  className={`flex-1 py-5 px-6 font-semibold text-lg transition-colors duration-200 rounded-tl-lg ${
+                    searchType === 'buy'
+                      ? 'border-b-4 border-emerald-600 bg-blue-50/50'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  Buy
+                </button>
+                <button
+                  onClick={() => setSearchType('rent')}
+                  className={`flex-1 py-5 px-6 font-semibold text-lg transition-colors duration-200 rounded-tr-lg ${
+                    searchType === 'rent'
+                      ? 'border-b-4 border-emerald-600 bg-blue-50/50'
+                      : 'text-gray-600 hover:text-gray-800 hover:bg-gray-50'
+                  }`}
+                >
+                  Rent
+                </button>
+              </div>
 
-            <HeroSearch searchType={searchType} onSearch={handleSearch} />
+              {/* Search Component */}
+              <div className="p-6">
+                <HeroSearch searchType={searchType} onSearch={handleSearch} />
+              </div>
+            </div>
           </div>
         </div>
       </div>
