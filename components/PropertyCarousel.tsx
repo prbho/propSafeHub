@@ -223,8 +223,14 @@ export default function PropertyCarousel({
           onTouchEnd={handleTouchEnd}
         >
           {/* Gradient Overlays for better UX */}
-          <div className="md:hidden absolute left-0 top-0 bottom-0 w-8 bg-linear-to-r from-gray-50 to-transparent z-10 pointer-events-none" />
-          <div className="md:hidden absolute right-0 top-0 bottom-0 w-8 bg-linear-to-l from-gray-50 to-transparent z-10 pointer-events-none" />
+          <div
+            className="hidden lg:absolute lg:left-0 lg:top-0 lg:bottom-0 lg:w-8 lg:bg-linear-to-r lg:from-gray-50 lg:to-transparent 
+            lg:z-10 lg:pointer-events-none"
+          />
+          <div
+            className="hidden lg:absolute lg:right-0 lg:top-0 lg:bottom-0 lg:w-8 lg:bg-linear-to-l lg:from-gray-50 lg:to-transparent 
+            lg:z-10 lg:pointer-events-none"
+          />
 
           {/* Carousel */}
           <div ref={carouselRef} className="overflow-hidden">
