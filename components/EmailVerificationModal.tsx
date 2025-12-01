@@ -132,14 +132,6 @@ export default function EmailVerificationModal({
             <Shield className="h-5 w-5 text-emerald-600" />
             {isVerified ? 'Email Verified!' : 'Verify Your Email'}
           </DialogTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleClose}
-            className="h-6 w-6 rounded-full hover:bg-gray-100"
-          >
-            <X className="h-4 w-4" />
-          </Button>
         </DialogHeader>
 
         <div className="space-y-4">

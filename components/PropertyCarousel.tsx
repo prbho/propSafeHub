@@ -155,26 +155,29 @@ export default function PropertyCarousel({
 
   return (
     <section className="py-16 bg-linear-to-b from-white to-gray-50/30">
-      <div className="lg:px-4">
+      <div>
         {/* Enhanced Header */}
         <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-12 max-w-7xl mx-auto ">
-          <div className="flex-1 mb-6 lg:mb-0">
-            {showFeaturedBadge && (
-              <div className="inline-flex items-center gap-2 bg-linear-to-r from-amber-400 to-amber-500 text-white px-4 py-2 rounded-full text-xs font-medium mb-4">
-                <Crown className="h-4 w-4 fill-current" />
-                Premium
-              </div>
-            )}
-            <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
-              {title}
-            </h2>
-            <p className="text-gray-600 max-w-2xl leading-relaxed">
-              {subtitle}
-            </p>
+          <div className="px-4">
+            <div className="flex-1 mb-6 lg:mb-0">
+              {showFeaturedBadge && (
+                <div className="inline-flex items-center gap-2 bg-linear-to-r from-amber-400 to-amber-500 text-white px-4 py-2 rounded-full text-xs font-medium mb-4">
+                  <Crown className="h-4 w-4 fill-current" />
+                  Premium
+                </div>
+              )}
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900">
+                {title}
+              </h2>
+              <p className="text-gray-600 max-w-2xl leading-relaxed">
+                {subtitle}
+              </p>
+            </div>
           </div>
 
           {/* Enhanced Navigation */}
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-4 px-4">
             {/* View All Button */}
             <Button
               asChild
