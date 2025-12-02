@@ -1,4 +1,5 @@
 //types/auth.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 export type UserType = 'buyer' | 'seller' | 'agent' | 'admin'
 
@@ -88,6 +89,7 @@ export interface EmailCheckResult {
 export interface VerificationEmailResult {
   success: boolean
   message?: string
+  data?: any
 }
 
 export interface AuthContextType extends AuthState {

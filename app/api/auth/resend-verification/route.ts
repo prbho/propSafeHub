@@ -1,8 +1,15 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { NextRequest, NextResponse } from 'next/server'
+import { Query } from 'appwrite' // Add this import
 import { Resend } from 'resend'
 
 import { databases } from '@/lib/appwrite'
-import { DATABASE_ID, USERS_COLLECTION_ID } from '@/lib/appwrite-server'
+import {
+  AGENTS_COLLECTION_ID,
+  DATABASE_ID,
+  USERS_COLLECTION_ID,
+} from '@/lib/appwrite-server'
 
 const resend = new Resend(process.env.RESEND_API_KEY)
 
@@ -11,28 +18,91 @@ export async function POST(request: NextRequest) {
     const { email } = await request.json()
 
     if (!email) {
-      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
+      console.error('❌ Missing email in request')
+      return NextResponse.json(
+        {
+          error: 'Email is required',
+          code: 'MISSING_EMAIL',
+        },
+        { status: 400 }
+      )
     }
 
     console.log('🔄 Resending verification email to:', email)
 
-    // Find user by email
-    const users = await databases.listDocuments(
-      DATABASE_ID,
-      USERS_COLLECTION_ID,
-      [`email=${email}`]
-    )
+    // Find user by email - check both collections
+    let userDoc = null
+    let collectionId = USERS_COLLECTION_ID
 
-    if (users.total === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    try {
+      // Use Query.equal() for proper query syntax
+      const usersQuery = [Query.equal('email', email)]
+
+      // First check users collection
+      const users = await databases.listDocuments(
+        DATABASE_ID,
+        USERS_COLLECTION_ID,
+        usersQuery
+      )
+
+      if (users.total > 0) {
+        userDoc = users.documents[0]
+        console.log('✅ User found in USERS collection:', userDoc.$id)
+      } else {
+        // Check agents collection with same query
+        const agents = await databases.listDocuments(
+          DATABASE_ID,
+          AGENTS_COLLECTION_ID,
+          usersQuery // Reuse the same query
+        )
+
+        if (agents.total > 0) {
+          userDoc = agents.documents[0]
+          collectionId = AGENTS_COLLECTION_ID
+          console.log('✅ User found in AGENTS collection:', userDoc.$id)
+        } else {
+          console.error('❌ User not found in any collection:', email)
+          return NextResponse.json(
+            {
+              error: 'User not found',
+              code: 'USER_NOT_FOUND',
+              email,
+            },
+            { status: 404 }
+          )
+        }
+      }
+    } catch (dbError: any) {
+      console.error('❌ Database query error:', dbError.message)
+      console.error('❌ Database query stack:', dbError.stack)
+      return NextResponse.json(
+        {
+          error: 'Database error',
+          code: 'DATABASE_ERROR',
+          details: dbError.message,
+        },
+        { status: 500 }
+      )
     }
 
-    const userDoc = users.documents[0]
+    // Check if already verified
+    if (userDoc.emailVerified) {
+      console.log('ℹ️ User already verified:', email)
+      return NextResponse.json(
+        {
+          error: 'Email is already verified',
+          code: 'ALREADY_VERIFIED',
+          email,
+        },
+        { status: 400 }
+      )
+    }
 
     // Generate new verification token
     const verificationToken = Buffer.from(
       `${userDoc.$id}:${Date.now()}:${Math.random()}`
     ).toString('base64')
+
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-email?token=${verificationToken}&userId=${userDoc.$id}`
 
     console.log('🔐 New verification token generated for:', userDoc.$id)
@@ -60,7 +130,11 @@ export async function POST(request: NextRequest) {
       <body>
           <div class="container">
               <div class="header">
-                  <h1>PropSafeHub</h1>
+               <img 
+        src="https://fra.cloud.appwrite.io/v1/storage/buckets/6917066d002198df0c33/files/692f3007003c9a8fc197/view?project=6916ed0c0019cfe6bd36" 
+        alt="PropSafe Hub Logo" 
+        style="width: 160px; height: auto; display: block; margin: 0 auto; border: 0;"
+    />
                   <p style="color: #64748b; margin: 10px 0 0 0;">Find Your Perfect Property</p>
               </div>
               
@@ -90,48 +164,68 @@ export async function POST(request: NextRequest) {
               
               <div class="footer">
                   <p>If you didn't request this email, please ignore it.</p>
-                  <p>&copy; 2024 PropSafeHub. All rights reserved.</p>
+                  <p>&copy; ${new Date().getFullYear()} PropSafeHub. All rights reserved.</p>
               </div>
           </div>
       </body>
       </html>
     `
 
-    const { error } = await resend.emails.send({
-      from: 'PropSafeHub <noreply@notifications.propsafehub.com>',
-      to: email,
-      subject: 'Verify your email - PropSafeHub',
-      html: emailHtml,
-    })
+    let emailError = null
+    try {
+      const { error } = await resend.emails.send({
+        from: 'PropSafeHub <noreply@notifications.propsafehub.com>',
+        to: email,
+        subject: 'Verify your email - PropSafeHub',
+        html: emailHtml,
+      })
 
-    if (error) {
-      console.error('❌ Resend API error:', error)
+      if (error) {
+        emailError = error
+        console.error('❌ Resend API error:', error)
+        throw error
+      }
+
+      console.log('✅ Email sent via Resend')
+    } catch (emailError: any) {
+      console.error('❌ Email sending failed:', emailError.message)
       return NextResponse.json(
-        { error: 'Failed to send verification email' },
+        {
+          error: 'Failed to send verification email',
+          code: 'EMAIL_SEND_FAILED',
+          details: emailError.message,
+        },
         { status: 500 }
       )
     }
 
     // Update verification token in database
-    await databases.updateDocument(
-      DATABASE_ID,
-      USERS_COLLECTION_ID,
-      userDoc.$id,
-      {
+    try {
+      await databases.updateDocument(DATABASE_ID, collectionId, userDoc.$id, {
         verificationToken: verificationToken,
         lastVerificationRequest: new Date().toISOString(),
-      }
-    )
+      })
+      console.log('✅ Verification token updated in database')
+    } catch (updateError: any) {
+      console.error('❌ Database update error:', updateError.message)
+      // Don't fail the request if update fails, email was already sent
+    }
 
-    console.log('✅ Verification email resent to:', email)
+    console.log('✅ Verification email resent successfully to:', email)
 
     return NextResponse.json({
       success: true,
       message: 'Verification email sent successfully!',
+      email: email,
     })
-  } catch {
+  } catch (error: any) {
+    console.error('❌ Unhandled error in resend verification:', error.message)
     return NextResponse.json(
-      { error: 'Failed to resend verification email' },
+      {
+        error: 'Failed to resend verification email',
+        code: 'INTERNAL_ERROR',
+        details: error.message,
+      },
       { status: 500 }
     )
   }

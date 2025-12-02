@@ -48,12 +48,12 @@ export class EmailService {
   private getFromAddress(userType: 'buyer' | 'seller' | 'agent'): string {
     switch (userType) {
       case 'agent':
-        return 'PropSafeHub Agent Network <agents@notifications.propsafehub.com>'
+        return 'PropSafeHub Agent Network <noreply@notifications.propsafehub.com>'
       case 'seller':
-        return 'PropSafeHub Seller Support <sellers@notifications.propsafehub.com>'
+        return 'PropSafeHub Seller Support <noreply@notifications.propsafehub.com>'
       case 'buyer':
       default:
-        return 'PropSafeHub <welcome@notifications.propsafehub.com>'
+        return 'PropSafeHub <noreply@notifications.propsafehub.com>'
     }
   }
 }

@@ -192,8 +192,11 @@ export function generateVerificationEmail(params: EmailTemplateParams): {
     <body>
         <div class="container">
             <div class="header">
-                <h1>PropSafeHub</h1>
-                <p style="color: #64748b; margin: 10px 0 0 0;">Find Your Perfect Property Match</p>
+<img 
+        src="https://fra.cloud.appwrite.io/v1/storage/buckets/6917066d002198df0c33/files/692f3007003c9a8fc197/view?project=6916ed0c0019cfe6bd36" 
+        alt="PropSafeHub Logo" 
+        style="width: 160px; height: auto; display: block; margin: 0 auto; border: 0;"
+    />                <p style="color: #64748b; margin: 10px 0 0 0;">Find Your Perfect Property Match</p>
             </div>
             
             <div class="content">

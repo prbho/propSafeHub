@@ -576,31 +576,78 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       console.log('📧 Resending verification email to:', email)
 
+      if (!email) {
+        throw new Error('Email is required')
+      }
+
       const response = await fetch('/api/auth/resend-verification', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
         body: JSON.stringify({ email }),
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error('❌ Resend verification error:', errorData)
+      console.log('📡 Response status:', response.status, response.statusText)
+
+      // Get response text first to see what we're getting
+      const responseText = await response.text()
+      console.log(
+        '📄 Raw response text:',
+        responseText.substring(0, 200) + '...'
+      )
+
+      let errorData
+      try {
+        errorData = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error('❌ Failed to parse JSON response:', parseError)
         throw new Error(
-          errorData.error || 'Failed to resend verification email'
+          `Server returned invalid JSON: ${responseText.substring(0, 100)}`
         )
       }
 
-      console.log('✅ Verification email resent successfully')
+      if (!response.ok) {
+        console.error('❌ Resend verification API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+        })
+
+        // Provide more specific error messages
+        let userMessage = 'Failed to resend verification email'
+
+        if (errorData?.code === 'USER_NOT_FOUND') {
+          userMessage = 'User not found with this email address'
+        } else if (errorData?.code === 'ALREADY_VERIFIED') {
+          userMessage = 'Email is already verified'
+        } else if (errorData?.code === 'EMAIL_SEND_FAILED') {
+          userMessage = 'Failed to send email. Please try again later.'
+        } else if (errorData?.error) {
+          userMessage = errorData.error
+        } else if (errorData?.message) {
+          userMessage = errorData.message
+        }
+
+        throw new Error(userMessage)
+      }
+
+      console.log('✅ Verification email resent successfully:', errorData)
 
       return {
         success: true,
-        message: 'Verification email sent! Please check your inbox.',
+        message:
+          errorData.message ||
+          'Verification email sent! Please check your inbox.',
+        data: errorData, // Pass along any additional data
       }
-    } catch {
-      throw toast.error('Failed to send verification email')
+    } catch (error: any) {
+      console.error('❌ Resend verification catch error:', error.message)
+      // Don't use toast.error here - let the component handle it
+      throw error // Re-throw so the component can show the error
     }
   }
-
   const dismissVerificationModal = () => {
     console.log('📧 Verification modal dismissed')
     setShowVerificationModal(false)

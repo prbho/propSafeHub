@@ -830,22 +830,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Image Cropper Modal */}
-      {showCropper && imageToCrop && (
-        <Portal>
-          <ModernImageCropper
-            image={imageToCrop}
-            onClose={() => {
-              setShowCropper(false)
-              setImageToCrop(null)
-              toast.info('Image cropping cancelled')
-            }}
-            onCropComplete={handleCropComplete}
-            aspectRatio={1} // Square aspect ratio for profile pictures
-          />
-        </Portal>
-      )}
     </>
   )
 }
