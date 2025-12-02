@@ -3,12 +3,12 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { AlertCircle, Eye, EyeOff } from 'lucide-react'
-import { Toaster } from 'sonner'
+import { toast, Toaster } from 'sonner'
 
 import { ToastHandler } from '@/components/toast-handler'
 import { Button } from '@/components/ui/button'
@@ -24,6 +24,22 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const searchParams = useSearchParams()
+
+  useEffect(() => {
+    const verified = searchParams.get('verified') === 'true'
+    const verificationError = searchParams.get('verification_error') === 'true'
+
+    if (verified) {
+      toast.success('Email verified successfully! You can now login.')
+    }
+
+    if (verificationError) {
+      toast.error(
+        'Email verification failed. Please try again or request a new verification link.'
+      )
+    }
+  }, [searchParams])
 
   // Redirect if already authenticated
   if (isAuthenticated) {

@@ -1,5 +1,4 @@
-// app/verify/[token]/page.tsx:
-
+// app/verify/[token]/page.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -13,12 +12,28 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 export default function VerifyPage() {
   const router = useRouter()
   const params = useParams()
-  const token = params.token as string
+  const rawToken = params.token as string
+
+  const token = decodeURIComponent(rawToken)
+
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>(
     'loading'
   )
   const [message, setMessage] = useState('Verifying your email...')
   const [userEmail, setUserEmail] = useState<string>('')
+  const [isResending, setIsResending] = useState(false)
+  const [resendCountdown, setResendCountdown] = useState(0)
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (resendCountdown <= 0) return
+
+    const timer = setInterval(() => {
+      setResendCountdown((prev) => prev - 1)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [resendCountdown])
 
   useEffect(() => {
     const verifyEmail = async () => {
@@ -49,7 +64,7 @@ export default function VerifyPage() {
 
           // Redirect to success page after 3 seconds
           setTimeout(() => {
-            router.push('/auth/verification-success')
+            router.push('/login')
           }, 3000)
         } else {
           setStatus('error')
@@ -64,15 +79,18 @@ export default function VerifyPage() {
     }
 
     verifyEmail()
-  }, [token, router])
+  }, [token, router, rawToken])
 
   const handleResend = async () => {
-    if (!userEmail) {
-      toast.error('No email address found')
-      return
-    }
+    if (!userEmail || isResending || resendCountdown > 0) return
+
+    setIsResending(true)
 
     try {
+      toast.loading('Sending verification email...', {
+        id: 'resend-verification',
+      })
+
       const response = await fetch('/api/auth/resend-verification', {
         method: 'POST',
         headers: {
@@ -84,13 +102,25 @@ export default function VerifyPage() {
       const data = await response.json()
 
       if (response.ok && data.success) {
-        toast.success('New verification email sent! Check your inbox.')
+        toast.success('New verification email sent! Check your inbox.', {
+          id: 'resend-verification',
+          duration: 5000,
+        })
+
+        // Start countdown (60 seconds)
+        setResendCountdown(60)
       } else {
-        toast.error(data.error || 'Failed to resend verification email')
+        toast.error(data.error || 'Failed to resend verification email', {
+          id: 'resend-verification',
+        })
       }
     } catch (error) {
       console.error('❌ Resend error:', error)
-      toast.error('Failed to send verification email')
+      toast.error('Failed to send verification email. Please try again.', {
+        id: 'resend-verification',
+      })
+    } finally {
+      setIsResending(false)
     }
   }
 
@@ -98,73 +128,110 @@ export default function VerifyPage() {
     switch (status) {
       case 'loading':
         return (
-          <div className="text-center space-y-4">
-            <Loader2 className="w-12 h-12 mx-auto animate-spin text-blue-600" />
-            <div className="space-y-2">
-              <p className="text-gray-600 font-medium">{message}</p>
-              <p className="text-sm text-gray-500">
-                Please wait while we verify your email address...
-              </p>
+          <div className="text-center space-y-6">
+            <div className="space-y-4">
+              <Loader2 className="w-12 h-12 mx-auto animate-spin text-blue-600" />
+              <div className="space-y-2">
+                <p className="text-gray-700 font-medium text-lg">{message}</p>
+                <p className="text-sm text-gray-500">
+                  Please wait while we verify your email address...
+                </p>
+              </div>
             </div>
           </div>
         )
 
       case 'success':
         return (
-          <div className="text-center space-y-4">
-            <CheckCircle className="w-12 h-12 mx-auto text-green-600" />
-            <div className="space-y-2">
-              <p className="text-green-600 font-medium">{message}</p>
-              {userEmail && (
-                <p className="text-sm text-gray-600">Verified: {userEmail}</p>
-              )}
-              <p className="text-sm text-gray-500">
-                Redirecting you to the success page...
-              </p>
+          <div className="text-center space-y-6">
+            <div className="space-y-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-green-700 font-medium text-lg">{message}</p>
+                {userEmail && (
+                  <p className="text-sm text-gray-600">Verified: {userEmail}</p>
+                )}
+                <p className="text-sm text-gray-500">
+                  You will be redirected automatically...
+                </p>
+              </div>
             </div>
-            <Button
-              onClick={() => router.push('/auth/verification-success')}
-              className="mt-4 w-full"
-              size="lg"
-            >
-              Go to Success Page
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={() => router.push('/login')}
+                className="w-full"
+                size="lg"
+              >
+                Go to Login
+              </Button>
+              <Button
+                onClick={() => router.push('/')}
+                variant="outline"
+                className="w-full"
+              >
+                Go to Homepage
+              </Button>
+            </div>
           </div>
         )
 
       case 'error':
         return (
-          <div className="text-center space-y-4">
-            <XCircle className="w-12 h-12 mx-auto text-red-600" />
-            <div className="space-y-2">
-              <p className="text-red-600 font-medium">{message}</p>
-              {userEmail && (
-                <p className="text-sm text-gray-600">Account: {userEmail}</p>
-              )}
-              <p className="text-sm text-gray-500">
-                Please request a new verification email or contact support.
-              </p>
+          <div className="text-center space-y-6">
+            <div className="space-y-4">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full">
+                <XCircle className="w-10 h-10 text-red-600" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-red-700 font-medium text-lg">{message}</p>
+                {userEmail && (
+                  <p className="text-sm text-gray-600">Account: {userEmail}</p>
+                )}
+                <p className="text-sm text-gray-500">
+                  Please request a new verification email or contact support.
+                </p>
+              </div>
             </div>
             <div className="space-y-3">
               {userEmail && (
                 <Button
                   onClick={handleResend}
+                  disabled={isResending || resendCountdown > 0}
                   variant="outline"
                   className="w-full"
                 >
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Resend Verification Email
+                  {isResending ? (
+                    <span className="flex items-center justify-center">
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Sending...
+                    </span>
+                  ) : resendCountdown > 0 ? (
+                    `Resend available in ${resendCountdown}s`
+                  ) : (
+                    <span className="flex items-center justify-center">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Resend Verification Email
+                    </span>
+                  )}
                 </Button>
               )}
+
               <Button
-                onClick={() => router.push('/auth/verification-failed')}
-                variant="outline"
+                onClick={() => router.push('/login')}
+                className="w-full"
+                size="lg"
+              >
+                Go to Login Page
+              </Button>
+
+              <Button
+                onClick={() => router.push('/')}
+                variant="ghost"
                 className="w-full"
               >
-                View Error Details
-              </Button>
-              <Button onClick={() => router.push('/')} className="w-full">
-                Go to Homepage
+                Return to Homepage
               </Button>
             </div>
           </div>
@@ -173,22 +240,24 @@ export default function VerifyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Email Verification</CardTitle>
-          <p className="text-sm text-gray-500">
-            PropSafeHub Account Verification
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md shadow-xl border-0">
+        <CardHeader className="text-center space-y-4 pb-8">
+          <div className="space-y-2">
+            <CardTitle className="text-3xl font-bold text-gray-900">
+              Email Verification
+            </CardTitle>
+            <p className="text-gray-600">PropSafe Hub Account Verification</p>
+          </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           {renderContent()}
-          <div className="mt-6 pt-4 border-t border-gray-200">
+          <div className="pt-6 border-t border-gray-200">
             <p className="text-xs text-gray-500 text-center">
               Need help? Contact{' '}
               <a
                 href="mailto:support@propsafehub.com"
-                className="text-blue-600 hover:underline"
+                className="text-blue-600 hover:underline font-medium"
               >
                 support@propsafehub.com
               </a>
