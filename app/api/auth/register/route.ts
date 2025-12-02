@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
       `${appwriteUser.$id}:${Date.now()}:${Math.random()}`
     ).toString('base64')
 
-    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-email?token=${verificationToken}&userId=${appwriteUser.$id}`
+    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify/${verificationToken}`
 
     // Determine collection
     const isAgent = userType === 'agent'

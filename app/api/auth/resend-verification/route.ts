@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { Query } from 'appwrite' // Add this import
+import { Query } from 'appwrite'
 import { Resend } from 'resend'
 
-import { databases } from '@/lib/appwrite'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
+  serverDatabases,
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🔄 Resending verification email to:', email)
+    console.log('🔄 START Resend verification for:', email)
 
     // Find user by email - check both collections
     let userDoc = null
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       const usersQuery = [Query.equal('email', email)]
 
       // First check users collection
-      const users = await databases.listDocuments(
+      const users = await serverDatabases.listDocuments(
         DATABASE_ID,
         USERS_COLLECTION_ID,
         usersQuery
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         console.log('✅ User found in USERS collection:', userDoc.$id)
       } else {
         // Check agents collection with same query
-        const agents = await databases.listDocuments(
+        const agents = await serverDatabases.listDocuments(
           DATABASE_ID,
           AGENTS_COLLECTION_ID,
           usersQuery // Reuse the same query
@@ -103,9 +103,72 @@ export async function POST(request: NextRequest) {
       `${userDoc.$id}:${Date.now()}:${Math.random()}`
     ).toString('base64')
 
-    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/api/auth/verify-email?token=${verificationToken}&userId=${userDoc.$id}`
+    // Create the NEW verification URL with the NEW token
+    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify/${verificationToken}`
 
-    console.log('🔐 New verification token generated for:', userDoc.$id)
+    console.log('🔐 Generated NEW verification token:', {
+      tokenPreview: verificationToken.substring(0, 30) + '...',
+      tokenLength: verificationToken.length,
+      userId: userDoc.$id,
+      verificationUrl: verificationUrl,
+    })
+
+    // Before database update, log current state
+    console.log('📊 BEFORE UPDATE - Current user verification data:', {
+      currentTokenExists: !!userDoc.verificationToken,
+      currentTokenPreview: userDoc.verificationToken?.substring(0, 30) + '...',
+      lastRequest: userDoc.lastVerificationRequest,
+      emailVerified: userDoc.emailVerified,
+    })
+
+    // Update verification token in database FIRST
+    try {
+      await serverDatabases.updateDocument(
+        DATABASE_ID,
+        collectionId,
+        userDoc.$id,
+        {
+          verificationToken: verificationToken, // Store in verificationToken field
+          lastVerificationRequest: new Date().toISOString(),
+        }
+      )
+      console.log('✅ New verification token stored in database')
+
+      // Verify the update worked
+      try {
+        const updatedDoc = await serverDatabases.getDocument(
+          DATABASE_ID,
+          collectionId,
+          userDoc.$id
+        )
+        console.log('✅ CONFIRMED - Updated document verificationToken:', {
+          newTokenExists: !!updatedDoc.verificationToken,
+          newTokenPreview:
+            updatedDoc.verificationToken?.substring(0, 30) + '...',
+          matchesGenerated: updatedDoc.verificationToken === verificationToken,
+          fieldNames: Object.keys(updatedDoc).filter(
+            (k) =>
+              k.toLowerCase().includes('token') ||
+              k.toLowerCase().includes('verif')
+          ),
+        })
+      } catch (fetchError: any) {
+        console.error(
+          '❌ Failed to fetch updated document:',
+          fetchError.message
+        )
+      }
+    } catch (updateError: any) {
+      console.error('❌ Database update error:', updateError.message)
+      return NextResponse.json(
+        {
+          error: 'Failed to update verification token',
+          code: 'UPDATE_FAILED',
+          details: updateError.message,
+        },
+        { status: 500 }
+      )
+    }
 
     // Send verification email
     const emailHtml = `
@@ -121,21 +184,24 @@ export async function POST(request: NextRequest) {
               .header { text-align: center; margin-bottom: 30px; }
               .header h1 { color: #2563eb; margin: 0; font-size: 28px; }
               .content { background: #f8fafc; padding: 25px; border-radius: 8px; margin-bottom: 25px; }
-              .button { display: inline-block; padding: 14px 28px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; text-align: center; }
+              .button { display: inline-block; padding: 14px 28px; background-color: #10b981; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px; text-align: center; transition: background-color 0.3s; }
+              .button:hover { background-color: #059669; }
               .link-box { background: white; padding: 15px; border: 1px solid #e2e8f0; border-radius: 6px; word-break: break-all; font-size: 14px; color: #2563eb; margin: 20px 0; }
               .footer { text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 12px; }
               .warning { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 20px 0; color: #92400e; }
+              .contact-info { background: #f8fafc; border: 1px solid #e2e8f0; padding: 15px; border-radius: 6px; margin: 20px 0; font-size: 14px; }
+              .contact-info strong { color: #1e293b; }
           </style>
       </head>
       <body>
           <div class="container">
               <div class="header">
-               <img 
-        src="https://fra.cloud.appwrite.io/v1/storage/buckets/6917066d002198df0c33/files/692f3007003c9a8fc197/view?project=6916ed0c0019cfe6bd36" 
-        alt="PropSafe Hub Logo" 
-        style="width: 160px; height: auto; display: block; margin: 0 auto; border: 0;"
-    />
-                  <p style="color: #64748b; margin: 10px 0 0 0;">Find Your Perfect Property</p>
+                  <img 
+                      src="https://fra.cloud.appwrite.io/v1/storage/buckets/6917066d002198df0c33/files/692f3007003c9a8fc197/view?project=6916ed0c0019cfe6bd36" 
+                      alt="PropSafeHub Logo" 
+                      style="width: 160px; height: auto; display: block; margin: 0 auto; border: 0;"
+                  />
+                  <p style="color: #64748b; margin: 10px 0 0 0;">Find Your Perfect Property Match</p>
               </div>
               
               <div class="content">
@@ -146,6 +212,7 @@ export async function POST(request: NextRequest) {
                   </p>
                   
                   <div style="text-align: center; margin: 30px 0;">
+                      <!-- CRITICAL: Use verificationUrl directly -->
                       <a href="${verificationUrl}" class="button">Verify Email Address</a>
                   </div>
                   
@@ -154,12 +221,24 @@ export async function POST(request: NextRequest) {
                   </p>
                   
                   <div class="link-box">
+                      <!-- CRITICAL: Use verificationUrl directly -->
                       ${verificationUrl}
                   </div>
-              </div>
-              
-              <div class="warning">
-                  <strong>Important:</strong> This verification link will expire in 24 hours.
+                  
+                  <div class="warning">
+                      <strong>⏰ Important:</strong> This verification link will expire in 24 hours.
+                  </div>
+                  
+                  ${
+                    userDoc.phone
+                      ? `
+                  <div class="contact-info">
+                      <strong>📱 Registered Contact:</strong>
+                      <p style="margin: 5px 0; color: #475569;">${userDoc.phone}</p>
+                  </div>
+                  `
+                      : ''
+                  }
               </div>
               
               <div class="footer">
@@ -170,6 +249,12 @@ export async function POST(request: NextRequest) {
       </body>
       </html>
     `
+
+    console.log('📧 Sending email with verification URL:', {
+      url: verificationUrl,
+      urlContainsToken: verificationUrl.includes(verificationToken),
+      emailTo: email,
+    })
 
     let emailError = null
     try {
@@ -187,28 +272,14 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('✅ Email sent via Resend')
-    } catch (emailError: any) {
-      console.error('❌ Email sending failed:', emailError.message)
+    } catch {
       return NextResponse.json(
         {
           error: 'Failed to send verification email',
           code: 'EMAIL_SEND_FAILED',
-          details: emailError.message,
         },
         { status: 500 }
       )
-    }
-
-    // Update verification token in database
-    try {
-      await databases.updateDocument(DATABASE_ID, collectionId, userDoc.$id, {
-        verificationToken: verificationToken,
-        lastVerificationRequest: new Date().toISOString(),
-      })
-      console.log('✅ Verification token updated in database')
-    } catch (updateError: any) {
-      console.error('❌ Database update error:', updateError.message)
-      // Don't fail the request if update fails, email was already sent
     }
 
     console.log('✅ Verification email resent successfully to:', email)
@@ -217,9 +288,12 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Verification email sent successfully!',
       email: email,
+      verificationUrl: verificationUrl, // For debugging
+      tokenPreview: verificationToken.substring(0, 20) + '...', // For debugging
     })
   } catch (error: any) {
     console.error('❌ Unhandled error in resend verification:', error.message)
+    console.error('❌ Error stack:', error.stack)
     return NextResponse.json(
       {
         error: 'Failed to resend verification email',

@@ -1,14 +1,10 @@
-// app/api/auth/verify-email/route.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextRequest, NextResponse } from 'next/server'
 
-import {
-  AGENTS_COLLECTION_ID,
-  DATABASE_ID,
-  serverDatabases,
-  USERS_COLLECTION_ID,
-} from '@/lib/appwrite-server'
+// This endpoint now only handles redirects from old verification links
+// Old format: /api/auth/verify-email?token=abc&userId=123
+// New format: /verify/abc
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,121 +12,40 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('token')
     const userId = searchParams.get('userId')
 
-    if (!token || !userId) {
-      console.error('❌ Missing token or userId')
+    console.log('🔄 Processing old verification link:', {
+      hasToken: !!token,
+      hasUserId: !!userId,
+    })
+
+    if (!token) {
+      console.error('❌ Missing token in old verification link')
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/login?toastType=error&toastMessage=Missing verification parameters`
+        `${process.env.NEXT_PUBLIC_APP_URL}/auth/verification-failed?error=missing_token`
       )
     }
 
-    // ========== TRY TO FIND USER IN BOTH COLLECTIONS ==========
-    let userDoc
-    let collectionId
+    // Redirect to new clean URL format
+    const newVerificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify/${token}`
 
-    // First try users collection
-    try {
-      userDoc = await serverDatabases.getDocument(
-        DATABASE_ID,
-        USERS_COLLECTION_ID,
-        userId
-      )
-      collectionId = USERS_COLLECTION_ID
-    } catch {
-      // If not found in users, try agents collection
-      try {
-        userDoc = await serverDatabases.getDocument(
-          DATABASE_ID,
-          AGENTS_COLLECTION_ID,
-          userId
-        )
-        collectionId = AGENTS_COLLECTION_ID
-      } catch {
-        console.error('❌ User not found in any collection')
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL}/?toastType=error&toastMessage=User not found`
-        )
-      }
-    }
+    console.log('🔀 Redirecting to new format:', newVerificationUrl)
 
-    // Check if user already verified
-    if (userDoc.emailVerified) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/?toastType=info&toastMessage=Email already verified`
-      )
-    }
-
-    // Verify the token exists in user document
-    if (!userDoc.verificationToken) {
-      console.error('❌ No verification token in user document')
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/?toastType=error&toastMessage=Invalid verification token`
-      )
-    }
-
-    // Verify token match
-    if (userDoc.verificationToken !== token) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/?toastType=error&toastMessage=Invalid verification token`
-      )
-    }
-
-    // Check if token is expired (24 hours)
-    try {
-      if (!userDoc.lastVerificationRequest) {
-        console.error('❌ No lastVerificationRequest timestamp')
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL}/?toastType=error&toastMessage=Verification link expired. Please request a new one.`
-        )
-      }
-
-      const lastVerificationDate = new Date(userDoc.lastVerificationRequest)
-      const now = new Date()
-      const hoursDiff =
-        (now.getTime() - lastVerificationDate.getTime()) / (1000 * 60 * 60)
-
-      if (hoursDiff > 24) {
-        console.error('❌ Token expired (more than 24 hours)')
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_APP_URL}/?toastType=error&toastMessage=Verification link expired. Please request a new one.`
-        )
-      }
-    } catch (parseError) {
-      console.error('❌ Error checking token age:', parseError)
-      // Continue with verification even if age check fails
-      console.log('⚠️ Token age check failed, proceeding anyway...')
-    }
-
-    // Update user as verified in the correct collection
-    try {
-      const updateData: any = {
-        emailVerified: true,
-        emailVerifiedAt: new Date().toISOString(),
-        verificationToken: null, // Clear the used token
-        lastVerificationRequest: null, // Clear the timestamp
-      }
-
-      // Don't assign to a variable if not used
-      await serverDatabases.updateDocument(
-        DATABASE_ID,
-        collectionId!,
-        userId,
-        updateData
-      )
-
-      // Redirect to success page
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/?toastType=success&toastMessage=Email verified successfully! You can now log in.`
-      )
-    } catch (updateError: any) {
-      console.error('❌ Error updating user verification:', updateError.message)
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/?toastType=error&toastMessage=Failed to verify email. Please try again.`
-      )
-    }
+    return NextResponse.redirect(newVerificationUrl)
   } catch (error: any) {
-    console.error('❌ Unhandled error in verify-email:', error.message)
+    console.error('❌ Error processing old verification link:', error.message)
     return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/?toastType=error&toastMessage=An unexpected error occurred. Please try again.`
+      `${process.env.NEXT_PUBLIC_APP_URL}/auth/verification-failed?error=invalid_link`
     )
   }
+}
+
+// Disable POST to this endpoint - use the new /api/auth/verify instead
+export async function POST() {
+  return NextResponse.json(
+    {
+      error:
+        'This endpoint is deprecated. Please use the new verification system at /api/auth/verify',
+      code: 'DEPRECATED_ENDPOINT',
+    },
+    { status: 410 } // 410 Gone
+  )
 }

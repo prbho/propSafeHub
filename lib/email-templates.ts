@@ -15,6 +15,11 @@ export function generateVerificationEmail(params: EmailTemplateParams): {
 } {
   const { name, email, verificationUrl, userType, phone, agency, city } = params
 
+  // Extract token from URL for display
+  const url = new URL(verificationUrl)
+  const pathParts = url.pathname.split('/')
+  const verificationToken = pathParts[pathParts.length - 1]
+
   let subject = ''
   let welcomeMessage = ''
   let actionDescription = ''
@@ -104,99 +109,18 @@ export function generateVerificationEmail(params: EmailTemplateParams): {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>${subject}</title>
         <style>
-            body {
-                font-family: 'Arial', sans-serif;
-                line-height: 1.6;
-                color: #333;
-                margin: 0;
-                padding: 0;
-                background-color: #f9f9f9;
-            }
-            .container {
-                max-width: 600px;
-                margin: 0 auto;
-                background: white;
-                padding: 40px;
-                border-radius: 10px;
-                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            }
-            .header {
-                text-align: center;
-                margin-bottom: 30px;
-            }
-            .header h1 {
-                color: #2563eb;
-                margin: 0;
-                font-size: 28px;
-            }
-            .content {
-                background: #f8fafc;
-                padding: 25px;
-                border-radius: 8px;
-                margin-bottom: 25px;
-            }
-            .button {
-                display: inline-block;
-                padding: 14px 28px;
-                background-color: #10b981;
-                color: white;
-                text-decoration: none;
-                border-radius: 6px;
-                font-weight: bold;
-                font-size: 16px;
-                text-align: center;
-                transition: background-color 0.3s;
-            }
-            .button:hover {
-                background-color: #059669;
-            }
-            .link-box {
-                background: white;
-                padding: 15px;
-                border: 1px solid #e2e8f0;
-                border-radius: 6px;
-                word-break: break-all;
-                font-size: 14px;
-                color: #2563eb;
-                margin: 20px 0;
-            }
-            .footer {
-                text-align: center;
-                margin-top: 30px;
-                padding-top: 20px;
-                border-top: 1px solid #e2e8f0;
-                color: #64748b;
-                font-size: 12px;
-            }
-            .warning {
-                background: #fef3c7;
-                border: 1px solid #f59e0b;
-                padding: 15px;
-                border-radius: 6px;
-                margin: 20px 0;
-                color: #92400e;
-            }
-            .contact-info {
-                background: #f8fafc;
-                border: 1px solid #e2e8f0;
-                padding: 15px;
-                border-radius: 6px;
-                margin: 20px 0;
-                font-size: 14px;
-            }
-            .contact-info strong {
-                color: #1e293b;
-            }
+            /* ... your existing styles ... */
         </style>
     </head>
     <body>
         <div class="container">
             <div class="header">
-<img 
-        src="https://fra.cloud.appwrite.io/v1/storage/buckets/6917066d002198df0c33/files/692f3007003c9a8fc197/view?project=6916ed0c0019cfe6bd36" 
-        alt="PropSafeHub Logo" 
-        style="width: 160px; height: auto; display: block; margin: 0 auto; border: 0;"
-    />                <p style="color: #64748b; margin: 10px 0 0 0;">Find Your Perfect Property Match</p>
+                <img 
+                    src="https://fra.cloud.appwrite.io/v1/storage/buckets/6917066d002198df0c33/files/692f3007003c9a8fc197/view?project=6916ed0c0019cfe6bd36" 
+                    alt="PropSafeHub Logo" 
+                    style="width: 160px; height: auto; display: block; margin: 0 auto; border: 0;"
+                />
+                <p style="color: #64748b; margin: 10px 0 0 0;">Find Your Perfect Property Match</p>
             </div>
             
             <div class="content">
