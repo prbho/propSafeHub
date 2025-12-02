@@ -1,4 +1,6 @@
 // app/api/notifications/route.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { Query } from 'node-appwrite'
 
@@ -31,5 +33,11 @@ export async function GET(request: NextRequest) {
     )
 
     return NextResponse.json(notifications.documents)
-  } catch {}
+  } catch (error: any) {
+    console.error('Error fetching notifications:', error.message)
+    return NextResponse.json(
+      { error: 'Failed to fetch notifications' },
+      { status: 500 }
+    )
+  }
 }

@@ -111,10 +111,7 @@ export default function AnalyticsPage() {
       (sum, prop) => sum + (prop.views || 0),
       0
     )
-    const totalFavorites = properties.reduce(
-      (sum, prop) => sum + (prop.favorites || 0),
-      0
-    )
+
     const totalLeads = messages.length
     const activeListings = properties.filter((p) => p.isActive).length
     const pendingViewings = viewings.filter(

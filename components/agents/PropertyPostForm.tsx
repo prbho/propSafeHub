@@ -75,6 +75,8 @@ export default function PropertyPostForm({
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [pageLoading, setPageLoading] = useState(true)
+  const [agentProfileId, setAgentProfileId] = useState<string>('')
+  const [fetchingAgentProfile, setFetchingAgentProfile] = useState(false)
 
   const [formData, setFormData] = useState<PropertyFormData>({
     // Basic Information
@@ -122,14 +124,74 @@ export default function PropertyPostForm({
     customPlanMonths: 12,
   })
 
-  // Check authentication status
+  // Fetch agent profile when user is loaded
   useEffect(() => {
+    const fetchAgentProfile = async () => {
+      if (user && user.userType === 'agent') {
+        setFetchingAgentProfile(true)
+        try {
+          console.log('🔍 Fetching agent profile for user:', user.$id)
+
+          // Try to get agent profile by user ID
+          const response = await fetch(
+            `/api/agents/get-by-user?userId=${user.$id}`
+          )
+
+          if (response.ok) {
+            const agentProfile = await response.json()
+            console.log('✅ Agent profile found:', {
+              agentId: agentProfile.$id,
+              userId: user.$id,
+              name: agentProfile.name,
+            })
+            setAgentProfileId(agentProfile.$id)
+          } else {
+            console.warn('⚠️ No agent profile found by userId, trying email...')
+
+            // Try by email as fallback
+            const emailResponse = await fetch(
+              `/api/agents/get-by-user?email=${encodeURIComponent(user.email)}`
+            )
+            if (emailResponse.ok) {
+              const agentProfile = await emailResponse.json()
+              console.log('✅ Agent profile found by email:', agentProfile.$id)
+              setAgentProfileId(agentProfile.$id)
+
+              // Update agent profile with userId for future reference
+              try {
+                await fetch('/api/agents/update-user-id', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    agentId: agentProfile.$id,
+                    userId: user.$id,
+                  }),
+                })
+                console.log('✅ Linked user ID to agent profile')
+              } catch (updateError) {
+                console.log('⚠️ Could not update agent profile with userId')
+              }
+            } else {
+              console.error('❌ No agent profile found for user:', user.$id)
+              toast.error('Agent profile not found. Please contact support.')
+            }
+          }
+        } catch (error) {
+          console.error('❌ Error fetching agent profile:', error)
+          toast.error('Failed to load agent profile. Please refresh the page.')
+        } finally {
+          setFetchingAgentProfile(false)
+        }
+      }
+    }
+
     if (!authLoading) {
       if (!user) {
         router.push('/login?redirect=/agent/properties/new')
       } else if (user.userType !== 'agent') {
         router.push('/dashboard')
       } else {
+        fetchAgentProfile()
         setPageLoading(false)
       }
     }
@@ -211,6 +273,14 @@ export default function PropertyPostForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validate agent profile is loaded
+    if (!agentProfileId) {
+      toast.error(
+        'Agent profile not loaded. Please refresh the page and try again.'
+      )
+      return
+    }
+
     if (uploadedFiles.length === 0) {
       toast.error('Please upload at least one property image')
       return
@@ -226,9 +296,10 @@ export default function PropertyPostForm({
     try {
       const imageUrls = await uploadImagesToStorage(uploadedFiles)
 
+      // ✅ FIX: Use agentProfileId (from agents table) instead of user.$id (from users table)
       const propertyData = {
         ...formData,
-        agentId: user?.$id,
+        agentId: agentProfileId, // Use agent profile ID
         agentName: user?.name,
         listedBy: user?.name,
         phone: user?.phone || '',
@@ -236,28 +307,46 @@ export default function PropertyPostForm({
         propertyId: `property_${Date.now()}`,
       }
 
+      console.log('📤 Creating property with:', {
+        agentId: agentProfileId,
+        agentName: user?.name,
+        userAccountId: user?.$id,
+      })
+
       const result = await clientPropertyService.createProperty(propertyData)
       toast.success('Property created successfully!')
       onSuccess?.()
       router.push('/agent/dashboard?success=true')
-    } catch {
-      toast.error('Failed to create property listing')
+    } catch (error: any) {
+      console.error('❌ Error creating property:', error)
+      toast.error(error.message || 'Failed to create property listing')
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  if (authLoading || pageLoading) {
+  if (authLoading || pageLoading || fetchingAgentProfile) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12">
         <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
-        <h2 className="text-xl font-semibold text-gray-900">Loading...</h2>
+        <h2 className="text-xl font-semibold text-gray-900">
+          {fetchingAgentProfile ? 'Loading agent profile...' : 'Loading...'}
+        </h2>
       </div>
     )
   }
 
   return (
     <div className="space-y-6">
+      {!agentProfileId && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <p className="text-yellow-800">
+            ⚠️ Agent profile not found. Properties cannot be created without an
+            agent profile. Please contact support or try refreshing the page.
+          </p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Basic Information */}
         <Card>
@@ -318,8 +407,6 @@ export default function PropertyPostForm({
                   <SelectContent>
                     <SelectItem value="for-sale">For Sale</SelectItem>
                     <SelectItem value="for-rent">For Rent</SelectItem>
-                    {/* <SelectItem value="sold">Sold</SelectItem> */}
-                    {/* <SelectItem value="rented">Rented</SelectItem> */}
                   </SelectContent>
                 </Select>
               </div>
@@ -446,7 +533,6 @@ export default function PropertyPostForm({
         </Card>
 
         {/* Pricing */}
-        {/* Pricing - Alternative version */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -937,7 +1023,7 @@ export default function PropertyPostForm({
             <div className="flex gap-4">
               <Button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !agentProfileId}
                 className="flex-1 bg-linear-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
                 size="lg"
               >
@@ -946,6 +1032,8 @@ export default function PropertyPostForm({
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Publishing...
                   </div>
+                ) : !agentProfileId ? (
+                  'Agent Profile Required'
                 ) : (
                   'Publish Property'
                 )}

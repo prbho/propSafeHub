@@ -1,0 +1,273 @@
+// app/lib/email-templates.ts
+export interface EmailTemplateParams {
+  name: string
+  email: string
+  verificationUrl: string
+  userType: 'buyer' | 'seller' | 'agent'
+  phone?: string
+  agency?: string
+  city?: string
+}
+
+export function generateVerificationEmail(params: EmailTemplateParams): {
+  subject: string
+  html: string
+} {
+  const { name, email, verificationUrl, userType, phone, agency, city } = params
+
+  let subject = ''
+  let welcomeMessage = ''
+  let actionDescription = ''
+  let specialInstructions = ''
+
+  switch (userType) {
+    case 'agent':
+      subject = `Welcome to PropSafeHub Agent Network - Verify Your Email`
+      welcomeMessage = `Welcome to our professional real estate agent network!`
+      actionDescription =
+        'complete your agent profile verification and start managing your listings'
+      specialInstructions = `
+        <div style="background: #ecfdf5; border: 1px solid #10b981; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <strong style="color: #065f46; display: block; margin-bottom: 10px;">🎯 Welcome to Our Agent Network!</strong>
+          <p style="color: #047857; margin: 5px 0; font-size: 14px;">
+            <strong>Your Agency:</strong> ${agency || 'Not specified'}
+          </p>
+          <p style="color: #047857; margin: 5px 0; font-size: 14px;">
+            <strong>Location:</strong> ${city || 'Not specified'}
+          </p>
+          <p style="color: #047857; margin: 10px 0 0 0; font-size: 14px;">
+            As a verified agent, you'll get access to:
+            • Listing management dashboard
+            • Client connection tools
+            • Professional analytics
+            • Marketing resources
+          </p>
+        </div>
+      `
+      break
+
+    case 'seller':
+      subject = `Welcome to PropSafeHub - Verify Your Seller Account`
+      welcomeMessage = `Welcome to PropSafeHub's seller community!`
+      actionDescription =
+        'verify your seller account and start listing your properties'
+      specialInstructions = `
+        <div style="background: #e0f2fe; border: 1px solid #0ea5e9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <strong style="color: #075985; display: block; margin-bottom: 10px;">🏠 Ready to Sell Your Property?</strong>
+          <p style="color: #0369a1; margin: 5px 0; font-size: 14px;">
+            After verification, you can:
+            • List properties with high-quality photos
+            • Connect with verified agents
+            • Track property views and inquiries
+            • Set up virtual tours
+          </p>
+        </div>
+      `
+      break
+
+    case 'buyer':
+    default:
+      subject = `Welcome to PropSafeHub - Verify Your Account`
+      welcomeMessage = `Welcome to PropSafeHub!`
+      actionDescription =
+        'complete your account verification and start exploring properties'
+      specialInstructions = `
+        <div style="background: #f0f9ff; border: 1px solid #0ea5e9; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <strong style="color: #075985; display: block; margin-bottom: 10px;">🔍 Start Your Property Search!</strong>
+          <p style="color: #0369a1; margin: 5px 0; font-size: 14px;">
+            After verification, you can:
+            • Save favorite properties
+            • Set up personalized alerts
+            • Schedule property viewings
+            • Connect with trusted agents
+            • Get market insights
+          </p>
+        </div>
+      `
+      break
+  }
+
+  const userTypeBadge = {
+    agent:
+      '<span style="background: #10b981; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-left: 10px;">Professional Agent</span>',
+    seller:
+      '<span style="background: #0ea5e9; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-left: 10px;">Property Seller</span>',
+    buyer:
+      '<span style="background: #8b5cf6; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; margin-left: 10px;">Property Buyer</span>',
+  }
+
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+        <style>
+            body {
+                font-family: 'Arial', sans-serif;
+                line-height: 1.6;
+                color: #333;
+                margin: 0;
+                padding: 0;
+                background-color: #f9f9f9;
+            }
+            .container {
+                max-width: 600px;
+                margin: 0 auto;
+                background: white;
+                padding: 40px;
+                border-radius: 10px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 30px;
+            }
+            .header h1 {
+                color: #2563eb;
+                margin: 0;
+                font-size: 28px;
+            }
+            .content {
+                background: #f8fafc;
+                padding: 25px;
+                border-radius: 8px;
+                margin-bottom: 25px;
+            }
+            .button {
+                display: inline-block;
+                padding: 14px 28px;
+                background-color: #10b981;
+                color: white;
+                text-decoration: none;
+                border-radius: 6px;
+                font-weight: bold;
+                font-size: 16px;
+                text-align: center;
+                transition: background-color 0.3s;
+            }
+            .button:hover {
+                background-color: #059669;
+            }
+            .link-box {
+                background: white;
+                padding: 15px;
+                border: 1px solid #e2e8f0;
+                border-radius: 6px;
+                word-break: break-all;
+                font-size: 14px;
+                color: #2563eb;
+                margin: 20px 0;
+            }
+            .footer {
+                text-align: center;
+                margin-top: 30px;
+                padding-top: 20px;
+                border-top: 1px solid #e2e8f0;
+                color: #64748b;
+                font-size: 12px;
+            }
+            .warning {
+                background: #fef3c7;
+                border: 1px solid #f59e0b;
+                padding: 15px;
+                border-radius: 6px;
+                margin: 20px 0;
+                color: #92400e;
+            }
+            .contact-info {
+                background: #f8fafc;
+                border: 1px solid #e2e8f0;
+                padding: 15px;
+                border-radius: 6px;
+                margin: 20px 0;
+                font-size: 14px;
+            }
+            .contact-info strong {
+                color: #1e293b;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>PropSafeHub</h1>
+                <p style="color: #64748b; margin: 10px 0 0 0;">Find Your Perfect Property Match</p>
+            </div>
+            
+            <div class="content">
+                <h2 style="color: #1e293b; margin-top: 0;">
+                    Hello ${name}!
+                    ${userTypeBadge[userType]}
+                </h2>
+                
+                <p style="color: #475569; margin-bottom: 15px; font-size: 16px;">
+                    <strong>${welcomeMessage}</strong>
+                </p>
+                
+                <p style="color: #475569; margin-bottom: 25px;">
+                    Thank you for registering as a ${userType} on PropSafeHub. To ${actionDescription}, please verify your email address by clicking the button below:
+                </p>
+                
+                <div style="text-align: center; margin: 30px 0;">
+                    <a href="${verificationUrl}" class="button">Verify Email Address</a>
+                </div>
+                
+                <p style="color: #64748b; font-size: 14px; margin-bottom: 10px;">
+                    If the button doesn't work, copy and paste this link into your browser:
+                </p>
+                
+                <div class="link-box">
+                    ${verificationUrl}
+                </div>
+                
+                ${specialInstructions}
+                
+                ${
+                  phone
+                    ? `
+                <div class="contact-info">
+                    <strong>📱 Registered Contact:</strong>
+                    <p style="margin: 5px 0; color: #475569;">${phone}</p>
+                </div>
+                `
+                    : ''
+                }
+                
+                ${
+                  userType === 'agent'
+                    ? `
+                <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 20px 0;">
+                    <strong style="color: #92400e;">📋 Next Steps for Agents:</strong>
+                    <p style="color: #92400e; margin: 10px 0 0 0; font-size: 14px;">
+                        1. Verify your email (this link expires in 24 hours)<br>
+                        2. Complete your professional profile<br>
+                        3. Upload your real estate license (optional)<br>
+                        4. Start creating your first listing
+                    </p>
+                </div>
+                `
+                    : ''
+                }
+            </div>
+            
+            <div class="warning">
+                <strong>⏰ Important:</strong> This verification link will expire in 24 hours.
+            </div>
+            
+            <div class="footer">
+                <p>Need help? Contact our support team at <a href="mailto:support@propsafehub.com" style="color: #2563eb;">support@propsafehub.com</a></p>
+                <p>&copy; ${new Date().getFullYear()} PropSafeHub. All rights reserved.</p>
+                <p style="font-size: 11px; color: #94a3b8; margin-top: 10px;">
+                    You're receiving this email because you signed up for a PropSafeHub account.<br>
+                    If this wasn't you, please ignore this email.
+                </p>
+            </div>
+        </div>
+    </body>
+    </html>
+  `
+
+  return { subject, html }
+}

@@ -1,5 +1,3 @@
-// app/api/agents/[id]/analytics/route.ts
-
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(
@@ -7,9 +5,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-    const { searchParams } = new URL(request.url)
-    const range = searchParams.get('range') || '30d'
+    // Remove unused variables if you're not using them yet
+    // const { id } = await params
+    // const { searchParams } = new URL(request.url)
+    // const range = searchParams.get('range') || '30d'
+
+    // Since you have TODO comments indicating you'll implement this later,
+    // you can comment them out or remove them for now:
+    await params // Still await it but don't destructure
+    const url = new URL(request.url)
 
     // TODO: Implement actual database queries
     // 1. Verify the agent exists and user has permission

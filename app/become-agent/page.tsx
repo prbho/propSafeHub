@@ -1,5 +1,4 @@
- 
-
+// app/become-agent
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -20,7 +19,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarImage } from '@/components/ui/avatar'
 import { usePageLoad } from '@/hooks/usePageLoad'
 
 export default function BecomeAgentPage() {

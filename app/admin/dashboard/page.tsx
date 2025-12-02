@@ -353,7 +353,7 @@ export default function AdminDashboardPage() {
     },
   ]
 
-  if (isLoading) {
+  if (isLoading || loading) {
     return <DashboardSkeleton />
   }
 

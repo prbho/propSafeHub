@@ -1,4 +1,7 @@
 //types/auth.ts
+
+export type UserType = 'buyer' | 'seller' | 'agent' | 'admin'
+
 export interface User {
   $id: string
   $createdAt: string
@@ -11,7 +14,7 @@ export interface User {
   phone: string
   avatar: string
   emailVerified?: boolean
-  userType: 'buyer' | 'seller' | 'agent' | 'admin'
+  userType: UserType
   isActive?: boolean
   savedSearches: string[]
   favoriteProperties: string[]
@@ -19,6 +22,21 @@ export interface User {
   lastVerificationRequest: string
   city: string
   state: string
+
+  // Agent-specific fields
+  agency?: string
+  licenseNumber?: string
+  yearsExperience?: number
+  specialties?: string[]
+  languages?: string[]
+  totalListings?: number
+  rating?: number
+  reviewCount?: number
+  isVerified?: boolean
+  verificationDocuments?: string[]
+  officePhone?: string
+  website?: string
+  specialty?: string
 }
 
 export interface AuthState {
@@ -32,12 +50,25 @@ export interface LoginCredentials {
   password: string
 }
 
-export interface RegisterData {
+// types/auth.ts
+export type RegisterData = {
   name: string
   email: string
   password: string
-  phone?: string
   userType: 'buyer' | 'seller' | 'agent'
+  phone?: string
+  agentData?: {
+    agency: string
+    city: string
+    licenseNumber: string
+    yearsExperience?: number
+    specialties?: string[]
+    languages?: string[]
+    bio?: string
+    state?: string
+    website?: string
+    specialty?: string
+  }
 }
 
 export interface EmailCheckResult {
@@ -49,6 +80,8 @@ export interface EmailCheckResult {
     emailVerified: boolean
     isActive: boolean
     userType: 'buyer' | 'seller' | 'agent' | 'admin'
+    city: string
+    agency: string
   }
 }
 

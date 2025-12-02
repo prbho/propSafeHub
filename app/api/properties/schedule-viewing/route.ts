@@ -1,9 +1,12 @@
-// app/api/properties/schedule-viewing/route.ts - UPDATED WITH CORRECT TYPES
+// app/api/properties/schedule-viewing/route.ts - WITH NOTIFICATIONS
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { NextRequest, NextResponse } from 'next/server'
 import { ID } from 'node-appwrite'
 
 import {
   DATABASE_ID,
+  NOTIFICATIONS_COLLECTION_ID, // Make sure this is in your lib/appwrite-server
   SCHEDULE_VIEWING_COLLECTION_ID,
   serverDatabases,
 } from '@/lib/appwrite-server'
@@ -26,6 +29,17 @@ export async function POST(request: NextRequest) {
 
     console.log('📅 Scheduling viewing for property:', propertyTitle)
 
+    // Validate required fields
+    if (!propertyId || !agentId || !date || !time || !name || !email) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Missing required fields',
+        },
+        { status: 400 }
+      )
+    }
+
     // Use shorter ISO format
     const scheduledAt = new Date().toISOString().slice(0, 19) + 'Z'
 
@@ -38,7 +52,7 @@ export async function POST(request: NextRequest) {
       time: time.substring(0, 10),
       customerName: name.substring(0, 255),
       customerEmail: email.substring(0, 255),
-      customerPhone: phone.substring(0, 20),
+      customerPhone: phone ? phone.substring(0, 20) : '',
       customerMessage: (message || '').substring(0, 2000),
       preferredContact: preferredContact || 'email',
       status: 'pending',
@@ -53,9 +67,9 @@ export async function POST(request: NextRequest) {
       scheduleData
     )
 
-    console.log('✅ Viewing scheduled successfully:', schedule.$id)
+    console.log('✅ Viewing record created:', schedule.$id)
 
-    // Create notification for the agent - using correct enum values
+    // Create notification for the agent
     const notificationData = {
       userId: agentId,
       type: 'userMessage', // Use 'userMessage' for viewing requests
@@ -65,26 +79,37 @@ export async function POST(request: NextRequest) {
       relatedId: schedule.$id,
       actionUrl: `/agent/dashboard/viewings?viewing=${schedule.$id}`,
       metadata: JSON.stringify({
-        // Store metadata as JSON string
         propertyId: propertyId,
         propertyTitle: propertyTitle,
         customerName: name,
         customerEmail: email,
-        customerPhone: phone,
+        customerPhone: phone || '',
         viewingDate: date,
         viewingTime: time,
         scheduleId: schedule.$id,
       }),
+      createdAt: new Date().toISOString(),
     }
 
-    // const notification = await serverDatabases.createDocument(
-    //   DATABASE_ID,
-    //   NOTIFICATIONS_COLLECTION_ID,
-    //   ID.unique(),
-    //   notificationData
-    // )
+    try {
+      const notification = await serverDatabases.createDocument(
+        DATABASE_ID,
+        NOTIFICATIONS_COLLECTION_ID,
+        ID.unique(),
+        notificationData
+      )
 
-    console.log('🔔 Notification created for agent:', agentId)
+      console.log('🔔 Notification created:', notification.$id)
+      console.log('🎯 Notification sent to agent:', agentId)
+    } catch (notificationError: any) {
+      console.error(
+        '❌ Failed to create notification:',
+        notificationError.message
+      )
+      // Don't fail the whole request if notification fails
+      // The viewing was still scheduled successfully
+      console.log('⚠️ Viewing scheduled but notification failed')
+    }
 
     return NextResponse.json({
       success: true,
@@ -92,11 +117,12 @@ export async function POST(request: NextRequest) {
       message:
         'Viewing scheduled successfully. The agent will contact you soon.',
     })
-  } catch {
+  } catch (error: any) {
+    console.error('❌ Error scheduling viewing:', error.message)
     return NextResponse.json(
       {
         success: false,
-        error: 'Failed to schedule viewing',
+        error: 'Failed to schedule viewing. Please try again.',
       },
       { status: 500 }
     )

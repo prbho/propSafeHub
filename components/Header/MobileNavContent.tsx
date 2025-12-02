@@ -10,7 +10,6 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 
 import NotificationBell from '../NotificationBell'
-import HeaderSearch from './HeaderSearch'
 
 interface MobileNavContentProps {
   openAuth: () => void

@@ -3,7 +3,7 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
@@ -73,7 +73,7 @@ interface Property {
 }
 
 export default function AgentPropertiesPage() {
-  const { user, isAuthenticated, isLoading } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const router = useRouter()
   const [properties, setProperties] = useState<Property[]>([])
   const [loading, setLoading] = useState(true)
@@ -81,17 +81,7 @@ export default function AgentPropertiesPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [typeFilter, setTypeFilter] = useState<string>('all')
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      if (user.userType !== 'agent') {
-        router.push('/dashboard')
-        return
-      }
-      fetchProperties()
-    }
-  }, [isAuthenticated, user, router])
-
-  const fetchProperties = async () => {
+  const fetchProperties = useCallback(async () => {
     if (!user?.$id) return
 
     try {
@@ -117,11 +107,11 @@ export default function AgentPropertiesPage() {
       const transformedProperties: Property[] = response.documents.map(
         (doc: any) => ({
           // Appwrite system fields
-          $id: doc.$id,
-          $collectionId: doc.$collectionId,
-          $databaseId: doc.$databaseId,
-          $createdAt: doc.$createdAt,
-          $updatedAt: doc.$updatedAt,
+          $id: doc.$id || '',
+          $collectionId: doc.$collectionId || '',
+          $databaseId: doc.$databaseId || '',
+          $createdAt: doc.$createdAt || new Date().toISOString(),
+          $updatedAt: doc.$updatedAt || new Date().toISOString(),
           $permissions: doc.$permissions || [],
 
           // Property fields - provide defaults for missing fields
@@ -182,7 +172,17 @@ export default function AgentPropertiesPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [user?.$id])
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.userType !== 'agent') {
+        router.push('/dashboard')
+        return
+      }
+      fetchProperties()
+    }
+  }, [isAuthenticated, user, router, fetchProperties])
 
   // Filter properties based on search and filters
   const filteredProperties = properties.filter((property) => {

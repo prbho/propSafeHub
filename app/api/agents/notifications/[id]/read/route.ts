@@ -1,4 +1,3 @@
-// app/api/agents/notifications/[id]/read/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
 import {
@@ -87,11 +86,19 @@ export async function PUT(request: NextRequest, context: Context) {
         success: true,
         notification: updatedNotification,
       })
-    } catch {}
-  } catch {
+    } catch (error) {
+      console.error('Error getting/updating agent notification:', error)
+      throw error // Re-throw to be caught by outer catch
+    }
+  } catch (error) {
+    console.error('Error in agent notification read route:', error)
     const duration = Date.now() - startTime
+    console.error(`❌ Agent notification read failed after ${duration}ms`)
 
-    return NextResponse.json({ status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to mark notification as read' },
+      { status: 500 }
+    )
   }
 }
 

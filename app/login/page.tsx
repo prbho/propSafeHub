@@ -1,12 +1,16 @@
 // app/login/page.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 'use client'
 
 import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
-import { AlertCircle, Eye, EyeOff, Home } from 'lucide-react'
+import { AlertCircle, Eye, EyeOff } from 'lucide-react'
+import { Toaster } from 'sonner'
 
+import { ToastHandler } from '@/components/toast-handler'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -51,6 +55,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-50 to-gray-100 flex flex-col justify-center pb-12 sm:px-6 lg:px-8">
+      <Toaster position="top-right" expand={false} richColors closeButton />
+      <ToastHandler />
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="text-center text-3xl font-bold tracking-tight text-gray-900">
           Welcome back

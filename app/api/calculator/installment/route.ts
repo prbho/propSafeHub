@@ -2,10 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextRequest, NextResponse } from 'next/server'
-import {
-  InstallmentCalculationBase,
-  InstallmentRequest,
-} from '@/types/mortgage'
+import { InstallmentRequest } from '@/types/mortgage'
 
 import {
   DATABASE_ID,

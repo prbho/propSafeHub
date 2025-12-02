@@ -51,23 +51,36 @@ interface StorageFile extends Models.Document {
   name: string
 }
 
-export async function updateUserProfile(
+// Generic profile update function (internal/private - not exported)
+async function _updateProfile(
   userId: string,
+  collectionId: string,
   data: Partial<User>
 ): Promise<User> {
   try {
+    // Validate input data
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid data provided for profile update')
+    }
+
     // Only include fields that exist in your Appwrite collection
     const updateData: UserUpdateData = {}
 
-    if (data.name !== undefined) updateData.name = data.name
-    if (data.phone !== undefined) updateData.phone = data.phone
-    if (data.bio !== undefined) updateData.bio = data.bio
-    if (data.city !== undefined) updateData.city = data.city
-    if (data.state !== undefined) updateData.state = data.state
+    // Safely check each property with nullish checks
+    if (data.name != null) updateData.name = data.name
+    if (data.phone != null) updateData.phone = data.phone
+    if (data.bio != null) updateData.bio = data.bio
+    if (data.city != null) updateData.city = data.city
+    if (data.state != null) updateData.state = data.state
+
+    // Validate that at least one field is being updated
+    if (Object.keys(updateData).length === 0) {
+      throw new Error('No valid fields to update')
+    }
 
     const updatedUser = await databases.updateDocument(
       DATABASE_ID,
-      USERS_COLLECTION_ID,
+      collectionId,
       userId,
       updateData
     )
@@ -94,15 +107,44 @@ export async function updateUserProfile(
       avatar: updatedUser.avatar,
     }
   } catch (error) {
-    console.error('Error updating user profile:', error)
+    console.error('Error updating profile:', error)
     throw new Error('Failed to update profile')
   }
+}
+
+// User-specific wrapper (exported - use this for users)
+export async function updateUserProfile(
+  userId: string,
+  data: Partial<User>
+): Promise<User> {
+  if (!userId) {
+    throw new Error('User ID is required')
+  }
+  if (!data) {
+    throw new Error('Update data is required')
+  }
+  return _updateProfile(userId, USERS_COLLECTION_ID, data)
+}
+
+// Agent-specific wrapper (exported - use this for agents)
+export async function updateAgentProfile(
+  agentId: string,
+  data: Partial<User>
+): Promise<User> {
+  if (!agentId) {
+    throw new Error('Agent ID is required')
+  }
+  if (!data) {
+    throw new Error('Update data is required')
+  }
+  return _updateProfile(agentId, AGENTS_COLLECTION_ID, data)
 }
 
 // Add image upload function
 export async function uploadAvatar(
   userId: string,
-  file: File | Blob
+  file: File | Blob,
+  collectionId: string = USERS_COLLECTION_ID
 ): Promise<string> {
   try {
     // Convert blob to file if needed
@@ -153,8 +195,8 @@ export async function uploadAvatar(
       .getFileView(STORAGE_BUCKET_ID, result.$id)
       .toString()
 
-    // Update user document with avatar URL
-    await databases.updateDocument(DATABASE_ID, USERS_COLLECTION_ID, userId, {
+    // Update user/agent document with avatar URL
+    await databases.updateDocument(DATABASE_ID, collectionId, userId, {
       avatar: avatarUrl,
     })
 
@@ -174,7 +216,27 @@ export async function uploadAvatar(
   }
 }
 
-export async function deleteUserAccount(userId: string): Promise<void> {
+// User avatar upload wrapper
+export async function uploadUserAvatar(
+  userId: string,
+  file: File | Blob
+): Promise<string> {
+  return uploadAvatar(userId, file, USERS_COLLECTION_ID)
+}
+
+// Agent avatar upload wrapper
+export async function uploadAgentAvatar(
+  agentId: string,
+  file: File | Blob
+): Promise<string> {
+  return uploadAvatar(agentId, file, AGENTS_COLLECTION_ID)
+}
+
+// Generic delete account function (internal)
+async function _deleteAccount(
+  userId: string,
+  collectionId: string
+): Promise<void> {
   try {
     console.log('🗑️ Starting account deletion for user:', userId)
 
@@ -221,7 +283,7 @@ export async function deleteUserAccount(userId: string): Promise<void> {
     }
 
     // 3. Delete user document from database
-    await databases.deleteDocument(DATABASE_ID, USERS_COLLECTION_ID, userId)
+    await databases.deleteDocument(DATABASE_ID, collectionId, userId)
     console.log('✅ Deleted user document')
 
     // 4. Delete user's account (this will also delete sessions)
@@ -238,6 +300,22 @@ export async function deleteUserAccount(userId: string): Promise<void> {
 
     throw new Error('Failed to delete account')
   }
+}
+
+// User-specific delete wrapper (exported)
+export async function deleteUserAccount(userId: string): Promise<void> {
+  if (!userId) {
+    throw new Error('User ID is required')
+  }
+  return _deleteAccount(userId, USERS_COLLECTION_ID)
+}
+
+// Agent-specific delete wrapper (exported)
+export async function deleteAgentAccount(agentId: string): Promise<void> {
+  if (!agentId) {
+    throw new Error('Agent ID is required')
+  }
+  return _deleteAccount(agentId, AGENTS_COLLECTION_ID)
 }
 
 // Toast notification function using browser dialogs

@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     console.log('Sending verification email to:', email)
 
     const { data, error } = await resend.emails.send({
-      from: 'PropSafeHub <noreply@notifications.cofellow.com>',
+      from: 'PropSafeHub <noreply@notifications.propsafehub.com>',
       to: email,
       subject: 'Verify your email - PropSafeHub',
       react: VerificationEmail({

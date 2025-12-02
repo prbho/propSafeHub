@@ -1,4 +1,4 @@
-// components/agents/AgentProperties.tsx - WITH DEBUGGING
+// components/agents/AgentProperties.tsx
 'use client'
 
 import { useState } from 'react'

@@ -27,7 +27,7 @@ import DeleteAccountModal from '@/components/DeleteAccountModal'
 import ImageCropperModal from '@/components/ImageCropperModal'
 import PremiumButton from '@/components/PremiumButton'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { updateUserProfile, uploadAvatar } from '@/lib/appwrite'
+import { updateAgentProfile, uploadAgentAvatar } from '@/lib/appwrite'
 import { deleteUserAccount } from '@/lib/appwrite-auth'
 
 const checkUserPremiumStatus = async (userId: string) => {
@@ -101,7 +101,7 @@ export default function UserProfilePage() {
 
     try {
       // Update user profile in database
-      await updateUserProfile(user.$id, formData)
+      await updateAgentProfile(user.$id, formData)
 
       // Refresh the user data in AuthContext
       await refreshUser()
@@ -151,7 +151,7 @@ export default function UserProfilePage() {
         lastModified: Date.now(),
       })
 
-      await uploadAvatar(user.$id, croppedFile)
+      await uploadAgentAvatar(user.$id, croppedFile)
 
       // Refresh user data to get the new avatar
       await refreshUser()

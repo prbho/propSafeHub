@@ -1,4 +1,4 @@
-// app/api/properties/create/route.ts
+// app/api/properties/create/route.ts - UPDATED VERSION
 import { NextRequest, NextResponse } from 'next/server'
 
 import {
@@ -6,6 +6,7 @@ import {
   DATABASE_ID,
   ID,
   PROPERTIES_COLLECTION_ID,
+  Query,
   serverDatabases,
 } from '@/lib/appwrite-server'
 
@@ -16,7 +17,84 @@ export async function POST(request: NextRequest) {
     // Remove sensitive or unnecessary fields
     const { $permissions, ...cleanPropertyData } = propertyData
 
-    // Validate required fields
+    console.log('🔍 Received property data:', {
+      agentId: cleanPropertyData.agentId,
+      agentName: cleanPropertyData.agentName,
+      listedBy: cleanPropertyData.listedBy,
+    })
+
+    // FIRST: VALIDATE AND FIND THE CORRECT AGENT
+    let correctAgentId = cleanPropertyData.agentId
+    let correctAgentName = cleanPropertyData.agentName
+
+    // Try to get the agent by the provided ID
+    try {
+      const agent = await serverDatabases.getDocument(
+        DATABASE_ID,
+        AGENTS_COLLECTION_ID,
+        cleanPropertyData.agentId
+      )
+
+      console.log('✅ Agent found by provided ID:', {
+        providedId: cleanPropertyData.agentId,
+        foundId: agent.$id,
+        name: agent.name,
+        matches: agent.$id === cleanPropertyData.agentId,
+      })
+
+      // Verify the agent name matches
+      if (agent.name !== cleanPropertyData.agentName) {
+        console.warn('⚠️ Agent name mismatch:', {
+          providedName: cleanPropertyData.agentName,
+          actualName: agent.name,
+        })
+        correctAgentName = agent.name
+      }
+    } catch (error) {
+      console.log('❌ Agent not found by provided ID, searching by name...')
+
+      // Try to find agent by name
+      try {
+        const agents = await serverDatabases.listDocuments(
+          DATABASE_ID,
+          AGENTS_COLLECTION_ID,
+          [Query.equal('name', cleanPropertyData.agentName), Query.limit(1)]
+        )
+
+        if (agents.documents.length > 0) {
+          const foundAgent = agents.documents[0]
+          correctAgentId = foundAgent.$id
+          console.log('✅ Agent found by name:', {
+            originalAgentId: cleanPropertyData.agentId,
+            correctedAgentId: correctAgentId,
+            name: foundAgent.name,
+          })
+        } else {
+          console.error(
+            '❌ No agent found with name:',
+            cleanPropertyData.agentName
+          )
+          return NextResponse.json(
+            {
+              error: 'Agent not found',
+              details: 'No agent found with the provided name',
+            },
+            { status: 404 }
+          )
+        }
+      } catch (searchError) {
+        console.error('❌ Error searching for agent:', searchError)
+        return NextResponse.json(
+          {
+            error: 'Agent validation failed',
+            details: 'Could not verify agent information',
+          },
+          { status: 400 }
+        )
+      }
+    }
+
+    // Validate required fields (update with correct agent info)
     const requiredFields = [
       'title',
       'description',
@@ -25,9 +103,6 @@ export async function POST(request: NextRequest) {
       'price',
       'city',
       'state',
-      'agentId',
-      'agentName',
-      'listedBy',
     ]
 
     const missingFields = requiredFields.filter((field) => {
@@ -46,45 +121,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate numeric fields
-    const numericFields = ['price', 'bedrooms', 'bathrooms', 'squareFeet']
-    const invalidNumericFields = numericFields.filter((field) => {
-      const value = cleanPropertyData[field]
-      return (
-        value !== undefined &&
-        value !== null &&
-        (isNaN(Number(value)) || Number(value) < 0)
-      )
-    })
-
-    if (invalidNumericFields.length > 0) {
-      console.error('❌ Invalid numeric fields:', invalidNumericFields)
-      return NextResponse.json(
-        {
-          error: 'Invalid numeric values',
-          invalidFields: invalidNumericFields,
-        },
-        { status: 400 }
-      )
-    }
-
-    // AUTO-SYNC AGENT: Check if agent exists, create if not
-    console.log('🔄 Checking if agent exists:', cleanPropertyData.agentId)
-    try {
-      // Try to get the agent to see if they exist
-      await serverDatabases.getDocument(
-        DATABASE_ID,
-        AGENTS_COLLECTION_ID,
-        cleanPropertyData.agentId
-      )
-    } catch {}
-
     // Generate propertyId if not provided
     const propertyId = cleanPropertyData.propertyId || ID.unique()
 
-    // Prepare the document data for Appwrite
+    // Prepare the document data with CORRECT agent information
     const documentData = {
       ...cleanPropertyData,
+      // OVERRIDE with correct agent information
+      agentId: correctAgentId,
+      agentName: correctAgentName,
+      listedBy: cleanPropertyData.listedBy || correctAgentName,
+
       // Ensure proper data types
       price: Number(cleanPropertyData.price),
       bedrooms: Number(cleanPropertyData.bedrooms || 0),
@@ -140,12 +187,12 @@ export async function POST(request: NextRequest) {
       customPlanDepositPercent:
         cleanPropertyData.customPlanDepositPercent || 30,
       customPlanMonths: cleanPropertyData.customPlanMonths || 12,
-
-      // Ensure listedBy is properly set
-      listedBy: cleanPropertyData.listedBy || cleanPropertyData.agentName,
     }
 
-    console.log('📄 Prepared document data:', documentData)
+    console.log('📄 Creating property with agent:', {
+      agentId: correctAgentId,
+      agentName: correctAgentName,
+    })
 
     // Create the property in Appwrite
     const property = await serverDatabases.createDocument(
@@ -157,23 +204,24 @@ export async function POST(request: NextRequest) {
 
     console.log('✅ Property created successfully:', property.$id)
 
-    // Increment propertiesListed count for the agent
+    // Increment totalListings count for the CORRECT agent
     try {
       const agent = await serverDatabases.getDocument(
         DATABASE_ID,
         AGENTS_COLLECTION_ID,
-        cleanPropertyData.agentId
+        correctAgentId
       )
 
       await serverDatabases.updateDocument(
         DATABASE_ID,
         AGENTS_COLLECTION_ID,
-        cleanPropertyData.agentId,
+        correctAgentId,
         {
-          propertiesListed: (agent.propertiesListed || 0) + 1,
+          totalListings: (agent.totalListings || 0) + 1,
+          lastUpdated: new Date().toISOString(),
         }
       )
-      console.log('✅ Updated agent properties count')
+      console.log('✅ Updated agent properties count for:', correctAgentId)
     } catch (agentUpdateError) {
       console.error(
         '❌ Failed to update agent properties count:',
@@ -193,31 +241,20 @@ export async function POST(request: NextRequest) {
         price: property.price,
         city: property.city,
         state: property.state,
-        agentId: property.agentId,
-        agentName: property.agentName,
-        listedBy: property.listedBy,
+        agentId: correctAgentId, // Return the correct agent ID
+        agentName: correctAgentName,
+        listedBy: correctAgentName,
         listDate: property.listDate,
       },
     })
-  } catch {
+  } catch (error) {
+    console.error('❌ Error creating property:', error)
     return NextResponse.json(
       {
         error: 'Failed to create property',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
       { status: 500 }
     )
   }
-}
-
-// Only allow POST method for this route
-export async function GET() {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
-}
-
-export async function PUT() {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
-}
-
-export async function DELETE() {
-  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 })
 }

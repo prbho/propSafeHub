@@ -62,7 +62,6 @@ async function getAgents(filters?: {
 
     // If no filters, just get all agents
     const finalQueries = queries.length > 0 ? queries : [Query.limit(50)]
-    console.log('📊 Final queries:', finalQueries)
 
     const response = await serverDatabases.listDocuments(
       DATABASE_ID,

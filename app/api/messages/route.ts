@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
         propertyId: propertyId || undefined,
         propertyTitle: messageTitle || undefined,
       })
-    } catch (notificationError) {}
+    } catch {}
 
     return NextResponse.json(messageDoc)
   } catch {

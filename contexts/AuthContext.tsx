@@ -1,4 +1,6 @@
 // contexts/AuthContext.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 'use client'
 
 import {
@@ -22,6 +24,7 @@ import { toast } from 'sonner'
 import EmailVerificationModal from '@/components/EmailVerificationModal'
 import {
   account,
+  AGENTS_COLLECTION_ID,
   DATABASE_ID,
   databases,
   USERS_COLLECTION_ID,
@@ -29,7 +32,7 @@ import {
 
 interface AuthContextType extends AuthState {
   login: (credentials: LoginCredentials) => Promise<void>
-  register: (data: RegisterData) => Promise<void>
+  register: (data: RegisterData | FormData) => Promise<void>
   logout: () => Promise<void>
   checkEmail: (email: string) => Promise<EmailCheckResult>
   refreshUser: () => Promise<void>
@@ -51,15 +54,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [verificationDismissed, setVerificationDismissed] = useState(false)
   const [authCheckComplete, setAuthCheckComplete] = useState(false)
 
-  // Fetch user document from database
+  // Fetch user document from database - UPDATED TO CHECK BOTH COLLECTIONS
   const fetchUserDocument = async (userId: string): Promise<User | null> => {
     try {
       console.log('📄 Fetching user document for:', userId)
-      const userDoc = await databases.getDocument(
-        DATABASE_ID,
-        USERS_COLLECTION_ID,
-        userId
-      )
+
+      let userDoc
+      let collectionId = USERS_COLLECTION_ID
+
+      // First try users collection
+      try {
+        userDoc = await databases.getDocument(
+          DATABASE_ID,
+          USERS_COLLECTION_ID,
+          userId
+        )
+      } catch {
+        // If not found in users, try agents collection
+        try {
+          userDoc = await databases.getDocument(
+            DATABASE_ID,
+            AGENTS_COLLECTION_ID,
+            userId
+          )
+          collectionId = AGENTS_COLLECTION_ID
+          console.log('✅ User found in AGENTS collection')
+        } catch {
+          return null
+        }
+      }
 
       console.log('✅ User document fetched successfully:', {
         id: userDoc.$id,
@@ -68,21 +91,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userType: userDoc.userType,
         emailVerified: userDoc.emailVerified,
         avatar: userDoc.avatar,
+        collection: collectionId === USERS_COLLECTION_ID ? 'users' : 'agents',
       })
 
-      return {
+      // Build user object with all fields
+      const userObject: User = {
         $id: userDoc.$id,
         $createdAt: userDoc.$createdAt,
         $updatedAt: userDoc.$updatedAt,
         name: userDoc.name,
         email: userDoc.email,
-        bio: userDoc.bio,
-        city: userDoc.city,
-        state: userDoc.state,
         emailVerified: userDoc.emailVerified,
-        phone: userDoc.phone,
-        mobilePhone: userDoc.mobilePhone,
-        userType: userDoc.userType,
+        phone: userDoc.phone || '',
+        mobilePhone: userDoc.mobilePhone || '',
+        userType: userDoc.userType || 'user',
         isActive: userDoc.isActive,
         verificationToken: userDoc.verificationToken,
         lastVerificationRequest: userDoc.lastVerificationRequest,
@@ -90,8 +112,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         savedSearches: userDoc.savedSearches || [],
         favoriteProperties: userDoc.favoriteProperties || [],
         avatar: userDoc.avatar,
+        bio: userDoc.bio,
+        city: userDoc.city,
+        state: userDoc.state,
       }
-    } catch {
+
+      // Add optional fields
+      if (userDoc.bio) userObject.bio = userDoc.bio
+      if (userDoc.city) userObject.city = userDoc.city
+      if (userDoc.state) userObject.state = userDoc.state
+
+      // Add agent-specific fields if user is an agent
+      if (collectionId === AGENTS_COLLECTION_ID) {
+        userObject.agency = userDoc.agency
+        userObject.licenseNumber = userDoc.licenseNumber
+        userObject.yearsExperience = userDoc.yearsExperience
+        userObject.specialties = userDoc.specialties || []
+        userObject.languages = userDoc.languages || ['English']
+        userObject.totalListings = userDoc.totalListings || 0
+        userObject.rating = userDoc.rating || 0
+        userObject.reviewCount = userDoc.reviewCount || 0
+        userObject.isVerified = userDoc.isVerified || false
+        userObject.verificationDocuments = userDoc.verificationDocuments || []
+        userObject.officePhone = userDoc.officePhone
+        userObject.website = userDoc.website
+        userObject.specialty = userDoc.specialty
+      }
+
+      return userObject
+    } catch (error) {
+      console.error('❌ Error fetching user document:', error)
       return null
     }
   }
@@ -181,7 +231,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: appwriteUser.name,
       })
 
-      // Fetch complete user data from database
+      // Fetch complete user data from database (UPDATED TO CHECK BOTH COLLECTIONS)
       const userDoc = await fetchUserDocument(appwriteUser.$id)
 
       if (userDoc) {
@@ -189,6 +239,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: userDoc.email,
           userType: userDoc.userType,
           emailVerified: userDoc.emailVerified,
+          isAgent: userDoc.userType === 'agent',
         })
 
         setAuthState({
@@ -277,6 +328,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('✅ User data refreshed:', {
           name: updatedUserDoc.name,
           email: updatedUserDoc.email,
+          userType: updatedUserDoc.userType,
+          isAgent: updatedUserDoc.userType === 'agent',
         })
 
         setAuthState((prev) => ({
@@ -295,20 +348,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const normalizedEmail = email.toLowerCase().trim()
 
-      const response = await databases.listDocuments(
-        DATABASE_ID,
-        USERS_COLLECTION_ID,
-        [Query.equal('email', normalizedEmail), Query.limit(1)]
-      )
+      // Check BOTH collections
+      const [usersResponse, agentsResponse] = await Promise.all([
+        databases.listDocuments(DATABASE_ID, USERS_COLLECTION_ID, [
+          Query.equal('email', normalizedEmail),
+          Query.limit(1),
+        ]),
+        databases.listDocuments(DATABASE_ID, AGENTS_COLLECTION_ID, [
+          Query.equal('email', normalizedEmail),
+          Query.limit(1),
+        ]),
+      ])
 
-      console.log('📊 Database query result:', {
-        total: response.total,
-        documents: response.documents.length,
+      console.log('📊 Database query results:', {
+        usersTotal: usersResponse.total,
+        usersFound: usersResponse.documents.length,
+        agentsTotal: agentsResponse.total,
+        agentsFound: agentsResponse.documents.length,
       })
 
-      if (response.documents.length > 0) {
-        const userDoc = response.documents[0]
-        console.log('✅ User found in database:', {
+      // Check users collection first
+      if (usersResponse.documents.length > 0) {
+        const userDoc = usersResponse.documents[0]
+        console.log('✅ User found in USERS collection:', {
           id: userDoc.$id,
           userType: userDoc.userType,
           emailVerified: userDoc.emailVerified,
@@ -323,12 +385,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             emailVerified: userDoc.emailVerified,
             isActive: userDoc.isActive,
             userType: userDoc.userType,
+            city: userDoc.city,
+            agency: userDoc.agency,
           },
         }
-      } else {
-        console.log('❌ No user found with email:', normalizedEmail)
-        return { exists: false }
       }
+
+      // Check agents collection
+      if (agentsResponse.documents.length > 0) {
+        const userDoc = agentsResponse.documents[0]
+        console.log('✅ User found in AGENTS collection:', {
+          id: userDoc.$id,
+          userType: userDoc.userType,
+          emailVerified: userDoc.emailVerified,
+          agency: userDoc.agency,
+          city: userDoc.city,
+        })
+
+        return {
+          exists: true,
+          user: {
+            $id: userDoc.$id,
+            name: userDoc.name,
+            email: userDoc.email,
+            emailVerified: userDoc.emailVerified,
+            isActive: userDoc.isActive,
+            userType: userDoc.userType,
+            agency: userDoc.agency,
+            city: userDoc.city,
+          },
+        }
+      }
+
+      console.log(
+        '❌ No user found with email in any collection:',
+        normalizedEmail
+      )
+      return { exists: false }
     } catch {
       return { exists: false }
     }
@@ -345,21 +438,99 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       )
 
       await checkAuthStatus()
-    } catch {
+    } catch (error: any) {
+      console.error('❌ Login error details:', {
+        code: error.code,
+        message: error.message,
+        type: error.type,
+        response: error.response,
+      })
+
       setAuthState((prev) => ({ ...prev, isLoading: false }))
+
+      // Map Appwrite errors to user-friendly messages
+      let userFriendlyError = error
+
+      if (error.code === 400) {
+        userFriendlyError = {
+          ...error,
+          message: 'Invalid email or password. Please try again.',
+        }
+      } else if (error.code === 401) {
+        userFriendlyError = {
+          ...error,
+          message: 'Invalid credentials. Please check your email and password.',
+        }
+      } else if (error.code === 429) {
+        userFriendlyError = {
+          ...error,
+          message: 'Too many login attempts. Please try again in 15 minutes.',
+        }
+      } else if (
+        error.message?.toLowerCase().includes('password') ||
+        error.message?.toLowerCase().includes('credentials')
+      ) {
+        userFriendlyError = {
+          ...error,
+          message: 'Incorrect password. Please try again.',
+        }
+      }
+
+      throw userFriendlyError
     }
   }
 
-  const register = async (data: RegisterData) => {
+  const register = async (data: RegisterData | FormData) => {
     try {
-      console.log('📝 Starting registration for:', data.email)
+      console.log('📝 Starting registration...')
       setAuthState((prev) => ({ ...prev, isLoading: true }))
 
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      })
+      let response
+
+      // Check if data is FormData (for file uploads)
+      if (data instanceof FormData) {
+        console.log('📁 Using FormData for registration (with file)')
+
+        // Add debug logging for FormData contents
+        console.log('📋 FormData entries:')
+        for (const [key, value] of data.entries()) {
+          if (key === 'avatar' && value instanceof File) {
+            console.log(`  ${key}:`, {
+              name: value.name,
+              type: value.type,
+              size: value.size,
+            })
+          } else if (key === 'agentData' && typeof value === 'string') {
+            try {
+              console.log(`  ${key}:`, JSON.parse(value))
+            } catch {
+              console.log(`  ${key}:`, value)
+            }
+          } else {
+            console.log(`  ${key}:`, value)
+          }
+        }
+
+        response = await fetch('/api/auth/register', {
+          method: 'POST',
+          body: data,
+          // DO NOT set Content-Type header - browser will set it automatically
+        })
+      } else {
+        // Handle regular JSON data (backward compatibility)
+        console.log('📄 Using JSON for registration (no file)')
+        console.log('📋 Registration data:', {
+          ...data,
+          password: '[PROTECTED]',
+          email: data.email ? `${data.email.substring(0, 3)}...` : 'none',
+        })
+
+        response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        })
+      }
 
       const result = await response.json()
 
@@ -368,7 +539,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(result.error || 'Registration failed')
       }
 
-      console.log('✅ Registration successful, user:', result.user)
+      console.log('✅ Registration successful, user:', {
+        id: result.user?.id,
+        email: result.user?.email
+          ? `${result.user.email.substring(0, 3)}...`
+          : 'none',
+        userType: result.user?.userType,
+        hasAvatar: !!result.user?.avatar,
+      })
 
       // Immediately update auth state
       setAuthState({
@@ -383,9 +561,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setShowVerificationModal(true)
 
       console.log('📧 Verification modal shown')
-    } catch {
+
+      return result // Return the result for the caller
+    } catch (error: any) {
+      console.error('❌ Registration error:', error.message || error)
       setAuthState((prev) => ({ ...prev, isLoading: false }))
-      throw toast.error('Registration failed')
+      throw error // Re-throw the error for the caller to handle
     }
   }
 
@@ -472,6 +653,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             name: authState.user.name,
             userType: authState.user.userType,
             emailVerified: authState.user.emailVerified,
+            isAgent: authState.user.userType === 'agent',
           }
         : null,
     })

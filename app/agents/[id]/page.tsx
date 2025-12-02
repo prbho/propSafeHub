@@ -1,3 +1,4 @@
+// app/agents/[id]/page.tsx - UPDATED WITH DEBUG
 import { notFound } from 'next/navigation'
 
 import AgentProperties from '@/components/AgentProperties'
@@ -39,19 +40,10 @@ export default async function AgentProfilePage({
     email: agent.email,
   })
 
-  // Debug the properties fetch
-  const agentProperties = await getAgentProperties(id)
+  // DEBUG: Run the debug function first
 
-  console.log('🔍 Agent properties debug:', {
-    agentId: id,
-    propertiesCount: agentProperties.length,
-    properties: agentProperties.map((p) => ({
-      id: p.$id,
-      title: p.title,
-      agentId: p.agentId,
-      status: p.status,
-    })),
-  })
+  // Then get properties normally
+  const agentProperties = await getAgentProperties(id)
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -63,18 +55,14 @@ export default async function AgentProfilePage({
           <div className="flex-1">
             <AgentAboutSection agent={agent} />
 
-            {/* Agent's Properties - Add fallback message for debugging */}
+            {/* Agent's Properties */}
             {agentProperties.length === 0 ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
-                <h3 className="text-lg font-semibold text-yellow-800 mb-2">
-                  No Properties Found
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  No Properties Listed
                 </h3>
-                <p className="text-yellow-700">
-                  Agent ID: {agent.$id}
-                  <br />
-                  Properties array length: {agentProperties.length}
-                  <br />
-                  This agent might not have any published properties yet.
+                <p className="text-gray-600 mb-4">
+                  {agent.name} hasn`&apos;t listed any properties yet.
                 </p>
               </div>
             ) : (

@@ -1,4 +1,4 @@
-// lib/agents/getAgentProperties.ts - FIXED VERSION
+// lib/agents/getAgentProperties.ts - WITH isVerified FILTER
 import { Property } from '@/types'
 import { Query } from 'node-appwrite'
 
@@ -13,61 +13,55 @@ export async function getAgentProperties(agentId: string): Promise<Property[]> {
 
     console.log('🔍 getAgentProperties - Agent ID:', agentId)
 
-    // First, let's find the correct agent ID by agent name
-    const agent = await serverDatabases.getDocument(
+    // Get properties by agentId with isVerified filter
+    const properties = await serverDatabases.listDocuments(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-      process.env.NEXT_PUBLIC_APPWRITE_AGENTS_TABLE_ID!,
-      agentId
+      process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID!,
+      [
+        Query.equal('agentId', agentId),
+        Query.equal('isVerified', true), // Only show verified properties
+        Query.equal('isActive', true), // And active properties
+        Query.orderDesc('$createdAt'),
+        Query.limit(20),
+      ]
     )
 
-    if (!agent) {
-      console.log('❌ Agent not found with ID:', agentId)
-      return []
+    console.log(
+      `✅ Found ${properties.documents.length} verified properties for agent ${agentId}`
+    )
+
+    // Debug log
+    if (properties.documents.length > 0) {
+      console.log('📋 Verified properties found:')
+      properties.documents.forEach((prop, index) => {
+        console.log(`   ${index + 1}. ${prop.title}`, {
+          isVerified: prop.isVerified,
+          isActive: prop.isActive,
+          status: prop.status,
+          agentId: prop.agentId,
+        })
+      })
+    } else {
+      // Debug: Check what properties exist but aren't verified
+      const allProperties = await serverDatabases.listDocuments(
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
+        process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID!,
+        [Query.equal('agentId', agentId), Query.limit(10)]
+      )
+
+      console.log(
+        `📋 Total properties for agent (including unverified): ${allProperties.documents.length}`
+      )
+      allProperties.documents.forEach((prop, index) => {
+        console.log(`   ${index + 1}. ${prop.title}`, {
+          isVerified: prop.isVerified,
+          isActive: prop.isActive,
+          status: prop.status,
+        })
+      })
     }
 
-    console.log('🔍 Agent details:', {
-      id: agent.$id,
-      name: agent.name,
-      email: agent.email,
-    })
-
-    // Try to find properties by agent name since the IDs don't match
-    const propertiesByName = await serverDatabases.listDocuments(
-      process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-      process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID!,
-      [Query.equal('agentName', agent.name), Query.limit(10)]
-    )
-
-    console.log(
-      `✅ Found ${propertiesByName.documents.length} properties by agent name: "${agent.name}"`
-    )
-
-    // Also try by the other agent ID that appears in properties
-    const otherAgentId = '691889510031db5f47b0' // The ID that properties are actually linked to
-    const propertiesByOtherId = await serverDatabases.listDocuments(
-      process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
-      process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID!,
-      [Query.equal('agentId', otherAgentId), Query.limit(10)]
-    )
-
-    console.log(
-      `✅ Found ${propertiesByOtherId.documents.length} properties by other agent ID: "${otherAgentId}"`
-    )
-
-    // Combine both results (remove duplicates)
-    const allProperties = [
-      ...propertiesByName.documents,
-      ...propertiesByOtherId.documents,
-    ]
-    const uniqueProperties = allProperties.filter(
-      (prop, index, self) => index === self.findIndex((p) => p.$id === prop.$id)
-    )
-
-    console.log(
-      `📊 Final result: ${uniqueProperties.length} unique properties for "${agent.name}"`
-    )
-
-    return uniqueProperties as unknown as Property[]
+    return properties.documents as unknown as Property[]
   } catch (error) {
     console.error('❌ Error in getAgentProperties:', error)
     return []

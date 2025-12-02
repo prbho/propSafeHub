@@ -55,10 +55,9 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Get agent details
-    let agent
+    // Verify agent exists (no need to store the document if not used)
     try {
-      agent = await serverDatabases.getDocument(
+      await serverDatabases.getDocument(
         DATABASE_ID,
         USERS_COLLECTION_ID,
         property.agentId

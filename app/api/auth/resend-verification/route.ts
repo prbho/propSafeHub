@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
     `
 
     const { error } = await resend.emails.send({
-      from: 'PropSafeHub <noreply@notifications.cofellow.com>',
+      from: 'PropSafeHub <noreply@notifications.propsafehub.com>',
       to: email,
       subject: 'Verify your email - PropSafeHub',
       html: emailHtml,

@@ -12,8 +12,19 @@ export default function ProfileRedirectPage() {
   useEffect(() => {
     if (!isLoading) {
       if (isAuthenticated && user) {
-        // Redirect to the user's own profile
-        router.replace(`/profile/${user.$id}`)
+        // Determine user type for routing
+        let userType = 'user' // default
+
+        if (user.userType === 'agent') {
+          userType = 'agent'
+        } else if (user.userType === 'seller') {
+          userType = 'seller'
+        } else if (user.userType === 'buyer') {
+          userType = 'buyer'
+        }
+
+        // Redirect to profile with user type and ID
+        router.replace(`/profile/${userType}/${user.$id}`)
       } else {
         // Redirect to login if not authenticated
         router.replace('/signin')
