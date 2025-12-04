@@ -39,8 +39,8 @@ export default function FeaturedPropertiesCarousel() {
   return (
     <PropertyCarousel
       properties={featuredProperties}
-      title="Featured Properties"
-      subtitle="Discover our hand-picked selection of premium properties across Nigeria"
+      title="Explore Verified Properties"
+      subtitle="Discover our hand-picked selection of authentic, verified, and future-proof properties with complete peace of mind."
       autoPlay={false}
       autoPlayInterval={5000}
     />
