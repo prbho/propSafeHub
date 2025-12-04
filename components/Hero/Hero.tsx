@@ -45,14 +45,14 @@ export default function Hero() {
           <div className="mb-12 max-w-3xl mx-auto">
             {/* Simple Headline */}
             <div className="max-w-3xl mx-auto">
-              <h1 className="text-4xl md:text-5xl font-bold mb-6 text-white leading-tight">
-                Find your perfect home in Nigeria
+              <h1 className="text-3xl md:text-5xl font-bold mb-6 text-white leading-tight">
+                Your Trusted Path to Secure, Verified Real Estate.
               </h1>
             </div>
             {/* Clean Subtitle */}
             <p className="text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
-              Search thousands of verified properties for sale and rent across
-              Nigeria&quot;s top cities
+              Search verified property listings for sale and rent—diligently
+              checked for your safety.
             </p>
           </div>
 
