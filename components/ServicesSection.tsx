@@ -165,7 +165,7 @@ export default function ServicesSection() {
       icon: Shield,
       title: 'Safety First',
       description:
-        'Your peace of mind is our priority. Zero hidden risks in every transaction.',
+        'Your peace of mind comes first. With PropSafe Hub, every transaction is clear, verified, and risk-free.',
       color: 'text-emerald-600',
       bg: 'bg-emerald-50',
     },
