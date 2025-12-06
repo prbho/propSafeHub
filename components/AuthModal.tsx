@@ -30,8 +30,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 import { AgentRegistrationForm } from './auth/AgentRegistrationForm'
-import ModernImageCropper from './ModernImageCropper'
-import Portal from './Portal'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -56,7 +54,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
 
   // Cropping state
-  const [showCropper, setShowCropper] = useState(false)
   const [imageToCrop, setImageToCrop] = useState<string | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -82,7 +79,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setShowPassword(false)
     setAvatarFile(null)
     setAvatarPreview('')
-    setShowCropper(false)
     setImageToCrop(null)
 
     // Reset agent fields
@@ -102,77 +98,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatPhoneNumber(e.target.value)
     setPhone(formatted)
-  }
-  const checkImageAspectRatio = (file: File): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image()
-      const url = URL.createObjectURL(file)
-
-      img.onload = () => {
-        URL.revokeObjectURL(url)
-        const aspectRatio = img.width / img.height
-        const isSquare = Math.abs(aspectRatio - 1) < 0.05 // 5% tolerance
-        resolve(isSquare)
-      }
-
-      img.onerror = () => {
-        URL.revokeObjectURL(url)
-        resolve(false)
-      }
-
-      img.src = url
-    })
-  }
-
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validate file
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file (JPEG, PNG, etc.)')
-      return
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image size should be less than 5MB')
-      return
-    }
-
-    // Show cropper instead of directly setting the file
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      const imageDataUrl = reader.result as string
-      setImageToCrop(imageDataUrl)
-      setShowCropper(true)
-    }
-    reader.readAsDataURL(file)
-
-    // Reset file input so same file can be selected again
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-  }
-
-  // Handle cropped image
-  const handleCropComplete = (croppedImageBlob: Blob) => {
-    // Create a File from the Blob
-    const croppedFile = new File([croppedImageBlob], 'avatar.jpg', {
-      type: 'image/jpeg',
-      lastModified: Date.now(),
-    })
-
-    setAvatarFile(croppedFile)
-
-    // Create preview
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setAvatarPreview(reader.result as string)
-    }
-    reader.readAsDataURL(croppedFile)
-
-    toast.success('Image cropped successfully!')
-    setError('')
   }
 
   const handleEmailSubmit = async (e: React.FormEvent) => {

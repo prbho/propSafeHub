@@ -7,9 +7,12 @@ import Link from 'next/link'
 import {
   ArrowRight,
   Facebook,
+  FileText,
+  Globe,
   Instagram,
   Linkedin,
   Twitter,
+  Users,
 } from 'lucide-react'
 
 const SOCIALS = [
@@ -54,6 +57,79 @@ interface FooterData {
     citiesCovered: number
   }
 }
+
+const COMPANY_LINKS = [
+  {
+    title: 'About Us',
+    href: '/about',
+    // icon: Info,
+    description: 'Our story, mission & team',
+  },
+  {
+    title: 'Services',
+    href: '/services',
+    // icon: Building,
+    description: 'All our offerings',
+  },
+  {
+    title: 'Properties',
+    href: '/properties',
+    // icon: Home,
+    description: 'Browse listings',
+  },
+  {
+    title: 'Contact',
+    href: '/contact',
+    // icon: Phone,
+    description: 'Get in touch',
+  },
+]
+
+const SERVICE_LINKS = [
+  {
+    title: 'Property Verification',
+    href: '/services/verification',
+    icon: FileText,
+    description: 'Verify any property',
+  },
+  {
+    title: 'Investment Advisory',
+    href: '/services/advisory',
+    icon: Users,
+    description: 'Expert guidance',
+  },
+  {
+    title: 'Diaspora Services',
+    href: '/services/diaspora',
+    icon: Globe,
+    description: 'Invest from abroad',
+  },
+  {
+    title: 'Mortgage Financing',
+    href: '/services/mortgage',
+    description: 'Home loan assistance',
+  },
+  {
+    title: 'Construction',
+    href: '/services/construction',
+    description: 'Building & development',
+  },
+]
+
+// const RESOURCE_LINKS = [
+//   { title: 'Blog & Guides', href: '/blog', description: 'Latest insights' },
+//   { title: 'Market Reports', href: '/reports', description: 'Industry data' },
+//   { title: 'FAQ', href: '/faq', description: 'Common questions' },
+//   { title: 'Careers', href: '/careers', description: 'Join our team' },
+//   { title: 'Press', href: '/press', description: 'News & media' },
+// ]
+
+const LEGAL_LINKS = [
+  { title: 'Privacy Policy', href: '/privacy' },
+  { title: 'Terms of Service', href: '/terms' },
+  { title: 'Cookie Policy', href: '/cookies' },
+  { title: 'Disclaimer', href: '/disclaimer' },
+]
 
 export default function Footer() {
   const [footerData, setFooterData] = useState<FooterData>({
@@ -204,8 +280,9 @@ export default function Footer() {
   return (
     <footer className="bg-slate-950 text-slate-300 pt-20 pb-12 px-6">
       <div className="max-w-7xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
-          {/* Brand + Newsletter */}
+        {/* Main Footer Grid - Now 7 columns */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-10 mb-12">
+          {/* Brand + Contact - Spans 2 columns */}
           <div className="lg:col-span-2 space-y-6">
             <div className="flex items-center gap-3 mb-4">
               {/* Logo */}
@@ -252,10 +329,11 @@ export default function Footer() {
           {/* Popular Real Estate Markets */}
           <div>
             <h4 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
+              {/* <TrendingUp className="h-4 w-4 text-emerald-500" /> */}
               Hot Markets
             </h4>
             <ul className="space-y-3">
-              {footerData.popularMarkets.slice(0, 4).map((market, index) => (
+              {footerData.popularMarkets.slice(0, 5).map((market, index) => (
                 <li key={index}>
                   <Link
                     href={`/properties?location=${encodeURIComponent(market.name)}&type=buy`}
@@ -295,11 +373,12 @@ export default function Footer() {
           {/* Popular Apartment Cities */}
           <div>
             <h4 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
+              {/* <Home className="h-4 w-4 text-emerald-500" /> */}
               Top Rentals
             </h4>
             <ul className="space-y-3">
               {footerData.popularApartments
-                .slice(0, 4)
+                .slice(0, 5)
                 .map((apartment, index) => (
                   <li key={index}>
                     <Link
@@ -337,48 +416,163 @@ export default function Footer() {
             </Link>
           </div>
 
-          <div className="space-y-6">
+          {/* Company Links */}
+          <div>
             <h4 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
-              New Listings by State
+              {/* <Info className="h-4 w-4 text-emerald-500" /> */}
+              Company
             </h4>
-            <div className="grid space-y-3">
-              {footerData.states.slice(0, 6).map((state, index) => (
-                <Link
-                  key={index}
-                  href={`/properties?state=${encodeURIComponent(state)}&sort=newest`}
-                  className="text-slate-400 hover:text-emerald-400 text-sm transition-colors"
-                >
-                  {state} new listings
-                </Link>
+            <ul className="space-y-3">
+              {COMPANY_LINKS.map((link) => (
+                <li key={link.title}>
+                  <Link
+                    href={link.href}
+                    className="text-slate-400 hover:text-white transition-colors group flex items-start gap-2"
+                  >
+                    {/* <div className="p-1.5 bg-slate-900 rounded group-hover:bg-emerald-900/30 transition-colors">
+                      <link.icon className="h-3.5 w-3.5 text-emerald-500" />
+                    </div> */}
+                    <div>
+                      <div className="text-sm group-hover:text-emerald-400 transition-colors">
+                        {link.title}
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {link.description}
+                      </div>
+                    </div>
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           </div>
+
+          {/* Services Links */}
+          <div>
+            <h4 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
+              {/* <Building className="h-4 w-4 text-emerald-500" /> */}
+              Services
+            </h4>
+            <ul className="space-y-3">
+              {SERVICE_LINKS.map((link) => (
+                <li key={link.title}>
+                  <Link
+                    href={link.href}
+                    className="text-slate-400 hover:text-white transition-colors group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm group-hover:text-emerald-400 transition-colors">
+                        {link.title}
+                      </span>
+                      <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                    {link.description && (
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        {link.description}
+                      </div>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Resources Links */}
+          {/* <div> */}
+          {/* <h4 className="text-white font-semibold text-lg mb-4 flex items-center gap-2"> */}
+          {/* <FileText className="h-4 w-4 text-emerald-500" /> */}
+          {/* Resources */}
+          {/* </h4> */}
+          {/* <ul className="space-y-3"> */}
+          {/* {RESOURCE_LINKS.map((link) => (
+                <li key={link.title}>
+                  <Link
+                    href={link.href}
+                    className="text-slate-400 hover:text-white transition-colors group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm group-hover:text-emerald-400 transition-colors">
+                        {link.title}
+                      </span>
+                      <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
+                    </div>
+                    {link.description && (
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        {link.description}
+                      </div>
+                    )}
+                  </Link>
+                </li>
+              ))} */}
+          {/* </ul> */}
+          {/* </div> */}
         </div>
 
-        {/* Bottom Bar */}
-        <div className="border-t border-slate-800 mt-16 pt-8 text-center text-slate-600 text-sm">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div>
-              © {new Date().getFullYear()} PropSafeHub — All Rights Reserved.
+        {/* Stats Bar */}
+        {footerData.stats && (
+          <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800 mb-12">
+            <h4 className="text-white font-semibold text-lg mb-6 text-center">
+              Trusted by Nigerians Nationwide
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-emerald-400 mb-1">
+                  {footerData.stats.totalProperties.toLocaleString()}+
+                </div>
+                <div className="text-sm text-slate-400">Total Properties</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-emerald-400 mb-1">
+                  {footerData.stats.verifiedProperties.toLocaleString()}+
+                </div>
+                <div className="text-sm text-slate-400">Verified Listings</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-emerald-400 mb-1">
+                  {footerData.stats.happyClients.toLocaleString()}+
+                </div>
+                <div className="text-sm text-slate-400">Happy Clients</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-emerald-400 mb-1">
+                  {footerData.stats.citiesCovered}+
+                </div>
+                <div className="text-sm text-slate-400">Cities Covered</div>
+              </div>
             </div>
-            <div className="flex items-center gap-6 text-xs">
+          </div>
+        )}
+
+        {/* Bottom Bar */}
+        <div className="border-t border-slate-800 pt-8">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="text-slate-500 text-sm text-center md:text-left">
+              <div className="mb-1">
+                © {new Date().getFullYear()} PropSafeHub — All Rights Reserved.
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-4 text-xs">
+              {LEGAL_LINKS.map((link) => (
+                <Link
+                  key={link.title}
+                  href={link.href}
+                  className="text-slate-500 hover:text-emerald-400 transition-colors"
+                >
+                  {link.title}
+                </Link>
+              ))}
+              <span className="text-slate-600">|</span>
               <Link
-                href="/privacy"
-                className="hover:text-emerald-400 transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="/terms"
-                className="hover:text-emerald-400 transition-colors"
-              >
-                Terms of Service
-              </Link>
-              <Link
-                href="/sitemap"
-                className="hover:text-emerald-400 transition-colors"
+                href="/site-map"
+                className="text-slate-500 hover:text-emerald-400 transition-colors"
               >
                 Sitemap
+              </Link>
+              <Link
+                href="/accessibility"
+                className="text-slate-500 hover:text-emerald-400 transition-colors"
+              >
+                Accessibility
               </Link>
             </div>
           </div>

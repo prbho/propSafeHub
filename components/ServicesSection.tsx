@@ -9,14 +9,11 @@ import {
   CheckCircle,
   FileCheck,
   Globe,
-  Handshake,
-  HardHat,
   Home,
   Key,
   Shield,
   StarsIcon,
   TrendingUp,
-  Users,
 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -85,7 +82,7 @@ export default function ServicesSection() {
         'Our PropSafe Verify™ service conducts comprehensive due diligence on any property—even those not listed with us. Avoid fraud and ensure 100% safe investments.',
       icon: CheckCircle,
       buttonText: 'Verify a Property',
-      href: '#',
+      href: '/services/verification',
       stats: 'Zero Hidden Risks',
       color: 'bg-white border-gray-100',
       iconBg: 'bg-amber-50',
@@ -104,7 +101,7 @@ export default function ServicesSection() {
         'Get personalized PropSafe Consult™ strategy sessions. We help you choose the right location, estate, and investment strategy for maximum profit and appreciation.',
       icon: BarChart3,
       buttonText: 'Book Consultation',
-      href: '#',
+      href: '/services/advisory',
       stats: 'Personalized Roadmaps',
       color: 'bg-white border-gray-100',
       iconBg: 'bg-indigo-50',
@@ -119,7 +116,7 @@ export default function ServicesSection() {
         'Invest safely from anywhere in the world. We provide virtual inspections, digital paperwork, secure escrow payments, and trusted representatives for seamless transactions.',
       icon: Globe,
       buttonText: 'Invest from Abroad',
-      href: '#',
+      href: '/services/diaspora',
       stats: 'Global Reach, Local Trust',
       color: 'bg-white border-gray-100',
       iconBg: 'bg-cyan-50',
@@ -134,7 +131,7 @@ export default function ServicesSection() {
         'Through our network of professionals, we offer architectural design, construction supervision, turnkey projects, and complete project management services.',
       icon: Building,
       buttonText: 'Start a Project',
-      href: '#',
+      href: '/services/construction',
       stats: 'Turnkey Solutions',
       color: 'bg-white border-gray-100',
       iconBg: 'bg-orange-50',
@@ -153,7 +150,7 @@ export default function ServicesSection() {
         'Access affordable mortgage options through our trusted financial partners. We guide you through eligibility, application, and approval for stress-free home ownership.',
       icon: Briefcase,
       buttonText: 'Apply for Mortgage',
-      href: '#',
+      href: '/services/mortgage',
       stats: '5-30 Year Tenure Options',
       color: 'bg-white border-gray-100',
       iconBg: 'bg-rose-50',
@@ -198,14 +195,14 @@ export default function ServicesSection() {
     },
   ]
 
-  const propertyTypes = [
-    { name: 'Serviced Plots', count: '2,500+' },
-    { name: 'Luxury Homes', count: '1,800+' },
-    { name: 'Affordable Housing', count: '3,200+' },
-    { name: 'Waterfront Properties', count: '450+' },
-    { name: 'Agricultural Land', count: '1,750+' },
-    { name: 'Commercial Properties', count: '900+' },
-  ]
+  // const propertyTypes = [
+  //   { name: 'Serviced Plots', count: '2,500+' },
+  //   { name: 'Luxury Homes', count: '1,800+' },
+  //   { name: 'Affordable Housing', count: '3,200+' },
+  //   { name: 'Waterfront Properties', count: '450+' },
+  //   { name: 'Agricultural Land', count: '1,750+' },
+  //   { name: 'Commercial Properties', count: '900+' },
+  // ]
 
   return (
     <section className="pt-20 bg-white">
@@ -286,30 +283,31 @@ export default function ServicesSection() {
               Why Choose PropSafe Hub?
             </h3>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-              Founded by Tunde Oluwaniyi—an award-winning Executive Director
-              with 10+ years of industry expertise— we&apos;re committed to
-              solving real estate fraud and poor decision-making.
+              We&apos;re committed to solving real estate fraud and poor
+              decision-making.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {coreValues.map((value, index) => (
-              <div
-                key={index}
-                className="text-center bg-emerald-50 p-6 rounded-2xl"
-              >
+              <Link href="/about" key={index}>
                 <div
-                  className={`flex items-center justify-center w-12 h-12 rounded-lg mx-auto mb-4`}
+                  key={index}
+                  className="text-center bg-emerald-50 rounded-2xl p-6 flex flex-col border border-gray-100 hover:shadow-lg transition-all duration-300 hover:-translate-y-1"
                 >
-                  <value.icon className={`h-6 w-6 text-emerald-600`} />
+                  <div
+                    className={`flex items-center justify-center w-12 h-12 rounded-lg mx-auto mb-4`}
+                  >
+                    <value.icon className={`h-6 w-6 text-emerald-600`} />
+                  </div>
+                  <h4 className="text-lg font-semibold text-gray-900 mb-2">
+                    {value.title}
+                  </h4>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {value.description}
+                  </p>
                 </div>
-                <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                  {value.title}
-                </h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {value.description}
-                </p>
-              </div>
+              </Link>
             ))}
           </div>
         </section>

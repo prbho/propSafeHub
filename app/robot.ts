@@ -1,5 +1,9 @@
-# PropSafe Hub Robots.txt
-# Last Updated: 2025-01-01
+// Alternative: app/robots.txt route handler
+import { NextResponse } from 'next/server'
+
+export async function GET() {
+  const robotsTxt = `# PropSafe Hub Robots.txt
+# Last Updated: ${new Date().toISOString().split('T')[0]}
 
 User-agent: *
 Allow: /
@@ -16,12 +20,16 @@ Allow: /terms
 Allow: /disclaimer
 Allow: /cookies
 Allow: /accessibility
-Allow: /site-map
 
 # Disallow private areas
 Disallow: /api/
 Disallow: /admin/
 Disallow: /private/
+Disallow: /agent/properties/edit/
+Disallow: /profile/user/
+Disallow: /verify/
+Disallow: /payment/verify/
+Disallow: /env/
 
 # Disallow search query strings that don't affect content
 Disallow: /*?*sort=
@@ -112,4 +120,16 @@ Disallow: /
 User-agent: MauiBot
 Disallow: /
 
-# End of robots.txt
+# Sitewide sitemaps:
+Sitemap: https://propsafehub.com/sitemap.xml
+Sitemap: https://propsafehub.com/sitemap
+
+# End of robots.txt`
+
+  return new NextResponse(robotsTxt, {
+    headers: {
+      'Content-Type': 'text/plain',
+      'Cache-Control': 'public, max-age=86400',
+    },
+  })
+}
