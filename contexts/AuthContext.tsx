@@ -19,7 +19,6 @@ import {
   VerificationEmailResult,
 } from '@/types/auth'
 import { Query } from 'appwrite'
-import { toast } from 'sonner'
 
 import EmailVerificationModal from '@/components/EmailVerificationModal'
 import {
@@ -61,6 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       let userDoc
       let collectionId = USERS_COLLECTION_ID
+      let agentDocumentId: string | undefined = undefined
 
       // First try users collection
       try {
@@ -69,6 +69,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           USERS_COLLECTION_ID,
           userId
         )
+
+        // If user is an agent, try to find their agent profile
+        if (userDoc.userType === 'agent') {
+          try {
+            // Search for agent profile by userId field
+            const agentProfiles = await databases.listDocuments(
+              DATABASE_ID,
+              AGENTS_COLLECTION_ID,
+              [Query.equal('userId', userId)]
+            )
+
+            if (agentProfiles.documents.length > 0) {
+              const agentProfile = agentProfiles.documents[0]
+              agentDocumentId = agentProfile.$id
+              console.log('✅ Found agent profile for user:', {
+                userAccountId: userId,
+                agentDocumentId: agentProfile.$id,
+                agentName: agentProfile.name,
+              })
+            } else {
+              console.log('⚠️ User is agent type but no agent profile found')
+            }
+          } catch (agentError) {
+            console.log('⚠️ Could not search for agent profile:', agentError)
+          }
+        }
       } catch {
         // If not found in users, try agents collection
         try {
@@ -78,7 +104,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             userId
           )
           collectionId = AGENTS_COLLECTION_ID
-          console.log('✅ User found in AGENTS collection')
+          agentDocumentId = userDoc.$id // This IS the agent document
+          console.log('✅ User found in AGENTS collection (direct agent login)')
         } catch {
           return null
         }
@@ -92,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailVerified: userDoc.emailVerified,
         avatar: userDoc.avatar,
         collection: collectionId === USERS_COLLECTION_ID ? 'users' : 'agents',
+        agentDocumentId,
       })
 
       // Build user object with all fields
@@ -115,6 +143,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         bio: userDoc.bio,
         city: userDoc.city,
         state: userDoc.state,
+      }
+
+      // Add agent document ID if found
+      if (agentDocumentId) {
+        userObject.agentDocumentId = agentDocumentId
       }
 
       // Add optional fields

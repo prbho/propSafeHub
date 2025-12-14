@@ -23,7 +23,7 @@ export class EmailService {
 
       const fromAddress = this.getFromAddress(params.userType)
 
-      const { data, error } = await this.resend.emails.send({
+      const { error } = await this.resend.emails.send({
         from: fromAddress,
         to: params.email,
         subject,

@@ -15,7 +15,7 @@ interface PropertyCarouselProps {
   subtitle?: string
   autoPlay?: boolean
   autoPlayInterval?: number
-  userId?: string
+  userId: string
   showFeaturedBadge?: boolean
   viewAllLink?: string
 }
@@ -249,7 +249,7 @@ export default function PropertyCarousel({
                       property={property}
                       userId={userId}
                       featured={property.isFeatured}
-                      priority={index < 4} // Load first 4 images eagerly
+                      priority={index < 4}
                     />
                   </div>
                 ))}

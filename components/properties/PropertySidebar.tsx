@@ -1,4 +1,4 @@
-// components/properties/PropertySidebar.tsx - WITH MORTGAGE CALCULATOR
+// components/properties/PropertySidebar.tsx - WITH FIXED OWNERSHIP CHECK
 'use client'
 
 import { useState } from 'react'
@@ -17,13 +17,58 @@ import ScheduleViewingModal, { ScheduleData } from './ScheduleViewingModal'
 
 interface PropertySidebarProps {
   property: Property
+  agentProfileId?: string
 }
 
-export default function PropertySidebar({ property }: PropertySidebarProps) {
+export default function PropertySidebar({
+  property,
+  agentProfileId,
+}: PropertySidebarProps) {
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [showMortgageCalculator, setShowMortgageCalculator] = useState(false)
   const { user } = useAuth()
-  const isPropertyOwner = user?.$id === property.agentId
+
+  // SIMPLE AND RELIABLE OWNERSHIP CHECK
+  const isOwner = () => {
+    if (!user || !property.agentId) {
+      return false
+    }
+
+    // Debug info
+    console.log('🔍 PropertySidebar Ownership Check:', {
+      userAccountId: user.$id,
+      userType: user.userType,
+      userAgentDocumentId: user.agentDocumentId || 'No agent document ID',
+      propertyAgentId: property.agentId,
+      agentProfileId: agentProfileId || 'Not provided',
+    })
+
+    // Check all possible ownership scenarios
+    const checks = [
+      // 1. Direct user ID match (property was posted with user's account ID)
+      property.agentId === user.$id,
+
+      // 2. User's agent document ID match (user has agent profile)
+      user.agentDocumentId && property.agentId === user.agentDocumentId,
+
+      // 3. Agent profile context (viewing own agent profile)
+      agentProfileId && property.agentId === agentProfileId,
+    ]
+
+    const result = checks.some((check) => check === true)
+
+    console.log('🎯 Ownership result:', {
+      result,
+      reason: result
+        ? 'User owns this property (matched account ID or agent document ID)'
+        : 'User does NOT own this property',
+    })
+
+    return result
+  }
+
+  const ownerStatus = isOwner()
+  // const isPropertyOwner = Boolean(ownerStatus)
 
   const handleScheduleViewing = async (scheduleData: ScheduleData) => {
     try {
@@ -105,11 +150,11 @@ export default function PropertySidebar({ property }: PropertySidebarProps) {
               )}
           </div>
 
-          {/* Mortgage Calculator Button - HARD TO MISS */}
+          {/* Mortgage Calculator Button */}
           <div className="mb-4">
             <Button
               onClick={() => setShowMortgageCalculator(true)}
-              className="w-full py-6 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg ransform transition-all duration-200 border-0"
+              className="w-full py-6 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg transform transition-all duration-200 border-0 shadow-md hover:shadow-lg"
               size="lg"
             >
               <div className="flex items-center justify-center space-x-3">
@@ -122,7 +167,6 @@ export default function PropertySidebar({ property }: PropertySidebarProps) {
               </div>
             </Button>
 
-            {/* Call-to-action text */}
             <div className="mt-2 text-center">
               <p className="text-xs text-gray-600">
                 💡 See your monthly payments and loan options
@@ -131,29 +175,52 @@ export default function PropertySidebar({ property }: PropertySidebarProps) {
           </div>
 
           <div className="space-y-3 mb-6">
-            <MessageButton
-              property={property}
-              agentId={property.agentId}
-              agentName={property.agentName || 'Property Agent'}
-              propertyId={property.$id}
-              propertyTitle={property.title}
-              className="w-full py-6 capitalize"
-              variant="button"
-            />
+            {/* CONDITIONAL MESSAGE BUTTON - Hide if user is owner */}
+            {!ownerStatus ? (
+              <MessageButton
+                property={property}
+                agentId={property.agentId}
+                agentName={property.agentName || 'Property Agent'}
+                propertyId={property.$id}
+                propertyTitle={property.title}
+                className="w-full py-6 capitalize bg-linear-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                variant="button"
+              />
+            ) : (
+              <div>
+                <div className="p-2 mb-2 bg-emerald-50 border border-emerald-200 rounded-lg text-center">
+                  <p className="text-xs text-emerald-600">
+                    This is your listing: Check your message to see if
+                    interested buyers have contacted you
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full py-6 border-gray-300 hover:bg-gray-50 cursor-pointer"
+                  onClick={() => {
+                    window.location.href = `/dashboard/agent/${user?.$id}/messages?propertyId=${property.$id}`
+                  }}
+                >
+                  View Messages
+                </Button>
+              </div>
+            )}
 
+            {/* Schedule Viewing Button */}
             <Button
               variant="outline"
-              className="w-full py-6 border-gray-300 hover:bg-gray-50"
+              className="w-full py-6 border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setShowScheduleModal(true)}
-              disabled={isPropertyOwner}
+              disabled={ownerStatus}
               title={
-                isPropertyOwner
+                ownerStatus
                   ? "You can't schedule a viewing for your own property"
                   : 'Schedule a property viewing'
               }
             >
               <Calendar className="h-5 w-5 mr-2" />
-              {isPropertyOwner ? 'Manage Viewings' : 'Schedule Viewing'}
+              {ownerStatus ? 'Manage Viewings' : 'Schedule Viewing'}
             </Button>
 
             <Portal>

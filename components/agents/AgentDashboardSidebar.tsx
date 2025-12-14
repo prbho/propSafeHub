@@ -132,7 +132,7 @@ export default function AgentDashboardSidebar({
       name: 'Approval Queue',
       href: '/admin/approvals',
       icon: <CheckCircle className="w-5 h-5" />,
-      badge: notificationCounts.byType.system, // Using system notifications for admin approvals
+      badge: notificationCounts.byType.system,
       adminOnly: true,
     },
     {

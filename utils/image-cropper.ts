@@ -4,8 +4,6 @@
  * Users can upload pre-cropped images
  */
 
- 
-
 export interface CropOptions {
   aspectRatio?: number
   maxWidth?: number
@@ -20,12 +18,7 @@ export async function createSquareThumbnail(
   file: File,
   options: CropOptions = {}
 ): Promise<File> {
-  const {
-    aspectRatio = 1,
-    maxWidth = 500,
-    maxHeight = 500,
-    quality = 0.92,
-  } = options
+  const { maxWidth = 500, maxHeight = 500, quality = 0.92 } = options
 
   return new Promise((resolve, reject) => {
     const img = new Image()

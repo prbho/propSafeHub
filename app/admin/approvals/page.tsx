@@ -93,6 +93,8 @@ export default function AdminApprovalsPage() {
             $id: doc.$id,
             $collectionId: doc.$collectionId,
             $databaseId: doc.$databaseId,
+            userId: doc.userId || '',
+            name: doc.name || '',
             $createdAt: doc.$createdAt,
             $updatedAt: doc.$updatedAt,
             $permissions: doc.$permissions || [],

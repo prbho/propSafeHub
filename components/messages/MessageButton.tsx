@@ -1,7 +1,6 @@
-// components/messages/MessageButton.tsx - UPDATED WITH CLASSNAME PROP
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Property } from '@/types'
 import { BarChart, Edit, Eye, MessageCircle, UserCheck } from 'lucide-react'
@@ -12,9 +11,7 @@ import { Button } from '../ui/button'
 import MessageModal from './MessageModal'
 
 interface MessageButtonProps {
-  agentId: string
-  agentName: string
-  propertyId?: string
+  propertyId: string
   propertyTitle?: string
   variant?: 'button' | 'icon' | 'text'
   property?: Property
@@ -22,12 +19,22 @@ interface MessageButtonProps {
   size?: 'sm' | 'md' | 'lg'
   showIcon?: boolean
   showText?: boolean
+  agentId?: string
+  agentName?: string
+}
+
+interface OwnerInfo {
+  ownerId: string
+  ownerName: string
+  ownerType: string
+  ownerAvatar?: string
+  propertyTitle?: string
+  userId?: string
+  agentId?: string
 }
 
 export default function MessageButton({
   property,
-  agentId,
-  agentName,
   propertyId,
   propertyTitle,
   variant = 'button',
@@ -38,8 +45,65 @@ export default function MessageButton({
 }: MessageButtonProps) {
   const { user } = useAuth()
   const [showModal, setShowModal] = useState(false)
+  const [ownerInfo, setOwnerInfo] = useState<OwnerInfo | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const isOwnProfile = user?.$id === agentId
+  useEffect(() => {
+    if (propertyId) {
+      fetchOwnerInfo()
+    }
+  }, [propertyId])
+
+  const fetchOwnerInfo = async () => {
+    try {
+      setLoading(true)
+      console.log('🔍 Fetching owner info for property:', propertyId)
+
+      const response = await fetch(`/api/properties/${propertyId}/owner`)
+
+      if (!response.ok) {
+        // If API fails, use property data as fallback
+        console.warn('⚠️ Property owner API failed, using fallback data')
+        if (property) {
+          const fallbackInfo: OwnerInfo = {
+            ownerId: property.agentId || property.userId || 'unknown',
+            ownerName: property.agentName || property.name || 'Property Owner',
+            ownerType: property.agentId ? 'agent' : 'user',
+            propertyTitle: property.title,
+            agentId: property.agentId,
+            userId: property.userId,
+          }
+          setOwnerInfo(fallbackInfo)
+          return
+        }
+        throw new Error('Failed to fetch owner info')
+      }
+
+      const data = await response.json()
+      console.log('✅ Owner info fetched:', data)
+      setOwnerInfo(data)
+    } catch (error) {
+      console.error('Error fetching owner info:', error)
+      // Ultimate fallback
+      const fallbackInfo: OwnerInfo = {
+        ownerId: 'unknown',
+        ownerName: 'Property Owner',
+        ownerType: 'agent',
+        propertyTitle: propertyTitle || 'Property',
+      }
+      setOwnerInfo(fallbackInfo)
+      toast.error('Could not fetch property owner information')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Check if current user is the owner
+  const isOwnProfile = ownerInfo
+    ? user?.$id === ownerInfo.ownerId ||
+      (ownerInfo.userId && user?.$id === ownerInfo.userId) ||
+      (ownerInfo.agentId && user?.$id === ownerInfo.agentId)
+    : false
 
   // Size classes
   const sizeClasses = {
@@ -61,6 +125,11 @@ export default function MessageButton({
   }
 
   const handleClick = () => {
+    if (!ownerInfo || ownerInfo.ownerId === 'unknown') {
+      toast.error('Property owner information not available')
+      return
+    }
+
     if (isOwnProfile) {
       return
     }
@@ -69,10 +138,20 @@ export default function MessageButton({
       toast.error('Please sign in to send messages')
       return
     }
+
     setShowModal(true)
   }
 
-  // If this is the agent's own property
+  // Loading state
+  if (loading) {
+    return (
+      <Button disabled size="lg">
+        Loading...
+      </Button>
+    )
+  }
+
+  // If this is the user's own property
   if (isOwnProfile) {
     if (variant === 'icon') {
       return (
@@ -98,7 +177,7 @@ export default function MessageButton({
             </span>
           </div>
 
-          {/* Property stats - with safe property access */}
+          {/* Property stats */}
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="flex items-center gap-1 text-gray-600">
               <Eye className="w-3 h-3" />
@@ -141,32 +220,32 @@ export default function MessageButton({
     )
   }
 
-  // Determine button content based on props
+  // Determine button content
   const renderButtonContent = () => {
     if (variant === 'icon') {
       return showIcon ? <MessageCircle className="w-4 h-4" /> : null
     }
 
     if (variant === 'text') {
-      return showText ? `Message ${agentName}` : null
+      return showText ? `Message ${ownerInfo?.ownerName || 'Owner'}` : null
     }
 
     // Default button variant
     return (
       <>
         {showIcon && <MessageCircle className="w-4 h-4 mr-2" />}
-        {showText && `Message ${agentName}`}
+        {showText && `Message ${ownerInfo?.ownerName || 'Owner'}`}
       </>
     )
   }
 
-  // Determine button classes based on variant and size
+  // Determine button classes
   const getButtonClasses = () => {
     const baseClasses =
-      'text-white cursor-pointer capitalize transition-colors w-full py-6 bg-linear-to-r from-emerald-600 to-emerald-800 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg ransform transition-all duration-200 border-0'
+      'text-white cursor-pointer capitalize transition-colors w-full py-6 bg-gradient-to-r from-emerald-600 to-emerald-800 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-lg transform transition-all duration-200 border-0'
 
     if (variant === 'icon') {
-      return `${baseClasses} ${sizeClasses[size].icon} rounded-full aspect-square flex items-center justify-center ${className}`
+      return `${baseClasses} ${sizeClasses[size].icon} aspect-square w-fit bg-transparent text-gray-400 flex items-center justify-center ${className}`
     }
 
     if (variant === 'text') {
@@ -182,19 +261,20 @@ export default function MessageButton({
       <Button
         onClick={handleClick}
         className={getButtonClasses()}
-        title={`Message ${agentName}`}
+        title={`Message ${ownerInfo?.ownerName || 'Owner'}`}
         size="lg"
       >
         {renderButtonContent()}
       </Button>
 
-      {showModal && (
+      {showModal && ownerInfo && (
         <Portal>
           <MessageModal
-            toUserId={agentId}
-            toUserName={agentName}
+            toUserId={ownerInfo.ownerId}
+            toUserName={ownerInfo.ownerName}
+            toUserType={ownerInfo.ownerType}
             propertyId={propertyId}
-            propertyTitle={propertyTitle}
+            propertyTitle={ownerInfo.propertyTitle || propertyTitle}
             onClose={() => setShowModal(false)}
           />
         </Portal>

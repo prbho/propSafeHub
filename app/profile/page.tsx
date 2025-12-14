@@ -27,7 +27,7 @@ export default function ProfileRedirectPage() {
         router.replace(`/profile/${userType}/${user.$id}`)
       } else {
         // Redirect to login if not authenticated
-        router.replace('/signin')
+        router.replace('/login')
       }
     }
   }, [isAuthenticated, user, isLoading, router])

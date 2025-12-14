@@ -12,7 +12,7 @@ import {
   PROPERTY_TYPES,
 } from '@/types'
 import {
-  ArrowLeft,
+  AlertTriangle,
   Bath,
   Bed,
   Calendar,
@@ -21,6 +21,8 @@ import {
   Home,
   Loader2,
   MapPin,
+  Settings,
+  ShieldAlert,
   Square,
   Tag,
   Upload,
@@ -69,6 +71,12 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
   const [existingImages, setExistingImages] = useState<string[]>(
     property.images || []
   )
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(
+    null
+  )
+  const [lastSaved, setLastSaved] = useState<Date | null>(null)
 
   const [formData, setFormData] = useState({
     // Basic Information
@@ -108,7 +116,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     tags: property.tags || [],
 
     // Payment Options
-    originalPrice: property.originalPrice || '',
+    originalPrice: property.originalPrice,
     paymentOutright: property.paymentOutright || true,
     paymentPlan: property.paymentPlan || false,
     mortgageEligible: property.mortgageEligible || false,
@@ -150,6 +158,31 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     }
   }, [imagePreviews])
 
+  // Handle unsaved changes warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault()
+        e.returnValue =
+          'You have unsaved changes. Are you sure you want to leave?'
+      }
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [hasUnsavedChanges])
+
+  const markChanges = () => {
+    setHasUnsavedChanges(true)
+    if (autoSaveTimer) {
+      clearTimeout(autoSaveTimer)
+    }
+    const timer = setTimeout(() => {
+      toast.info('Auto-saving in 30 seconds...')
+    }, 30000)
+    setAutoSaveTimer(timer)
+  }
+
   const handleLocationSelect = useCallback((location: Location) => {
     setSelectedLocation(location)
     setFormData((prev) => ({
@@ -160,10 +193,12 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
       latitude: location.latitude ? Number(location.latitude) : undefined,
       longitude: location.longitude ? Number(location.longitude) : undefined,
     }))
+    markChanges()
   }, [])
 
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    markChanges()
   }
 
   const handleArrayToggle = (
@@ -176,6 +211,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
         ? prev[field].filter((item) => item !== value)
         : [...prev[field], value],
     }))
+    markChanges()
   }
 
   const handleImageChange = (files: File[]) => {
@@ -183,6 +219,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     imagePreviews.forEach((url) => URL.revokeObjectURL(url))
     const previewUrls = files.map((file) => URL.createObjectURL(file))
     setImagePreviews(previewUrls)
+    markChanges()
   }
 
   const uploadImagesToStorage = async (files: File[]): Promise<string[]> => {
@@ -254,6 +291,13 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
         updateData
       )
 
+      setHasUnsavedChanges(false)
+      setLastSaved(new Date())
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer)
+        setAutoSaveTimer(null)
+      }
+
       toast.success('Property updated successfully!')
       router.push('/agent/properties')
     } catch {
@@ -264,14 +308,6 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
   }
 
   const handleDelete = async () => {
-    if (
-      !confirm(
-        'Are you sure you want to delete this property? This action cannot be undone.'
-      )
-    ) {
-      return
-    }
-
     try {
       const databaseId =
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'propertyDB'
@@ -292,6 +328,133 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     }
   }
 
+  const handleSaveDraft = async () => {
+    if (!selectedLocation) {
+      toast.error('Please select a valid location to save draft')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const databaseId =
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'propertyDB'
+      const propertiesCollectionId =
+        process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID || 'properties'
+
+      const draftData = {
+        ...formData,
+        isActive: false, // Mark as draft
+        lastUpdated: new Date().toISOString(),
+      }
+
+      await databases.updateDocument(
+        databaseId,
+        propertiesCollectionId,
+        property.$id,
+        draftData
+      )
+
+      setHasUnsavedChanges(false)
+      setLastSaved(new Date())
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer)
+        setAutoSaveTimer(null)
+      }
+
+      toast.success('Draft saved successfully!')
+    } catch (error) {
+      console.error('Error saving draft:', error)
+      toast.error('Failed to save draft')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handlePublish = async () => {
+    if (!selectedLocation) {
+      toast.error('Please select a valid location to publish')
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const databaseId =
+        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'propertyDB'
+      const propertiesCollectionId =
+        process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID || 'properties'
+
+      const publishData = {
+        ...formData,
+        isActive: true, // Mark as published
+        lastUpdated: new Date().toISOString(),
+      }
+
+      await databases.updateDocument(
+        databaseId,
+        propertiesCollectionId,
+        property.$id,
+        publishData
+      )
+
+      setHasUnsavedChanges(false)
+      setLastSaved(new Date())
+      if (autoSaveTimer) {
+        clearTimeout(autoSaveTimer)
+        setAutoSaveTimer(null)
+      }
+
+      toast.success('Property published successfully!')
+      router.push('/agent/properties')
+    } catch (error) {
+      console.error('Error publishing property:', error)
+      toast.error('Failed to publish property')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const getRequiredFieldsStatus = () => {
+    const requiredFields = [
+      { label: 'Title', value: formData.title, ok: !!formData.title },
+      {
+        label: 'Description',
+        value: formData.description,
+        ok: !!formData.description,
+      },
+      { label: 'Price', value: formData.price, ok: formData.price > 0 },
+      { label: 'Address', value: formData.address, ok: !!formData.address },
+      { label: 'City', value: formData.city, ok: !!formData.city },
+      { label: 'State', value: formData.state, ok: !!formData.state },
+      {
+        label: 'Bedrooms',
+        value: formData.bedrooms,
+        ok: formData.bedrooms > 0,
+      },
+      {
+        label: 'Bathrooms',
+        value: formData.bathrooms,
+        ok: formData.bathrooms > 0,
+      },
+      {
+        label: 'Square Feet',
+        value: formData.squareFeet,
+        ok: formData.squareFeet > 0,
+      },
+    ]
+
+    const completed = requiredFields.filter((f) => f.ok).length
+    const total = requiredFields.length
+
+    return { completed, total, fields: requiredFields }
+  }
+
+  const getCompletionPercentage = () => {
+    const status = getRequiredFieldsStatus()
+    return Math.round((status.completed / status.total) * 100)
+  }
+
   if (authLoading || isLoading) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12">
@@ -302,48 +465,73 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen ">
       {/* Header */}
-      <div className="pt-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => router.push('/agent/properties')}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                Edit Property
-              </h1>
-              <p className="text-gray-600">
-                Update your property listing details
-              </p>
+      <div className="sticky top-0 z-10">
+        <div className="">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {property.title}{' '}
+                </h2>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {hasUnsavedChanges && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-sm">
+                  <AlertTriangle className="w-3 h-3" />
+                  Unsaved changes
+                </div>
+              )}
+              <div>
+                <div className="text-sm text-gray-500 hidden md:block">
+                  Created: {new Date(property.$createdAt).toLocaleDateString()}
+                </div>
+                {lastSaved && (
+                  <div className="text-sm text-gray-500 hidden md:block">
+                    Last saved:{' '}
+                    {property.lastUpdated
+                      ? new Date(property.lastUpdated).toLocaleDateString()
+                      : 'Never'}{' '}
+                    {lastSaved.toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-x-4 mb-6">
-          <div className="col-span-3 space-y-6">
+      <div className="container mx-auto py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Main Content - 3/4 width */}
+          <div className="lg:col-span-3 space-y-6">
             {/* Basic Information */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Home className="w-5 h-5" />
-                  Basic Information
-                </CardTitle>
-                <CardDescription>
-                  Update essential details about your property
-                </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <Home className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Basic Information</CardTitle>
+                    <CardDescription>
+                      Essential details about your property
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label htmlFor="title">Property Title *</Label>
+                    <Label htmlFor="title" className="flex items-center gap-1">
+                      Property Title <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="title"
                       required
@@ -352,11 +540,26 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                         handleInputChange('title', e.target.value)
                       }
                       placeholder="Beautiful 3-Bedroom Apartment in Lekki"
+                      className={
+                        !formData.title
+                          ? 'border-red-300 focus:border-red-500'
+                          : ''
+                      }
                     />
+                    {!formData.title && (
+                      <p className="text-xs text-red-500">
+                        This field is required
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="propertyType">Property Type *</Label>
+                    <Label
+                      htmlFor="propertyType"
+                      className="flex items-center gap-1"
+                    >
+                      Property Type <span className="text-red-500">*</span>
+                    </Label>
                     <Select
                       required
                       value={formData.propertyType}
@@ -378,7 +581,9 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="status">Status *</Label>
+                    <Label htmlFor="status" className="flex items-center gap-1">
+                      Status <span className="text-red-500">*</span>
+                    </Label>
                     <Select
                       required
                       value={formData.status}
@@ -399,7 +604,12 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="listedBy">Listed By *</Label>
+                    <Label
+                      htmlFor="listedBy"
+                      className="flex items-center gap-1"
+                    >
+                      Listed By <span className="text-red-500">*</span>
+                    </Label>
                     <Select
                       required
                       value={formData.listedBy}
@@ -419,7 +629,12 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="description">Description *</Label>
+                  <Label
+                    htmlFor="description"
+                    className="flex items-center gap-1"
+                  >
+                    Description <span className="text-red-500">*</span>
+                  </Label>
                   <Textarea
                     id="description"
                     required
@@ -428,8 +643,18 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                       handleInputChange('description', e.target.value)
                     }
                     placeholder="Describe the property features, neighborhood, and unique selling points..."
-                    rows={6}
+                    rows={4}
+                    className={
+                      !formData.description
+                        ? 'border-red-300 focus:border-red-500'
+                        : ''
+                    }
                   />
+                  {!formData.description && (
+                    <p className="text-xs text-red-500">
+                      This field is required
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -437,17 +662,23 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
             {/* Location Information */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5" />
-                  Location
-                </CardTitle>
-                <CardDescription>
-                  Update property location details
-                </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <MapPin className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Location</CardTitle>
+                    <CardDescription>
+                      Where is your property located?
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label>Search Location *</Label>
+                  <Label className="flex items-center gap-1">
+                    Search Location <span className="text-red-500">*</span>
+                  </Label>
                   <LocationSearch
                     onLocationSelect={handleLocationSelect}
                     placeholder="Type area, city, or state..."
@@ -458,7 +689,12 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="address">Full Address *</Label>
+                    <Label
+                      htmlFor="address"
+                      className="flex items-center gap-1"
+                    >
+                      Full Address <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="address"
                       required
@@ -467,7 +703,17 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                         handleInputChange('address', e.target.value)
                       }
                       placeholder="Street address, building number, etc."
+                      className={
+                        !formData.address
+                          ? 'border-red-300 focus:border-red-500'
+                          : ''
+                      }
                     />
+                    {!formData.address && (
+                      <p className="text-xs text-red-500">
+                        This field is required
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -484,31 +730,44 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                 </div>
 
                 {selectedLocation && (
-                  <Card className="bg-green-50 border-green-200">
-                    <CardContent className="pt-6">
-                      <div className="flex items-center gap-2 mb-4">
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
-                        <h4 className="font-semibold text-green-900">
-                          Location Confirmed
-                        </h4>
+                  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                          <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-green-900">
+                            Location Confirmed
+                          </h4>
+                          <p className="text-sm text-green-700">
+                            All location details are set
+                          </p>
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div className="text-center p-3 bg-white rounded-lg border border-green-100">
+                        <div className="text-center p-3 bg-white rounded-lg border border-green-100 shadow-sm">
                           <p className="text-gray-600">City</p>
-                          <p className="font-semibold">{formData.city}</p>
+                          <p className="font-semibold text-green-900">
+                            {formData.city}
+                          </p>
                         </div>
-                        <div className="text-center p-3 bg-white rounded-lg border border-green-100">
+                        <div className="text-center p-3 bg-white rounded-lg border border-green-100 shadow-sm">
                           <p className="text-gray-600">State</p>
-                          <p className="font-semibold">{formData.state}</p>
+                          <p className="font-semibold text-green-900">
+                            {formData.state}
+                          </p>
                         </div>
-                        <div className="text-center p-3 bg-white rounded-lg border border-green-100">
+                        <div className="text-center p-3 bg-white rounded-lg border border-green-100 shadow-sm">
                           <p className="text-gray-600">Country</p>
-                          <p className="font-semibold">{formData.country}</p>
+                          <p className="font-semibold text-green-900">
+                            {formData.country}
+                          </p>
                         </div>
                         {formData.neighborhood && (
-                          <div className="text-center p-3 bg-white rounded-lg border border-green-100">
+                          <div className="text-center p-3 bg-white rounded-lg border border-green-100 shadow-sm">
                             <p className="text-gray-600">Area</p>
-                            <p className="font-semibold">
+                            <p className="font-semibold text-green-900">
                               {formData.neighborhood}
                             </p>
                           </div>
@@ -523,41 +782,57 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
             {/* Pricing */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="w-5 h-5" />
-                  Pricing
-                </CardTitle>
-                <CardDescription>
-                  Update property pricing information
-                </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-purple-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Pricing</CardTitle>
+                    <CardDescription>Set your property price</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="price">Price *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      required
-                      min="0"
-                      value={formData.price || ''}
-                      onChange={(e) =>
-                        handleInputChange(
-                          'price',
-                          e.target.value === '' ? 0 : parseFloat(e.target.value)
-                        )
-                      }
-                    />
+                    <Label htmlFor="price" className="flex items-center gap-1">
+                      Price <span className="text-red-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                        ₦
+                      </span>
+                      <Input
+                        id="price"
+                        type="number"
+                        required
+                        min="0"
+                        value={formData.price || ''}
+                        onChange={(e) =>
+                          handleInputChange(
+                            'price',
+                            e.target.value === ''
+                              ? 0
+                              : parseFloat(e.target.value)
+                          )
+                        }
+                        className={`pl-8 ${formData.price <= 0 ? 'border-red-300 focus:border-red-500' : ''}`}
+                      />
+                    </div>
+                    {formData.price <= 0 && (
+                      <p className="text-xs text-red-500">
+                        Price must be greater than 0
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="priceUnit">
                       {formData.status === 'for-rent'
-                        ? 'Price Unit *'
+                        ? 'Price Unit'
                         : 'Price Type'}
                     </Label>
                     <Select
-                      required
                       value={formData.priceUnit}
                       onValueChange={(value) =>
                         handleInputChange('priceUnit', value)
@@ -588,21 +863,35 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                   </div>
 
                   <div className="flex items-end">
-                    <Card className="w-full bg-blue-50 border-blue-200">
+                    <Card className="w-full bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
                       <CardContent className="p-4">
-                        <p className="text-sm font-medium text-blue-900">
-                          {formData.status === 'for-rent' ? (
-                            <>
-                              {formData.priceUnit === 'monthly' && 'Monthly: '}
-                              {formData.priceUnit === 'yearly' && 'Yearly: '}₦
-                              {formData.price.toLocaleString()}
-                              {formData.priceUnit === 'monthly' && '/mo'}
-                              {formData.priceUnit === 'yearly' && '/yr'}
-                            </>
-                          ) : (
-                            <>Total Price: ₦{formData.price.toLocaleString()}</>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="p-1 bg-white rounded">
+                            <DollarSign className="w-3 h-3 text-purple-600" />
+                          </div>
+                          <p className="text-sm font-medium text-purple-900">
+                            {formData.status === 'for-rent' ? (
+                              <>
+                                {formData.priceUnit === 'monthly' &&
+                                  'Monthly: '}
+                                {formData.priceUnit === 'yearly' && 'Yearly: '}₦
+                                {formData.price.toLocaleString()}
+                                {formData.priceUnit === 'monthly' && '/mo'}
+                                {formData.priceUnit === 'yearly' && '/yr'}
+                              </>
+                            ) : (
+                              <>
+                                Total Price: ₦{formData.price.toLocaleString()}
+                              </>
+                            )}
+                          </p>
+                        </div>
+                        {formData.originalPrice &&
+                          formData.originalPrice > formData.price && (
+                            <p className="text-xs text-gray-500 line-through">
+                              Was: ₦{formData.originalPrice.toLocaleString()}
+                            </p>
                           )}
-                        </p>
                       </CardContent>
                     </Card>
                   </div>
@@ -612,19 +901,27 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                   <Label htmlFor="originalPrice">
                     Original Price (Optional)
                   </Label>
-                  <Input
-                    id="originalPrice"
-                    type="number"
-                    min="0"
-                    value={formData.originalPrice || ''}
-                    onChange={(e) =>
-                      handleInputChange(
-                        'originalPrice',
-                        e.target.value ? parseFloat(e.target.value) : undefined
-                      )
-                    }
-                    placeholder="Original price if discounted"
-                  />
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                      ₦
+                    </span>
+                    <Input
+                      id="originalPrice"
+                      type="number"
+                      min="0"
+                      value={formData.originalPrice || ''}
+                      onChange={(e) =>
+                        handleInputChange(
+                          'originalPrice',
+                          e.target.value
+                            ? parseFloat(e.target.value)
+                            : undefined
+                        )
+                      }
+                      placeholder="Original price if discounted"
+                      className="pl-8"
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -632,21 +929,29 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
             {/* Property Details */}
             <Card>
               <CardHeader>
-                <CardTitle>Property Details</CardTitle>
-                <CardDescription>
-                  Update property specifications
-                </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-amber-100 rounded-lg">
+                    <Settings className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Property Details</CardTitle>
+                    <CardDescription>
+                      Specifications and measurements
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="bedrooms"
-                      className="flex items-center gap-2"
-                    >
-                      <Bed className="w-4 h-4" />
-                      Bedrooms *
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <Bed className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <Label htmlFor="bedrooms" className="font-medium">
+                        Bedrooms <span className="text-red-500">*</span>
+                      </Label>
+                    </div>
                     <Input
                       id="bedrooms"
                       type="number"
@@ -660,17 +965,28 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                           parseInt(e.target.value) || 0
                         )
                       }
+                      className={
+                        formData.bedrooms <= 0
+                          ? 'border-red-300 focus:border-red-500'
+                          : ''
+                      }
                     />
+                    {formData.bedrooms <= 0 && (
+                      <p className="text-xs text-red-500">
+                        Must have at least 1 bedroom
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="bathrooms"
-                      className="flex items-center gap-2"
-                    >
-                      <Bath className="w-4 h-4" />
-                      Bathrooms *
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Bath className="w-4 h-4 text-green-600" />
+                      </div>
+                      <Label htmlFor="bathrooms" className="font-medium">
+                        Bathrooms <span className="text-red-500">*</span>
+                      </Label>
+                    </div>
                     <Input
                       id="bathrooms"
                       type="number"
@@ -684,17 +1000,28 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                           parseInt(e.target.value) || 0
                         )
                       }
+                      className={
+                        formData.bathrooms <= 0
+                          ? 'border-red-300 focus:border-red-500'
+                          : ''
+                      }
                     />
+                    {formData.bathrooms <= 0 && (
+                      <p className="text-xs text-red-500">
+                        Must have at least 1 bathroom
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="squareFeet"
-                      className="flex items-center gap-2"
-                    >
-                      <Square className="w-4 h-4" />
-                      Square Feet *
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <Square className="w-4 h-4 text-purple-600" />
+                      </div>
+                      <Label htmlFor="squareFeet" className="font-medium">
+                        Square Feet <span className="text-red-500">*</span>
+                      </Label>
+                    </div>
                     <Input
                       id="squareFeet"
                       type="number"
@@ -707,17 +1034,28 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                           parseInt(e.target.value) || 0
                         )
                       }
+                      className={
+                        formData.squareFeet <= 0
+                          ? 'border-red-300 focus:border-red-500'
+                          : ''
+                      }
                     />
+                    {formData.squareFeet <= 0 && (
+                      <p className="text-xs text-red-500">
+                        Must have square footage
+                      </p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="yearBuilt"
-                      className="flex items-center gap-2"
-                    >
-                      <Calendar className="w-4 h-4" />
-                      Year Built
-                    </Label>
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-red-100 rounded-lg">
+                        <Calendar className="w-4 h-4 text-red-600" />
+                      </div>
+                      <Label htmlFor="yearBuilt" className="font-medium">
+                        Year Built
+                      </Label>
+                    </div>
                     <Input
                       id="yearBuilt"
                       type="number"
@@ -756,23 +1094,32 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
             {/* Features & Amenities */}
             <Card>
               <CardHeader>
-                <CardTitle>Features & Amenities</CardTitle>
-                <CardDescription>
-                  Update property features and community amenities
-                </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <Tag className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">
+                      Features & Amenities
+                    </CardTitle>
+                    <CardDescription>
+                      Select available features and community amenities
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   {/* Features */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Property Features
+                    <h3 className="text-base font-semibold text-gray-900 mb-4 pb-2 border-b">
+                      Property Features ({formData.features.length} selected)
                     </h3>
-                    <div className="grid grid-cols-1 gap-3 max-h-64 overflow-y-auto">
+                    <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-2">
                       {PROPERTY_FEATURES.map((feature) => (
                         <div
                           key={feature}
-                          className="flex items-center space-x-2"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
                         >
                           <Checkbox
                             id={`feature-${feature}`}
@@ -780,10 +1127,11 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                             onCheckedChange={() =>
                               handleArrayToggle('features', feature)
                             }
+                            className="h-4 w-4"
                           />
                           <Label
                             htmlFor={`feature-${feature}`}
-                            className="text-sm font-normal cursor-pointer"
+                            className="text-sm font-normal cursor-pointer flex-1"
                           >
                             {feature}
                           </Label>
@@ -794,14 +1142,14 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
 
                   {/* Amenities */}
                   <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                      Community Amenities
+                    <h3 className="text-base font-semibold text-gray-900 mb-4 pb-2 border-b">
+                      Community Amenities ({formData.amenities.length} selected)
                     </h3>
-                    <div className="grid grid-cols-1 gap-3 max-h-64 overflow-y-auto">
+                    <div className="grid grid-cols-1 gap-3 max-h-80 overflow-y-auto pr-2">
                       {PROPERTY_AMENITIES.map((amenity) => (
                         <div
                           key={amenity}
-                          className="flex items-center space-x-2"
+                          className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded-lg transition-colors"
                         >
                           <Checkbox
                             id={`amenity-${amenity}`}
@@ -809,10 +1157,11 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                             onCheckedChange={() =>
                               handleArrayToggle('amenities', amenity)
                             }
+                            className="h-4 w-4"
                           />
                           <Label
                             htmlFor={`amenity-${amenity}`}
-                            className="text-sm font-normal cursor-pointer"
+                            className="text-sm font-normal cursor-pointer flex-1"
                           >
                             {amenity}
                           </Label>
@@ -824,160 +1173,55 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
               </CardContent>
             </Card>
 
-            {/* Payment Options */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Payment Options</CardTitle>
-                <CardDescription>
-                  Update available payment methods
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="paymentOutright"
-                    checked={!!formData.paymentOutright}
-                    onCheckedChange={(checked) =>
-                      handleInputChange('paymentOutright', !!checked)
-                    }
-                  />
-                  <Label htmlFor="paymentOutright" className="cursor-pointer">
-                    Outright Purchase Available
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="paymentPlan"
-                    checked={formData.paymentPlan}
-                    onCheckedChange={(checked) =>
-                      handleInputChange('paymentPlan', checked)
-                    }
-                  />
-                  <Label htmlFor="paymentPlan" className="cursor-pointer">
-                    Payment Plan Available
-                  </Label>
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="mortgageEligible"
-                    checked={formData.mortgageEligible}
-                    onCheckedChange={(checked) =>
-                      handleInputChange('mortgageEligible', checked)
-                    }
-                  />
-                  <Label htmlFor="mortgageEligible" className="cursor-pointer">
-                    Mortgage Eligible
-                  </Label>
-                </div>
-
-                {formData.paymentPlan && (
-                  <Card className="bg-gray-50">
-                    <CardContent className="p-4 space-y-4">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="customPlanAvailable"
-                          checked={formData.customPlanAvailable}
-                          onCheckedChange={(checked) =>
-                            handleInputChange('customPlanAvailable', checked)
-                          }
-                        />
-                        <Label
-                          htmlFor="customPlanAvailable"
-                          className="cursor-pointer"
-                        >
-                          Custom Payment Plan
-                        </Label>
-                      </div>
-
-                      {formData.customPlanAvailable && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="customPlanDepositPercent">
-                              Deposit Percentage
-                            </Label>
-                            <Input
-                              id="customPlanDepositPercent"
-                              type="number"
-                              min="0"
-                              max="100"
-                              value={formData.customPlanDepositPercent}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  'customPlanDepositPercent',
-                                  parseInt(e.target.value) || 0
-                                )
-                              }
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="customPlanMonths">
-                              Payment Months
-                            </Label>
-                            <Input
-                              id="customPlanMonths"
-                              type="number"
-                              min="1"
-                              max="60"
-                              value={formData.customPlanMonths}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  'customPlanMonths',
-                                  parseInt(e.target.value) || 0
-                                )
-                              }
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                )}
-              </CardContent>
-            </Card>
-
             {/* Images */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Upload className="w-5 h-5" />
-                  Property Images
-                </CardTitle>
-                <CardDescription>
-                  Update property photos (existing images will be preserved)
-                </CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-pink-100 rounded-lg">
+                    <Upload className="w-5 h-5 text-pink-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Property Images</CardTitle>
+                    <CardDescription>
+                      Upload new photos (existing images preserved)
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
                 <ImageUpload
                   onImagesChange={handleImageChange}
-                  maxImages={10}
+                  maxImages={10 - existingImages.length}
                   accept="image/*"
                 />
                 <p className="text-sm text-gray-500">
-                  Upload new images to add to existing ones. Maximum 10 images
-                  total.
+                  Upload new images to add to existing ones. You can upload up
+                  to {10 - existingImages.length} more images.
                 </p>
 
                 {/* Existing Images */}
                 {existingImages.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">
-                      Existing Images ({existingImages.length} images)
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">
+                      Existing Images ({existingImages.length})
                     </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {existingImages.map((imageUrl, index) => (
                         <div
                           key={index}
-                          className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden"
+                          className="relative group aspect-square rounded-lg border border-gray-200 overflow-hidden shadow-sm"
                         >
                           <Image
                             src={imageUrl}
-                            alt={`New property image ${index + 1}`}
-                            className="object-cover w-full h-full"
+                            alt={`Property image ${index + 1}`}
+                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
                             fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            sizes="(max-width: 768px) 50vw, 25vw"
                           />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
+                          <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                            {index + 1}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -986,23 +1230,27 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
 
                 {/* New Image Previews */}
                 {imagePreviews.length > 0 && (
-                  <div className="mt-4">
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">
-                      New Images ({imagePreviews.length} images)
+                  <div className="mt-6">
+                    <h4 className="text-sm font-medium text-gray-900 mb-3">
+                      New Images ({imagePreviews.length})
                     </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {imagePreviews.map((previewUrl, index) => (
                         <div
                           key={index}
-                          className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden"
+                          className="relative group aspect-square rounded-lg border border-gray-200 overflow-hidden shadow-sm"
                         >
                           <Image
                             src={previewUrl}
-                            alt={`New property image ${index + 1}`}
+                            alt={`New image ${index + 1}`}
                             className="object-cover w-full h-full"
                             fill
-                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            sizes="(max-width: 768px) 50vw, 25vw"
                           />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
+                          <div className="absolute bottom-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
+                            New
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -1011,93 +1259,423 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
               </CardContent>
             </Card>
 
-            {/* Additional Options */}
+            {/* Payment Options */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Tag className="w-5 h-5" />
-                  Additional Options
-                </CardTitle>
-                <CardDescription>Update listing preferences</CardDescription>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <DollarSign className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Payment Options</CardTitle>
+                    <CardDescription>Available payment methods</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="isFeatured"
-                    checked={formData.isFeatured}
-                    onCheckedChange={(checked) =>
-                      handleInputChange('isFeatured', checked)
-                    }
-                  />
-                  <Label htmlFor="isFeatured" className="cursor-pointer">
-                    Feature this property (additional cost may apply)
-                  </Label>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div
+                    className={`space-y-4 p-4 rounded-lg border transition-colors ${
+                      formData.paymentOutright
+                        ? 'bg-emerald-50 border-emerald-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          id="paymentOutright"
+                          checked={!!formData.paymentOutright}
+                          onCheckedChange={(checked) =>
+                            handleInputChange('paymentOutright', !!checked)
+                          }
+                          className="h-5 w-5"
+                        />
+                        <Label
+                          htmlFor="paymentOutright"
+                          className="font-medium cursor-pointer"
+                        >
+                          Outright Purchase
+                        </Label>
+                      </div>
+                      {formData.paymentOutright && (
+                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Full payment for immediate ownership
+                    </p>
+                  </div>
+
+                  <div
+                    className={`space-y-4 p-4 rounded-lg border transition-colors ${
+                      formData.paymentPlan
+                        ? 'bg-blue-50 border-blue-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          id="paymentPlan"
+                          checked={formData.paymentPlan}
+                          onCheckedChange={(checked) =>
+                            handleInputChange('paymentPlan', checked)
+                          }
+                          className="h-5 w-5"
+                        />
+                        <Label
+                          htmlFor="paymentPlan"
+                          className="font-medium cursor-pointer"
+                        >
+                          Payment Plan
+                        </Label>
+                      </div>
+                      {formData.paymentPlan && (
+                        <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Flexible installment payments
+                    </p>
+                  </div>
+
+                  <div
+                    className={`space-y-4 p-4 rounded-lg border transition-colors ${
+                      formData.mortgageEligible
+                        ? 'bg-purple-50 border-purple-200'
+                        : 'bg-gray-50 border-gray-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Checkbox
+                          id="mortgageEligible"
+                          checked={formData.mortgageEligible}
+                          onCheckedChange={(checked) =>
+                            handleInputChange('mortgageEligible', checked)
+                          }
+                          className="h-5 w-5"
+                        />
+                        <Label
+                          htmlFor="mortgageEligible"
+                          className="font-medium cursor-pointer"
+                        >
+                          Mortgage
+                        </Label>
+                      </div>
+                      {formData.mortgageEligible && (
+                        <CheckCircle2 className="w-5 h-5 text-purple-600" />
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      Bank financing available
+                    </p>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="tags">Tags (comma separated)</Label>
-                  <Input
-                    id="tags"
-                    value={formData.tags.join(', ')}
-                    onChange={(e) =>
-                      handleInputChange(
-                        'tags',
-                        e.target.value
-                          .split(',')
-                          .map((tag) => tag.trim())
-                          .filter(Boolean)
-                      )
-                    }
-                    placeholder="e.g., luxury, waterfront, new, renovated"
-                  />
-                </div>
+                {formData.paymentPlan && (
+                  <Card className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                    <CardContent className="p-6 space-y-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-white rounded-lg shadow-sm">
+                          <Settings className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-blue-900">
+                            Payment Plan Details
+                          </h4>
+                          <p className="text-sm text-blue-700">
+                            Configure your custom payment plan
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-3 p-4 bg-white rounded-lg border border-blue-100">
+                        <Checkbox
+                          id="customPlanAvailable"
+                          checked={formData.customPlanAvailable}
+                          onCheckedChange={(checked) =>
+                            handleInputChange('customPlanAvailable', checked)
+                          }
+                          className="h-5 w-5"
+                        />
+                        <div>
+                          <Label
+                            htmlFor="customPlanAvailable"
+                            className="font-medium cursor-pointer"
+                          >
+                            Enable Custom Payment Plan
+                          </Label>
+                          <p className="text-sm text-gray-600">
+                            Set custom terms for installment payments
+                          </p>
+                        </div>
+                      </div>
+
+                      {formData.customPlanAvailable && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="customPlanDepositPercent">
+                              Initial Deposit (%)
+                            </Label>
+                            <div className="flex items-center gap-3">
+                              <Input
+                                id="customPlanDepositPercent"
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={formData.customPlanDepositPercent}
+                                onChange={(e) =>
+                                  handleInputChange(
+                                    'customPlanDepositPercent',
+                                    parseInt(e.target.value) || 0
+                                  )
+                                }
+                                className="flex-1"
+                              />
+                              <div className="w-20 px-3 py-2 bg-blue-100 text-blue-800 rounded text-center font-medium">
+                                {formData.customPlanDepositPercent}%
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              Percentage of total price paid upfront
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="customPlanMonths">
+                              Payment Period (Months)
+                            </Label>
+                            <div className="flex items-center gap-3">
+                              <Input
+                                id="customPlanMonths"
+                                type="number"
+                                min="1"
+                                max="60"
+                                value={formData.customPlanMonths}
+                                onChange={(e) =>
+                                  handleInputChange(
+                                    'customPlanMonths',
+                                    parseInt(e.target.value) || 0
+                                  )
+                                }
+                                className="flex-1"
+                              />
+                              <div className="w-20 px-3 py-2 bg-blue-100 text-blue-800 rounded text-center font-medium">
+                                {formData.customPlanMonths} mos
+                              </div>
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              Duration to complete payments
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </CardContent>
             </Card>
           </div>
-          <div>
-            {/* Action Buttons */}
-            <Card className="sticky top-24 md:h-[40vh]">
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 space-y-6">
+
+          {/* Sidebar - 1/4 width */}
+          <div className="lg:col-span-1 space-y-6">
+            {/* Action Panel */}
+            <Card className="sticky top-24 shadow-lg border-0">
+              <CardContent className="p-6 space-y-4">
+                {/* Status Badge */}
+                <div className="flex items-center justify-between mb-4 p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        property.isActive ? 'bg-green-500' : 'bg-yellow-500'
+                      }`}
+                    />
+                    <span className="text-sm font-medium">
+                      {property.isActive ? 'Published' : 'Draft'}
+                    </span>
+                  </div>
+                  <span className="text-xs px-2 py-1 bg-gray-100 rounded">
+                    ID: {property.$id.substring(0, 8)}
+                  </span>
+                </div>
+
+                {/* Progress Summary */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Completion
+                    </span>
+                    <span className="text-sm font-bold text-blue-600">
+                      {getCompletionPercentage()}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full"
+                      style={{ width: `${getCompletionPercentage()}%` }}
+                    />
+                  </div>
+                  <div className="mt-2 text-xs text-gray-500">
+                    {getRequiredFieldsStatus().completed} of{' '}
+                    {getRequiredFieldsStatus().total} required fields completed
+                  </div>
+                </div>
+
+                {/* Missing Fields */}
+                {getCompletionPercentage() < 100 && (
+                  <Card className="bg-amber-50 border-amber-200">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <AlertTriangle className="w-4 h-4 text-amber-600" />
+                        <h4 className="text-sm font-semibold text-amber-800">
+                          Required Fields Missing
+                        </h4>
+                      </div>
+                      <ul className="space-y-1">
+                        {getRequiredFieldsStatus().fields.map(
+                          (field, index) =>
+                            !field.ok && (
+                              <li
+                                key={index}
+                                className="text-xs text-amber-700 flex items-center gap-1"
+                              >
+                                <div className="w-1 h-1 bg-amber-600 rounded-full" />
+                                {field.label}
+                              </li>
+                            )
+                        )}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
                   <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="flex-1 bg-linear-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                    type="button"
+                    onClick={handleSaveDraft}
+                    disabled={isSubmitting || getCompletionPercentage() === 0}
+                    className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
                     size="lg"
                   >
                     {isSubmitting ? (
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center justify-center gap-2">
                         <Loader2 className="w-4 h-4 animate-spin" />
-                        Updating...
+                        Saving...
                       </div>
                     ) : (
-                      'Update Property'
+                      'Save as Draft'
                     )}
                   </Button>
 
                   <Button
                     type="button"
-                    onClick={() => router.push('/agent/properties')}
-                    variant="outline"
+                    onClick={handlePublish}
+                    disabled={isSubmitting || getCompletionPercentage() < 100}
+                    className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
                     size="lg"
                   >
-                    Cancel
+                    {isSubmitting ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Publishing...
+                      </div>
+                    ) : (
+                      'Publish Changes'
+                    )}
                   </Button>
 
                   <Button
                     type="button"
-                    onClick={handleDelete}
-                    variant="destructive"
+                    onClick={() => {
+                      if (hasUnsavedChanges) {
+                        if (
+                          !confirm(
+                            'You have unsaved changes. Are you sure you want to cancel?'
+                          )
+                        ) {
+                          return
+                        }
+                      }
+                      router.push('/agent/properties')
+                    }}
+                    variant="outline"
+                    className="w-full"
                     size="lg"
                   >
-                    Delete Property
+                    Cancel
                   </Button>
                 </div>
+
+                {/* Delete Section */}
+                <div className="pt-6 border-t">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldAlert className="w-4 h-4 text-red-600" />
+                    <h4 className="text-sm font-semibold text-gray-900">
+                      Danger Zone
+                    </h4>
+                  </div>
+
+                  {showDeleteConfirm ? (
+                    <Card className="bg-red-50 border-red-200">
+                      <CardContent className="p-4">
+                        <p className="text-sm font-medium text-red-800 mb-3">
+                          Are you sure? This cannot be undone.
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            onClick={() => setShowDeleteConfirm(false)}
+                            variant="outline"
+                            size="sm"
+                            className="flex-1"
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={handleDelete}
+                            variant="destructive"
+                            size="sm"
+                            className="flex-1"
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Button
+                      type="button"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      variant="outline"
+                      className="w-full border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-400"
+                      size="lg"
+                    >
+                      Delete Property
+                    </Button>
+                  )}
+                </div>
+
+                {/* Last Saved */}
+                {lastSaved && (
+                  <div className="text-center pt-4 border-t">
+                    <p className="text-xs text-gray-500">
+                      Last saved at{' '}
+                      {lastSaved.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         </div>
-      </form>
+      </div>
     </div>
   )
 }

@@ -43,6 +43,7 @@ export default function FeaturedPropertiesCarousel() {
       subtitle="Discover our hand-picked selection of authentic, verified, and future-proof properties with complete peace of mind."
       autoPlay={false}
       autoPlayInterval={5000}
+      userId={''}
     />
   )
 }

@@ -6,6 +6,7 @@ import {
   ID,
   Models,
   Query,
+  Realtime,
   Storage,
 } from 'appwrite'
 
@@ -23,6 +24,7 @@ client.setEndpoint(endpoint).setProject(projectId)
 export const databases = new Databases(client)
 export const account = new Account(client)
 export const storage = new Storage(client)
+export const realtime = new Realtime(client)
 
 export { Query, ID }
 
@@ -181,7 +183,7 @@ export async function uploadAvatar(
     }
 
     // Create unique filename with userId
-    const fileName = `avatar_${userId}_${Date.now()}.jpg`
+    // const fileName = `avatar_${userId}_${Date.now()}.jpg`
 
     // Upload new avatar with proper permissions
     const result = await storage.createFile(

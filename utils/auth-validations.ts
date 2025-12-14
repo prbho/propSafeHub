@@ -19,13 +19,9 @@ export const validateEmail = (email: string): boolean => {
 }
 
 export const validateAgentData = (
-  licenseNumber: string,
   agency: string,
   city: string
 ): string | null => {
-  if (!licenseNumber.trim()) {
-    return 'License number is required for agents'
-  }
   if (!agency.trim()) {
     return 'Agency name is required for agents'
   }

@@ -129,6 +129,8 @@ export default function DashboardPage() {
         $databaseId: doc.$databaseId,
         $createdAt: doc.$createdAt,
         $updatedAt: doc.$updatedAt,
+        userId: doc.userId || '',
+        name: doc.name || '',
         $permissions: doc.$permissions || '',
         agentId: doc.agentId || '',
         propertyId: doc.propertyId || doc.$id,
@@ -446,7 +448,10 @@ export default function DashboardPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {properties.map((property) => (
                       <div key={property.$id} className="relative">
-                        <PropertyCard property={property} userId={user?.$id} />
+                        <PropertyCard
+                          property={property}
+                          userId={user?.$id || ''}
+                        />
                         {user?.userType === 'seller' &&
                           property.inquiries &&
                           property.inquiries > 0 && (

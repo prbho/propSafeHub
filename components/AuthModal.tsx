@@ -59,12 +59,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Agent-specific fields
-  const [licenseNumber, setLicenseNumber] = useState('')
   const [agency, setAgency] = useState('')
   const [city, setCity] = useState('')
   const [yearsExperience, setYearsExperience] = useState('0')
   const [state, setState] = useState('')
   const [specialty, setSpecialty] = useState('')
+  const [isAgentFormValid, setIsAgentFormValid] = useState(false)
 
   const { login, register, checkEmail } = useAuth()
 
@@ -82,7 +82,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setImageToCrop(null)
 
     // Reset agent fields
-    setLicenseNumber('')
     setAgency('')
     setCity('')
     setYearsExperience('0')
@@ -261,7 +260,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       // Add agent data if userType is agent
       if (userType === 'agent') {
         const agentData = {
-          licenseNumber: licenseNumber.trim(),
           agency: agency.trim(),
           city: city.trim(),
           yearsExperience: parseInt(yearsExperience) || 0,
@@ -337,7 +335,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     e.preventDefault()
 
     // Agent-specific validation
-    const agentError = validateAgentData(licenseNumber, agency, city)
+    const agentError = validateAgentData(agency, city)
     if (agentError) {
       toast.error(agentError)
       setError(agentError)
@@ -656,6 +654,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   // AgentRegistrationForm section:
 
+  // Update the renderAgentInfoStep function in AuthModal.tsx
   const renderAgentInfoStep = () => (
     <form onSubmit={handleAgentInfoSubmit} className="space-y-4">
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
@@ -685,6 +684,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         isLoading={isLoading}
         nigerianCities={NIGERIAN_CITIES}
         nigerianStates={NIGERIAN_STATES}
+        onFormValidityChange={setIsAgentFormValid} // This uses the top-level state setter
       />
 
       <div className="flex space-x-3 pt-2">
@@ -703,16 +703,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         <Button
           type="submit"
           className="flex-1 h-12 bg-linear-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-4 text-base font-semibold rounded-xl transition-all duration-200"
-          disabled={
-            isLoading || !licenseNumber.trim() || !agency.trim() || !city.trim()
-          }
+          disabled={isLoading || !isAgentFormValid} // This uses the top-level state
         >
           {isLoading ? 'Creating Account...' : 'Create Agent Account'}
         </Button>
       </div>
     </form>
   )
-
   const renderStepContent = () => {
     switch (step) {
       case 'initial':

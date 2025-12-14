@@ -187,30 +187,32 @@ export default function AgentLeads() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            {[...Array(4)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-lg border border-gray-200 p-6"
-              >
-                <div className="h-6 bg-gray-200 rounded w-1/2 mb-2"></div>
-                <div className="h-8 bg-gray-200 rounded w-3/4"></div>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-lg border border-gray-200 p-6"
-              >
-                <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/3"></div>
-              </div>
-            ))}
+        <div className="mx-auto px-6 max-w-7xl">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-lg border border-gray-200 p-6"
+                >
+                  <div className="h-6 bg-gray-200 rounded w-1/2 mb-2"></div>
+                  <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+                </div>
+              ))}
+            </div>
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-lg border border-gray-200 p-6"
+                >
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/3"></div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -219,7 +221,7 @@ export default function AgentLeads() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="p-6 mx-auto max-w-6xl">
+      <div className="p-6 mx-auto max-w-7xl">
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -431,11 +433,12 @@ export default function AgentLeads() {
 
                         {/* Message Button - Fixed with proper props */}
                         <MessageButton
-                          agentId={lead.$id} // ← Use the lead document ID directly
+                          agentId={lead.$id}
                           agentName={lead.name}
                           propertyId={(lead as any).propertyId}
                           propertyTitle={lead.propertyInterest}
                           variant="icon"
+                          className="p-0"
                         />
 
                         <button className="p-2 text-gray-400 hover:text-purple-600 transition-colors">
@@ -446,32 +449,28 @@ export default function AgentLeads() {
 
                     {/* Property Details */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-                      <div className="flex items-center gap-2">
-                        <Home className="w-4 h-4 text-gray-400" />
+                      <div className="flex flex-col gap-1">
                         <span className="font-medium">Interested in:</span>
                         <span className="text-gray-600">
                           {lead.propertyInterest || 'Not specified'}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 text-gray-400" />
+                      <div className="flex flex-col gap-1">
                         <span className="font-medium">Location:</span>
                         <span className="text-gray-600">
                           {lead.location || 'Not specified'}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-gray-400" />
+                      <div className="flex flex-col gap-1">
                         <span className="font-medium">Budget:</span>
                         <span className="text-gray-600">
                           ₦{lead.budget?.toLocaleString() || 'Not specified'}
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Bed className="w-4 h-4 text-gray-400" />
+                      <div className="flex flex-col gap-1">
                         <span className="font-medium">Bedrooms:</span>
                         <span className="text-gray-600">
                           {lead.bedrooms || 'Any'}

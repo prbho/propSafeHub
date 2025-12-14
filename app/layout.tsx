@@ -11,7 +11,7 @@ import { LoadingProvider } from '@/contexts/LoadingContext'
 
 import Chatbot from '@/components/chatbot/Chatbot'
 import CookieConsent from '@/components/CookieConsent'
-import { FloatingAccessibilityWidget } from '@/components/FloatingAccessibilityWidget'
+// import { FloatingAccessibilityWidget } from '@/components/FloatingAccessibilityWidget'
 import Footer from '@/components/Footer'
 import Header from '@/components/Header'
 import { SEOProvider } from '@/components/SEOProvider'
@@ -311,7 +311,7 @@ export default function RootLayout({
                   </main>
                   <Footer />
                   <Chatbot />
-                  <FloatingAccessibilityWidget />
+                  {/* <FloatingAccessibilityWidget /> */}
                   <ToastProvider />
                   <CookieConsent />
                 </Suspense>

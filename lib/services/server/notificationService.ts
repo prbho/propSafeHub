@@ -31,27 +31,52 @@ export interface CreateNotificationData {
 }
 
 export async function createNotification(data: CreateNotificationData) {
+  console.log('🔔 [NOTIFICATION SERVICE] Creating notification:', {
+    userId: data.userId,
+    type: data.type,
+    title: data.title,
+    relatedId: data.relatedId,
+  })
+
   try {
+    const notificationData = {
+      userId: data.userId,
+      type: data.type,
+      title: data.title,
+      message: data.message,
+      isRead: false,
+      relatedId: data.relatedId || null,
+      actionUrl: data.actionUrl || null,
+      metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+      agentId: data.agentId || null,
+      // createdAt: new Date().toISOString(),
+      // updatedAt: new Date().toISOString(),
+    }
+
+    console.log(
+      '📋 [NOTIFICATION SERVICE] Notification data:',
+      notificationData
+    )
+
     const notification = await serverDatabases.createDocument(
       DATABASE_ID,
       NOTIFICATIONS_COLLECTION_ID,
       ID.unique(),
-      {
-        userId: data.userId,
-        type: data.type,
-        title: data.title,
-        message: data.message,
-        isRead: false,
-        relatedId: data.relatedId || null,
-        actionUrl: data.actionUrl || null,
-        metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-        agentId: data.agentId || null,
-      }
+      notificationData
+    )
+
+    console.log(
+      '✅ [NOTIFICATION SERVICE] Notification created successfully:',
+      notification.$id
     )
 
     return { success: true, notification }
-  } catch (error) {
-    console.error('Error creating notification:', error)
+  } catch (error: any) {
+    console.error(
+      '❌ [NOTIFICATION SERVICE] Error creating notification:',
+      error.message
+    )
+    console.error('❌ [NOTIFICATION SERVICE] Error stack:', error.stack)
     return { success: false, error: 'Failed to create notification' }
   }
 }

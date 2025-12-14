@@ -6,12 +6,19 @@ import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   ArrowRight,
+  BadgeCheck,
+  Calendar,
   ChevronRight,
+  Eye,
   Home,
   Key,
+  MapPin,
   Shield,
   Star,
+  Tag,
+  TrendingUp,
   Users,
+  Zap,
 } from 'lucide-react'
 
 import PropertyGrid from '@/components/PropertyGrid'
@@ -25,12 +32,24 @@ export default function ListPropertyPage() {
   // If user has selected a type, show the PropertyGrid with filtered properties
   if (selectedType) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-linear-to-b from-gray-50 to-white">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200">
+        <div className="bg-white border-b border-gray-100 shadow-sm">
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
+                <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                  <Link
+                    href="/list-property"
+                    className="hover:text-emerald-600 transition-colors"
+                  >
+                    List Property
+                  </Link>
+                  <ChevronRight className="h-3 w-3" />
+                  <span className="font-medium text-gray-900">
+                    Properties for {selectedType === 'sale' ? 'Sale' : 'Rent'}
+                  </span>
+                </div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
                   Properties for {selectedType === 'sale' ? 'Sale' : 'Rent'}
                 </h1>
@@ -41,10 +60,10 @@ export default function ListPropertyPage() {
               <Button
                 asChild
                 variant="outline"
-                className="border-gray-300 hover:bg-gray-50"
+                className="border-gray-300 hover:border-emerald-300 hover:bg-emerald-50"
               >
-                <Link href="/list-property">
-                  <ArrowRight className="h-4 w-4 mr-2" />
+                <Link href="/list-property" className="flex items-center gap-2">
+                  <Home className="h-4 w-4" />
                   Back to Options
                 </Link>
               </Button>
@@ -65,79 +84,181 @@ export default function ListPropertyPage() {
 
   // Main listing choice page
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-linear-to-b from-gray-50 to-white">
       {/* Hero Section */}
-      <div className="bg-linear-to-br from-slate-900 via-slate-800 to-emerald-900 relative overflow-hidden">
-        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsMjU1LDI1NSwwLjAzKSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-40"></div>
+      <div className="relative bg-linear-to-br from-emerald-900 via-emerald-800 to-emerald-700 overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full -translate-x-32 -translate-y-32"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-48 translate-y-48"></div>
+        </div>
 
-        <div className="container mx-auto px-4 py-16 lg:py-20 relative">
-          <div className="text-center max-w-3xl mx-auto">
-            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold text-white mb-4">
-              List Your Property
+        <div className="container mx-auto px-4 py-16 lg:py-24 relative">
+          <div className="text-center max-w-4xl mx-auto">
+            <div className="inline-flex items-center gap-2 bg-emerald-800/30 backdrop-blur-sm border border-emerald-600/30 rounded-full px-4 py-2 mb-6">
+              <Zap className="h-4 w-4 text-emerald-300" />
+              <span className="text-sm font-medium text-emerald-200">
+                Get Your Property Listed Today
+              </span>
+            </div>
+
+            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white mb-6">
+              List Your Property with Confidence
             </h1>
-            <p className="md:text-lg text-gray-300 leading-relaxed">
-              Connect with qualified buyers and tenants across Nigeria
+            <p className="md:text-lg text-emerald-100 leading-relaxed mb-8">
+              Connect with thousands of qualified buyers and tenants across
+              Nigeria. Fast, secure, and hassle-free.
             </p>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 mb-12">
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+                <BadgeCheck className="h-4 w-4 text-emerald-300" />
+                <span className="text-sm text-white">Verified Properties</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+                <Shield className="h-4 w-4 text-emerald-300" />
+                <span className="text-sm text-white">Secure Transactions</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       <div className="container mx-auto px-4 py-12 lg:py-16">
+        {/* How It Works */}
+        <div className="max-w-6xl mx-auto mb-16">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4">
+              How It Works
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              Simple steps to get your property listed and connected with
+              potential buyers or tenants
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 mb-12">
+            <div className="relative">
+              <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                <span className="text-2xl font-bold text-emerald-600">1</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3 text-center">
+                List Your Property
+              </h3>
+              <p className="text-gray-600 text-center">
+                Fill out our simple listing form with property details, photos,
+                and pricing
+              </p>
+            </div>
+
+            <div className="relative">
+              <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                <span className="text-2xl font-bold text-emerald-600">2</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3 text-center">
+                Get Verified
+              </h3>
+              <p className="text-gray-600 text-center">
+                Our team reviews and verifies your listing for maximum trust and
+                visibility
+              </p>
+            </div>
+
+            <div className="relative">
+              <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
+                <span className="text-2xl font-bold text-emerald-600">3</span>
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3 text-center">
+                Connect & Close
+              </h3>
+              <p className="text-gray-600 text-center">
+                Receive inquiries, schedule viewings, and close deals with our
+                support
+              </p>
+            </div>
+          </div>
+        </div>
+
         {/* Listing Options Grid */}
-        <div className="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-5xl mx-auto mb-12">
+        <div className="grid md:grid-cols-2 gap-8 lg:gap-10 max-w-6xl mx-auto mb-16">
           {/* For Sale Option */}
-          <Card className="border border-gray-200 hover:border-emerald-200 hover:shadow-xl transition-all group overflow-hidden">
-            <CardContent className="p-8">
-              <div className="w-16 h-16 mx-auto bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-emerald-100 transition-colors">
-                <Home className="h-8 w-8 text-emerald-600" />
+          <div className="border-gray-100 rounded-2xl hover:border-emerald-200 group overflow-hidden bg-white">
+            <div className="p-8 lg:p-10 relative">
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-14 h-14 bg-linear-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Home className="h-7 w-7 text-white" />
+                </div>
+                <div className="bg-emerald-50 text-emerald-700 text-sm font-medium px-3 py-1 rounded-full">
+                  For Sale
+                </div>
               </div>
 
-              <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">
+              <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
                 Sell Your Property
               </h3>
 
-              <p className="text-gray-600 mb-6 leading-relaxed text-center">
+              <p className="text-gray-600 mb-8 leading-relaxed">
                 List your property for sale and reach thousands of serious
-                buyers with our advanced matching system.
+                buyers.
               </p>
 
-              <div className="space-y-3 mb-8 pb-8 text-center">
-                <div className="flex items-center gap-3 text-sm text-gray-700 justify-center">
-                  <div className="w-6 h-6 bg-emerald-50 rounded-full flex items-center justify-center shrink-0">
-                    <Star className="h-3.5 w-3.5 text-emerald-600" />
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                    <TrendingUp className="h-4 w-4 text-emerald-600" />
                   </div>
-                  <span>Reach qualified buyers instantly</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      Premium Exposure
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Featured listings get 3x more views
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-gray-700 justify-center">
-                  <div className="w-6 h-6 bg-emerald-50 rounded-full flex items-center justify-center shrink-0">
-                    <Shield className="h-3.5 w-3.5 text-emerald-600" />
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                    <Shield className="h-4 w-4 text-emerald-600" />
                   </div>
-                  <span>Secure transaction process</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      Secure Process
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Verified buyers & secure transactions
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-gray-700 justify-center">
-                  <div className="w-6 h-6 bg-emerald-50 rounded-full flex items-center justify-center shrink-0">
-                    <Users className="h-3.5 w-3.5 text-emerald-600" />
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                    <Eye className="h-4 w-4 text-emerald-600" />
                   </div>
-                  <span>Professional agent network</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      Virtual Tours
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Showcase with 360° virtual tours
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Button
-                  asChild
                   onClick={() => setSelectedType('sale')}
-                  className="w-full cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white py-6 font-semibold"
+                  className="w-full bg-white text-gray-800 py-6 border-2 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50 group"
                   size="lg"
                 >
-                  <Link href="/properties?type=buy">
+                  <div className="flex items-center justify-center gap-3">
                     Browse Properties for Sale
-                    <ChevronRight className="ml-2 h-5 w-5" />
-                  </Link>
+                    <ChevronRight className="h-5 w-5" />
+                  </div>
                 </Button>
                 <Button
                   asChild
                   variant="outline"
-                  className="w-full py-6 border-gray-300 hover:bg-gray-50"
+                  className="w-full bg-linear-to-r from-emerald-900 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
                   size="lg"
                 >
                   <Link
@@ -146,155 +267,208 @@ export default function ListPropertyPage() {
                         ? '/properties/post'
                         : '/list-property/sale'
                     }
+                    className="flex items-center justify-center gap-2 hover:text-white"
                   >
+                    <Home className="h-5 w-5 text-gray-600 group-hover:text-emerald-600 hover:text-white" />
                     {user?.userType === 'agent'
                       ? 'Post Property for Sale'
                       : 'List Your Property for Sale'}
                   </Link>
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* For Rent Option */}
-          <Card className="border border-gray-200 hover:border-blue-200 hover:shadow-xl transition-all group overflow-hidden">
-            <CardContent className="p-8">
-              <div className="w-16 h-16 mx-auto bg-blue-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-blue-100 transition-colors">
-                <Key className="h-8 w-8 text-emerald-600" />
+          <div className=" border-gray-100 rounded-2xl group overflow-hidden bg-white">
+            <div className="p-8 lg:p-10 relative">
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-14 h-14 bg-linear-to-br from-gray-700 to-gray-800 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Key className="h-7 w-7 text-white" />
+                </div>
+                <div className="bg-blue-50 text-gray-900 text-sm font-medium px-3 py-1 rounded-full">
+                  For Rent
+                </div>
               </div>
 
-              <h3 className="text-2xl font-bold text-gray-900 mb-3 text-center">
+              <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
                 Rent Your Property
               </h3>
 
-              <p className="text-gray-600 mb-6 leading-relaxed text-center">
-                List your rental property and find reliable tenants quickly with
-                our tenant screening and management tools.
+              <p className="text-gray-600 mb-8 leading-relaxed">
+                Find reliable tenants quickly with our tenant screening, rental
+                management tools, and nationwide exposure.
               </p>
 
-              <div className="space-y-3 mb-8 pb-8 border-b border-gray-100">
-                <div className="flex items-center gap-3 text-sm text-gray-700 justify-center">
-                  <div className="w-6 h-6 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
-                    <Star className="h-3.5 w-3.5 text-emerald-600" />
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-gary-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                    <Calendar className="h-4 w-4 text-gary-600" />
                   </div>
-                  <span>Find qualified tenants in days</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      Quick Placement
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Average tenant placement in 7 days
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-gray-700 justify-center">
-                  <div className="w-6 h-6 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
-                    <Shield className="h-3.5 w-3.5 text-emerald-600" />
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                    <BadgeCheck className="h-4 w-4 text-gray-600" />
                   </div>
-                  <span>Tenant screening included</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      Tenant Screening
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Background & credit checks included
+                    </p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-gray-700 justify-center">
-                  <div className="w-6 h-6 bg-blue-50 rounded-full flex items-center justify-center shrink-0">
-                    <Users className="h-3.5 w-3.5 text-emerald-600" />
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                    <MapPin className="h-4 w-4 text-gray-600" />
                   </div>
-                  <span>Rental management tools</span>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      Wide Reach
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      National exposure to quality tenants
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <Button
-                  asChild
                   onClick={() => setSelectedType('rent')}
-                  className="w-full bg-emerald-600 cursor-pointer hover:bg-emerald-700 text-white py-6 font-semibold"
+                  className="w-full bg-white text-gray-800 py-6 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50 group"
                   size="lg"
                 >
-                  <Link href="/properties?type=rent">
+                  <div className="flex items-center justify-center gap-3">
                     Browse Properties for Rent
-                    <ChevronRight className="ml-2 h-5 w-5" />
-                  </Link>
+                    <ChevronRight className="h-5 w-5" />
+                  </div>
                 </Button>
                 <Button
                   asChild
                   variant="outline"
-                  className="w-full py-6 border-gray-300 hover:bg-gray-50"
-                  size="lg"
-                >
-                  <Link href="/list-property/rent">
-                    List Your Property for Rent
-                  </Link>
-                </Button>
-
-                {/* <Button
-                  asChild
-                  variant="outline"
-                  className="w-full py-6 border-gray-300 hover:bg-gray-50"
+                  className="w-full bg-linear-to-r from-gray-900 to-gray-700 hover:from-gray-900 hover:to-gray-800 text-white hover:text-white py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
                   size="lg"
                 >
                   <Link
-                    href={
-                      user?.userType === 'agent'
-                        ? '/properties/post'
-                        : '/list-property/sale'
-                    }
+                    href="/list-property/rent"
+                    className="flex items-center justify-center gap-2"
                   >
-                    {user?.userType === 'agent'
-                      ? 'Post Property for Sale'
-                      : 'List Your Property for Sale'}
+                    <Key className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
+                    List Your Property for Rent
                   </Link>
-                </Button> */}
+                </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Benefits Section */}
-        <div className="max-w-5xl mx-auto">
-          <Card className="border border-gray-200 bg-linear-to-br from-gray-50 to-white">
-            <CardContent className="p-8 lg:p-12">
-              <div className="text-center mb-10">
-                <h3 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-3">
-                  Why List with PropSafeHub?
-                </h3>
-                <p className="text-gray-600">
-                  Everything you need to successfully list and manage your
-                  property
+        <div className="max-w-6xl mx-auto">
+          <div className="border-t border-gray-200 pt-12">
+            <div className="text-center mb-12">
+              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4">
+                Why Choose PropSafe Hub?
+              </h2>
+              <p className="text-gray-600 max-w-2xl mx-auto">
+                We provide everything you need for a successful property listing
+                experience
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all group">
+                <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <TrendingUp className="h-6 w-6 text-emerald-600" />
+                </div>
+                <h4 className="font-bold text-gray-900 mb-2 text-lg">
+                  Maximum Exposure
+                </h4>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Reach thousands of active buyers and tenants across Nigeria
+                  with featured listings
                 </p>
               </div>
 
-              <div className="grid md:grid-cols-3 gap-8">
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <Users className="h-6 w-6 text-emerald-600" />
-                  </div>
-                  <h4 className="font-bold text-gray-900 mb-2 text-lg">
-                    Maximum Exposure
-                  </h4>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    Your property reaches thousands of active buyers and tenants
-                    across Nigeria
-                  </p>
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all group">
+                <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Shield className="h-6 w-6 text-emerald-600" />
                 </div>
+                <h4 className="font-bold text-gray-900 mb-2 text-lg">
+                  Verified Platform
+                </h4>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  All listings and users are verified for safety and
+                  authenticity
+                </p>
+              </div>
 
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <Star className="h-6 w-6 text-emerald-600" />
-                  </div>
-                  <h4 className="font-bold text-gray-900 mb-2 text-lg">
-                    Professional Tools
-                  </h4>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    Advanced listing management, analytics, and marketing tools
-                    at your fingertips
-                  </p>
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-purple-200 hover:shadow-lg transition-all group">
+                <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Tag className="h-6 w-6 text-emerald-600" />
                 </div>
+                <h4 className="font-bold text-gray-900 mb-2 text-lg">
+                  Smart Pricing
+                </h4>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Get real-time market insights and competitive pricing
+                  recommendations
+                </p>
+              </div>
 
-                <div className="text-center">
-                  <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center mx-auto mb-4">
-                    <Shield className="h-6 w-6 text-purple-600" />
-                  </div>
-                  <h4 className="font-bold text-gray-900 mb-2 text-lg">
-                    Secure Process
-                  </h4>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    Safe transactions with verified users and professional
-                    support throughout
-                  </p>
+              <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:amber-orange-200 hover:shadow-lg transition-all group">
+                <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-amber-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                  <Star className="h-6 w-6 text-emerald-600" />
+                </div>
+                <h4 className="font-bold text-gray-900 mb-2 text-lg">
+                  Premium Support
+                </h4>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Dedicated support team available to help you throughout the
+                  process
+                </p>
+              </div>
+            </div>
+
+            {/* CTA Section */}
+            <div className="mt-12 pt-8 border-t border-gray-200">
+              <div className="text-center">
+                <h3 className="text-xl font-bold text-gray-900 mb-3">
+                  Ready to Get Started?
+                </h3>
+                <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                  Join thousands of property owners who trust PropSafe Hub for
+                  their real estate needs
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button
+                    size="lg"
+                    className="bg-emerald-600 hover:bg-emerald-700 px-8 py-6 cursor-pointer"
+                    onClick={() => setSelectedType('sale')}
+                  >
+                    Browse Properties
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="lg"
+                    className="border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-8 py-6"
+                  >
+                    <Link href="/contact">Need Help? Contact Us</Link>
+                  </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
     </div>

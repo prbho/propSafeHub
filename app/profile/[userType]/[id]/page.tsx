@@ -307,7 +307,7 @@ export default function DynamicProfilePage({}: {
             Please sign in to view your profile
           </p>
           <button
-            onClick={() => router.push('/signin')}
+            onClick={() => router.push('/login')}
             className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Sign In

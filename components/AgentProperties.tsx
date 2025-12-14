@@ -12,12 +12,14 @@ interface AgentPropertiesProps {
   agentId: string
   initialProperties: Property[]
   agentName: string
+  userId: string
 }
 
 export default function AgentProperties({
   agentId,
   initialProperties,
   agentName,
+  userId,
 }: AgentPropertiesProps) {
   const [properties] = useState<Property[]>(initialProperties)
 
@@ -58,7 +60,11 @@ export default function AgentProperties({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {properties.map((property) => (
-          <PropertyCard key={property.$id} property={property} />
+          <PropertyCard
+            userId={userId}
+            key={property.$id}
+            property={property}
+          />
         ))}
       </div>
     </section>

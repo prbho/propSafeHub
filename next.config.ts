@@ -48,6 +48,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'api.dicebear.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: '**.unsplash.com',
         port: '',
         pathname: '/**',

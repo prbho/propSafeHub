@@ -1,4 +1,3 @@
-// app/messages/page.tsx
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 'use client'
@@ -12,6 +11,8 @@ import {
   Calendar,
   Check,
   CheckCheck,
+  ChevronDown,
+  ChevronRight,
   Filter,
   Home,
   Info,
@@ -23,43 +24,6 @@ import {
   Smile,
   Video,
 } from 'lucide-react'
-
-// Helper function to format time ago
-const formatTimeAgo = (dateString: string): string => {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffInMs = now.getTime() - date.getTime()
-  const diffInSeconds = Math.floor(diffInMs / 1000)
-  const diffInMinutes = Math.floor(diffInSeconds / 60)
-  const diffInHours = Math.floor(diffInMinutes / 60)
-  const diffInDays = Math.floor(diffInHours / 24)
-
-  if (diffInSeconds < 60) {
-    return 'Just now'
-  } else if (diffInMinutes < 60) {
-    return `${diffInMinutes}m ago`
-  } else if (diffInHours < 24) {
-    return `${diffInHours}h ago`
-  } else if (diffInDays === 1) {
-    return 'Yesterday'
-  } else if (diffInDays < 7) {
-    return `${diffInDays}d ago`
-  } else if (diffInDays < 30) {
-    const weeks = Math.floor(diffInDays / 7)
-    return `${weeks}w ago`
-  } else {
-    return date.toLocaleDateString()
-  }
-}
-
-// Helper function to format time
-const formatTime = (dateString: string): string => {
-  const date = new Date(dateString)
-  return date.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 // User Avatar Component
 const UserAvatar = ({
@@ -137,11 +101,226 @@ const UserAvatar = ({
   )
 }
 
+// Helper function to format time ago
+const formatTimeAgo = (dateString: string): string => {
+  if (!dateString) return 'Just now'
+
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      return 'Just now'
+    }
+
+    const now = new Date()
+    const diffInMs = now.getTime() - date.getTime()
+    const diffInSeconds = Math.floor(diffInMs / 1000)
+    const diffInMinutes = Math.floor(diffInSeconds / 60)
+    const diffInHours = Math.floor(diffInMinutes / 60)
+    const diffInDays = Math.floor(diffInHours / 24)
+
+    if (diffInSeconds < 60) {
+      return 'Just now'
+    } else if (diffInMinutes < 60) {
+      return `${diffInMinutes}m ago`
+    } else if (diffInHours < 24) {
+      return `${diffInHours}h ago`
+    } else if (diffInDays === 1) {
+      return 'Yesterday'
+    } else if (diffInDays < 7) {
+      return `${diffInDays}d ago`
+    } else if (diffInDays < 30) {
+      const weeks = Math.floor(diffInDays / 7)
+      return `${weeks}w ago`
+    } else {
+      return date.toLocaleDateString()
+    }
+  } catch {
+    return 'Just now'
+  }
+}
+
+// Helper function to format time
+// Helper function to format time - FIXED
+const formatTime = (dateString: string | undefined): string => {
+  if (!dateString) return 'Now'
+
+  try {
+    const date = new Date(dateString)
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      console.warn('Invalid date string:', dateString)
+      return 'Now'
+    }
+
+    // Check if it's today
+    const now = new Date()
+    const isToday =
+      date.getDate() === now.getDate() &&
+      date.getMonth() === now.getMonth() &&
+      date.getFullYear() === now.getFullYear()
+
+    if (isToday) {
+      // Return time only for today
+      return date.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      })
+    } else {
+      // Return date for older messages
+      return date.toLocaleDateString([], {
+        month: 'short',
+        day: 'numeric',
+        ...(date.getFullYear() !== now.getFullYear() && { year: '2-digit' }),
+      })
+    }
+  } catch (error) {
+    console.error('Error formatting time:', error, dateString)
+    return 'Now'
+  }
+}
+
+// Conversation Group Component
+const ConversationGroup = ({
+  partnerId,
+  conversations,
+  isExpanded = false,
+  onToggle,
+  onSelect,
+  selectedConversation,
+  currentUserId,
+}: {
+  partnerId: string
+  conversations: any[]
+  isExpanded: boolean
+  onToggle: (partnerId: string) => void
+  onSelect: (conversation: any) => void
+  selectedConversation: any | null
+  currentUserId: string | undefined
+}) => {
+  const firstConversation = conversations[0]
+  const totalUnread = conversations.reduce(
+    (sum, conv) => sum + (conv.unreadCount || 0),
+    0
+  )
+  const latestConversation = conversations[0] // Already sorted by lastMessageAt
+
+  return (
+    <div className="border border-gray-200 rounded-lg mb-3 overflow-hidden">
+      {/* Partner header */}
+      <div
+        className="p-4 bg-white hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100"
+        onClick={() => onToggle(partnerId)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <UserAvatar
+              name={firstConversation.partnerName}
+              avatar={firstConversation.partnerAvatar}
+              userType={firstConversation.partnerType}
+              size="md"
+            />
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-gray-900">
+                  {firstConversation.partnerName}
+                </h3>
+                {firstConversation.partnerType === 'agent' && (
+                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                    Agent
+                  </span>
+                )}
+                {firstConversation.partnerType === 'lead' && (
+                  <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                    Lead
+                  </span>
+                )}
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                {conversations.length} conversation(s) • Latest:{' '}
+                {formatTimeAgo(latestConversation.lastMessageAt)}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {totalUnread > 0 && (
+              <span className="bg-blue-600 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                {totalUnread}
+              </span>
+            )}
+            {isExpanded ? (
+              <ChevronDown className="w-5 h-5 text-gray-400" />
+            ) : (
+              <ChevronRight className="w-5 h-5 text-gray-400" />
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Property conversations */}
+      {isExpanded && (
+        <div className="bg-gray-50">
+          {conversations.map((conversation, index) => {
+            const isActive = selectedConversation?.id === conversation.id
+            const isLastMessageFromMe =
+              conversation.lastMessageFromUserId === currentUserId
+
+            return (
+              <div
+                key={conversation.id}
+                onClick={() => onSelect(conversation)}
+                className={`p-4 border-t border-gray-200 cursor-pointer transition-colors ${
+                  isActive ? 'bg-blue-50' : 'hover:bg-white'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Home className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm font-medium text-gray-900">
+                        {conversation.propertyTitle}
+                      </span>
+                      {conversation.unreadCount > 0 && (
+                        <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
+                          {conversation.unreadCount}
+                        </span>
+                      )}
+                    </div>
+                    <div className="pl-6">
+                      <p className="text-sm text-gray-600 truncate">
+                        {conversation.lastMessage}
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-gray-500">
+                          {formatTimeAgo(conversation.lastMessageAt)}
+                        </span>
+                        {isLastMessageFromMe && (
+                          <CheckCheck className="w-4 h-4 text-blue-500" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function MessagesPage() {
   const { user, isAuthenticated, isLoading } = useAuth()
-  const [conversations, setConversations] = useState<Conversation[]>([])
-  const [selectedConversation, setSelectedConversation] =
-    useState<Conversation | null>(null)
+  const [conversations, setConversations] = useState<any[]>([])
+  const [groupedConversations, setGroupedConversations] = useState<
+    Record<string, any[]>
+  >({})
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(
+    null
+  )
   const [messages, setMessages] = useState<Message[]>([])
   const [newMessage, setNewMessage] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
@@ -149,28 +328,13 @@ export default function MessagesPage() {
   const [sending, setSending] = useState(false)
   const [fetchingMessages, setFetchingMessages] = useState(false)
 
-  // Temporary debug function
-  const debugConversationsAPI = useCallback(async () => {
-    if (!user?.$id) return
-
-    const response = await fetch(
-      `/api/messages/conversations?userId=${user.$id}`
-    )
-    const data = await response.json()
-    console.log('🔍 DEBUG - Raw API response:', data)
-
-    // Check the structure of the first conversation
-    if (data.length > 0) {
-      console.log('🔍 First conversation structure:', data[0])
-      console.log('🔍 Conversation keys:', Object.keys(data[0]))
-    }
-  }, [user?.$id])
-
   const fetchConversations = useCallback(async () => {
     if (!user?.$id) return
 
     try {
       setMessagesLoading(true)
+      console.log('📨 Fetching conversations for user:', user.$id)
+
       const response = await fetch(
         `/api/messages/conversations?userId=${user.$id}`
       )
@@ -179,45 +343,30 @@ export default function MessagesPage() {
         throw new Error('Failed to fetch conversations')
       }
 
-      const conversationsData = await response.json()
+      const data = await response.json()
 
-      console.log('📨 Conversations data:', conversationsData)
+      console.log('📨 Conversations data received:', {
+        userId: user.$id,
+        totalConversations: data.conversations?.length,
+        totalPartners: Object.keys(data.groupedByPartner || {}).length,
+        groupedData: Object.keys(data.groupedByPartner || {}).map((key) => ({
+          partnerId: key,
+          count: data.groupedByPartner[key].length,
+        })),
+      })
 
-      // Use the API data directly - it should already be in the correct format
-      // If not, let's see what the actual structure is
-      const transformedConversations: Conversation[] = conversationsData.map(
-        (conv: any, index: number) => {
-          // Create a unique ID using the other user's ID and property ID
-          const conversationId = `${conv.userId}-${conv.propertyId || 'general'}-${index}`
-
-          return {
-            id: conversationId,
-            otherUserId: conv.userId,
-            otherUserName: conv.userName,
-            otherUserAvatar: conv.userAvatar,
-            otherUserType: conv.userType,
-            propertyId: conv.propertyId,
-            propertyTitle: conv.propertyTitle || 'General Inquiry',
-            propertyImage: conv.propertyImage || '',
-            lastMessage: conv.lastMessage,
-            lastMessageAt: conv.lastMessageAt,
-            lastMessageFromUserId: conv.lastMessageFromUserId,
-            unreadCount: conv.unreadCount || 0,
-          }
-        }
-      )
-
-      // Check for duplicate keys
-      const uniqueIds = new Set(transformedConversations.map((c) => c.id))
-      if (uniqueIds.size !== transformedConversations.length) {
-        console.warn('⚠️ Duplicate conversation IDs detected!')
-        console.log(
-          'All IDs:',
-          transformedConversations.map((c) => c.id)
-        )
+      if (data.conversations) {
+        setConversations(data.conversations)
       }
 
-      setConversations(transformedConversations)
+      if (data.groupedByPartner) {
+        setGroupedConversations(data.groupedByPartner)
+        // Auto-expand the first group
+        const firstPartnerId = Object.keys(data.groupedByPartner)[0]
+        if (firstPartnerId) {
+          setExpandedGroups(new Set([firstPartnerId]))
+        }
+      }
     } catch (error) {
       console.error('Error fetching conversations:', error)
     } finally {
@@ -225,13 +374,22 @@ export default function MessagesPage() {
     }
   }, [user?.$id])
 
-  // In your MessagesPage component - fix the markMessagesAsRead function
+  const toggleGroup = (partnerId: string) => {
+    setExpandedGroups((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(partnerId)) {
+        newSet.delete(partnerId)
+      } else {
+        newSet.add(partnerId)
+      }
+      return newSet
+    })
+  }
 
   const markMessagesAsRead = async (
-    conversation: Conversation,
+    conversation: any,
     messagesToMark?: Message[]
   ) => {
-    // Double-check user object stability
     const currentUser = user
     if (!currentUser?.$id) {
       console.log('⏳ Waiting for user object to stabilize...')
@@ -245,12 +403,10 @@ export default function MessagesPage() {
         .filter(
           (message: any) =>
             !message.isRead &&
-            message.fromUserId === conversation.otherUserId &&
+            message.fromUserId === conversation.partnerId &&
             message.toUserId === currentUser.$id
         )
         .map((message: any) => message.$id)
-
-      console.log('🆔 Using user ID:', currentUser.$id)
 
       if (unreadMessageIds.length === 0) return
 
@@ -269,53 +425,113 @@ export default function MessagesPage() {
         throw new Error('Failed to mark messages as read')
       }
 
-      setConversations((prev) =>
-        prev.map((conv) =>
-          conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv
-        )
-      )
+      // Update unread count in grouped conversations
+      setGroupedConversations((prev) => {
+        const updated = { ...prev }
+        if (updated[conversation.partnerId]) {
+          updated[conversation.partnerId] = updated[conversation.partnerId].map(
+            (conv) =>
+              conv.id === conversation.id ? { ...conv, unreadCount: 0 } : conv
+          )
+        }
+        return updated
+      })
     } catch (error) {
       console.error('Error marking messages as read:', error)
     }
   }
 
-  // Then update the fetchMessages function to pass the fresh messages:
-  const fetchMessages = async (conversation: Conversation) => {
+  const fetchMessages = async (conversation: any) => {
     if (!user?.$id) return
 
     try {
       setFetchingMessages(true)
+      setMessages([]) // Clear previous messages
 
       const params = new URLSearchParams({
         userId: user.$id,
-        otherUserId: conversation.otherUserId,
+        otherUserId: conversation.partnerId,
       })
 
-      if (conversation.propertyId) {
+      // Always include propertyId if the conversation has one
+      if (
+        conversation.propertyId &&
+        conversation.propertyId !== 'null' &&
+        conversation.propertyId !== 'undefined'
+      ) {
         params.append('propertyId', conversation.propertyId)
       }
+
+      console.log('📨 Fetching messages with params:', {
+        userId: user.$id,
+        otherUserId: conversation.partnerId,
+        propertyId: conversation.propertyId,
+        propertyTitle: conversation.propertyTitle,
+      })
 
       const response = await fetch(`/api/messages?${params}`)
 
       if (!response.ok) {
-        throw new Error('Failed to fetch messages')
+        const errorText = await response.text()
+        console.error('Failed to fetch messages:', response.status, errorText)
+        throw new Error(`Failed to fetch messages: ${response.status}`)
       }
 
       const messagesData = await response.json()
-      setMessages(messagesData)
 
-      // Mark messages as read - FIXED: pass the fresh messagesData
-      await markMessagesAsRead(conversation, messagesData)
+      console.log('📨 Messages data received:', {
+        count: messagesData.length,
+        firstMessage: messagesData[0]
+          ? {
+              id: messagesData[0].$id,
+              message: messagesData[0].message,
+              fromUserId: messagesData[0].fromUserId,
+              sentAt: messagesData[0].sentAt,
+              isRead: messagesData[0].isRead,
+            }
+          : null,
+        lastMessage: messagesData[messagesData.length - 1]
+          ? {
+              id: messagesData[messagesData.length - 1].$id,
+              message: messagesData[messagesData.length - 1].message,
+            }
+          : null,
+      })
+
+      // Ensure messages are sorted by sentAt
+      const sortedMessages = [...messagesData].sort((a, b) => {
+        const dateA = new Date(a.sentAt || a.$createdAt || 0)
+        const dateB = new Date(b.sentAt || b.$createdAt || 0)
+        return dateA.getTime() - dateB.getTime()
+      })
+
+      setMessages(sortedMessages)
+
+      // Mark messages as read
+      await markMessagesAsRead(conversation, sortedMessages)
     } catch (error) {
       console.error('Error fetching messages:', error)
+      // Show error to user
+      alert('Failed to load messages. Please try again.')
     } finally {
       setFetchingMessages(false)
     }
   }
 
-  const selectConversation = async (conversation: Conversation) => {
+  const selectConversation = async (conversation: any) => {
+    console.log('🔍 Selecting conversation:', {
+      id: conversation.id,
+      partnerId: conversation.partnerId,
+      propertyTitle: conversation.propertyTitle,
+    })
+
     setSelectedConversation(conversation)
     await fetchMessages(conversation)
+
+    // Ensure the group is expanded
+    if (!expandedGroups.has(conversation.partnerId)) {
+      setExpandedGroups((prev) => new Set(prev).add(conversation.partnerId))
+    }
   }
 
   const sendMessage = async () => {
@@ -331,7 +547,7 @@ export default function MessagesPage() {
         },
         body: JSON.stringify({
           userId: user.$id,
-          toUserId: selectedConversation.otherUserId,
+          toUserId: selectedConversation.partnerId,
           propertyId: selectedConversation.propertyId,
           message: newMessage.trim(),
           messageType: 'text',
@@ -349,29 +565,42 @@ export default function MessagesPage() {
       await fetchConversations()
     } catch (error) {
       console.error('Error sending message:', error)
-      // You might want to show a toast notification here
     } finally {
       setSending(false)
     }
   }
 
-  const filteredConversations = conversations.filter(
-    (conversation) =>
-      conversation.otherUserName
-        ?.toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
-      conversation.propertyTitle
+  // Filter conversations based on search term
+  const filteredGroupedConversations = Object.keys(groupedConversations).reduce(
+    (acc, partnerId) => {
+      const conversations = groupedConversations[partnerId]
+      const firstConversation = conversations[0]
+
+      // Check if partner name matches search
+      const matchesSearch = firstConversation?.partnerName
         ?.toLowerCase()
         .includes(searchTerm.toLowerCase())
+
+      // Check if any property title matches search
+      const matchesProperty = conversations.some((conv) =>
+        conv.propertyTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+
+      if (matchesSearch || matchesProperty) {
+        acc[partnerId] = conversations
+      }
+
+      return acc
+    },
+    {} as Record<string, any[]>
   )
 
   // Call this in your useEffect to see the actual data structure
   useEffect(() => {
     if (isAuthenticated && user) {
       fetchConversations()
-      debugConversationsAPI() // Add this line
     }
-  }, [isAuthenticated, user, fetchConversations, debugConversationsAPI])
+  }, [isAuthenticated, user, fetchConversations])
 
   if (isLoading || messagesLoading) {
     return (
@@ -425,8 +654,8 @@ export default function MessagesPage() {
             </div>
 
             {/* Conversations List */}
-            <div className="overflow-y-auto h-[calc(100vh-200px)]">
-              {filteredConversations.length === 0 ? (
+            <div className="overflow-y-auto h-[calc(100vh-200px)] p-4">
+              {Object.keys(filteredGroupedConversations).length === 0 ? (
                 <div className="p-8 text-center">
                   <MessageCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -441,81 +670,18 @@ export default function MessagesPage() {
                   </p>
                 </div>
               ) : (
-                filteredConversations.map((conversation) => {
-                  const isActive = selectedConversation?.id === conversation.id
-
-                  return (
-                    <div
-                      key={conversation.id}
-                      onClick={() => selectConversation(conversation)}
-                      className={`p-4 border-b border-gray-100 cursor-pointer transition-colors ${
-                        isActive
-                          ? 'bg-blue-50 border-blue-200'
-                          : 'hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        {/* Avatar */}
-                        <div className="shrink-0">
-                          <UserAvatar
-                            name={conversation.otherUserName}
-                            avatar={conversation.otherUserAvatar}
-                            userType={conversation.otherUserType}
-                            size="md"
-                          />
-                        </div>
-
-                        {/* Content */}
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <h3 className="font-semibold text-gray-900 truncate">
-                              {conversation.otherUserName}
-                              {conversation.otherUserType === 'agent' && (
-                                <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                  Agent
-                                </span>
-                              )}
-                              {conversation.otherUserType === 'lead' && (
-                                <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
-                                  Lead
-                                </span>
-                              )}
-                            </h3>
-                            <span className="text-xs text-gray-500 whitespace-nowrap">
-                              {formatTimeAgo(conversation.lastMessageAt)}
-                            </span>
-                          </div>
-
-                          <p className="text-sm text-gray-600 truncate mb-1">
-                            {conversation.lastMessage}
-                          </p>
-
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              {conversation.unreadCount > 0 && (
-                                <span className="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
-                                  {conversation.unreadCount}
-                                </span>
-                              )}
-                              {conversation.propertyTitle &&
-                                conversation.propertyTitle !==
-                                  'General Inquiry' && (
-                                  <span className="text-xs text-gray-500 flex items-center gap-1">
-                                    <Home className="w-3 h-3" />
-                                    {conversation.propertyTitle}
-                                  </span>
-                                )}
-                            </div>
-                            {conversation.lastMessageFromUserId ===
-                              user?.$id && (
-                              <CheckCheck className="w-4 h-4 text-blue-500" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })
+                Object.keys(filteredGroupedConversations).map((partnerId) => (
+                  <ConversationGroup
+                    key={partnerId}
+                    partnerId={partnerId}
+                    conversations={filteredGroupedConversations[partnerId]}
+                    isExpanded={expandedGroups.has(partnerId)}
+                    onToggle={toggleGroup}
+                    onSelect={selectConversation}
+                    selectedConversation={selectedConversation}
+                    currentUserId={user?.$id}
+                  />
+                ))
               )}
             </div>
           </div>
@@ -540,20 +706,20 @@ export default function MessagesPage() {
                       {/* Participant Info */}
                       <div className="flex items-center gap-3">
                         <UserAvatar
-                          name={selectedConversation.otherUserName}
-                          avatar={selectedConversation.otherUserAvatar}
-                          userType={selectedConversation.otherUserType}
+                          name={selectedConversation.partnerName}
+                          avatar={selectedConversation.partnerAvatar}
+                          userType={selectedConversation.partnerType}
                           size="md"
                         />
                         <div>
                           <h3 className="font-semibold text-gray-900">
-                            {selectedConversation.otherUserName}
-                            {selectedConversation.otherUserType === 'agent' && (
+                            {selectedConversation.partnerName}
+                            {selectedConversation.partnerType === 'agent' && (
                               <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
                                 Agent
                               </span>
                             )}
-                            {selectedConversation.otherUserType === 'lead' && (
+                            {selectedConversation.partnerType === 'lead' && (
                               <span className="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
                                 Lead
                               </span>
@@ -587,47 +753,110 @@ export default function MessagesPage() {
                 </div>
 
                 {/* Messages */}
+                {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
-                  {fetchingMessages && (
-                    <div className="flex justify-center mb-4">
-                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                  {fetchingMessages ? (
+                    <div className="flex justify-center items-center h-32">
+                      <div className="text-center">
+                        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                        <p className="text-sm text-gray-600">
+                          Loading messages...
+                        </p>
+                      </div>
+                    </div>
+                  ) : messages.length === 0 ? (
+                    <div className="text-center py-12">
+                      <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">
+                        No messages yet. Start the conversation!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {messages.map((message: any) => {
+                        // Use the message ID or create a unique key
+                        const key =
+                          message.$id ||
+                          `msg-${message.fromUserId}-${message.sentAt || Date.now()}`
+
+                        // Check if message is from current user
+                        const isFromCurrentUser =
+                          message.fromUserId === user?.$id
+
+                        // Get message content - handle empty or undefined
+                        const messageContent =
+                          message.message?.trim() ||
+                          message.messageTitle ||
+                          '(Empty message)'
+
+                        // Get sent time - prioritize sentAt, fallback to createdAt
+                        const sentTime = message.sentAt || message.$createdAt
+
+                        console.log('📨 Rendering message bubble:', {
+                          key,
+                          messageContent: messageContent.substring(0, 50),
+                          sentTime,
+                          isFromCurrentUser,
+                          fromUserId: message.fromUserId,
+                          currentUserId: user?.$id,
+                          hasMessageField: !!message.message,
+                          messageLength: message.message?.length,
+                        })
+
+                        return (
+                          <div
+                            key={key}
+                            className={`flex ${isFromCurrentUser ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${
+                                isFromCurrentUser
+                                  ? 'bg-blue-600 text-white rounded-br-none'
+                                  : 'bg-white text-gray-900 border border-gray-200 rounded-bl-none'
+                              }`}
+                            >
+                              {/* Message content */}
+                              <p className="text-sm whitespace-pre-wrap break-words">
+                                {messageContent}
+                              </p>
+
+                              {/* Message metadata */}
+                              <div
+                                className={`flex items-center justify-end gap-2 mt-2 text-xs ${
+                                  isFromCurrentUser
+                                    ? 'text-blue-100'
+                                    : 'text-gray-500'
+                                }`}
+                              >
+                                <span>
+                                  {sentTime ? formatTime(sentTime) : 'Now'}
+                                </span>
+                                {isFromCurrentUser && (
+                                  <span className="flex items-center gap-1">
+                                    {message.isRead ? (
+                                      <>
+                                        <CheckCheck className="w-3 h-3" />
+                                        <span className="hidden sm:inline">
+                                          Read
+                                        </span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Check className="w-3 h-3" />
+                                        <span className="hidden sm:inline">
+                                          Sent
+                                        </span>
+                                      </>
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   )}
-                  <div className="space-y-4">
-                    {messages.map((message: any) => (
-                      <div
-                        key={message.$id}
-                        className={`flex ${message.fromUserId === user?.$id ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div
-                          className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
-                            message.fromUserId === user?.$id
-                              ? 'bg-blue-600 text-white rounded-br-none'
-                              : 'bg-white text-gray-900 border border-gray-200 rounded-bl-none'
-                          }`}
-                        >
-                          <p className="text-sm">{message.message}</p>
-                          <div
-                            className={`flex items-center justify-end gap-1 mt-1 text-xs ${
-                              message.fromUserId === user?.$id
-                                ? 'text-blue-100'
-                                : 'text-gray-500'
-                            }`}
-                          >
-                            <span>
-                              {formatTime(message.sentAt || message.$createdAt)}
-                            </span>
-                            {message.fromUserId === user?.$id &&
-                              (message.isRead ? (
-                                <CheckCheck className="w-3 h-3" />
-                              ) : (
-                                <Check className="w-3 h-3" />
-                              ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
 
                 {/* Message Input */}

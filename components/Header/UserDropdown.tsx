@@ -11,6 +11,7 @@ import {
   HomeIcon,
   Loader2,
   LogOut,
+  PlusIcon,
   Settings,
   Shield,
   User,
@@ -60,22 +61,12 @@ export default function UserDropdown() {
     }
   }
 
-  // Determine dashboard link based on user type
+  // Determine dashboard link based on user type - UPDATED for dynamic URLs
   const getDashboardLink = () => {
-    if (!user) return '/dashboard'
+    if (!user?.$id || !user?.userType) return '/dashboard'
 
-    switch (user.userType) {
-      case 'admin':
-        return '/admin/dashboard'
-      case 'agent':
-        return '/agent/dashboard'
-      case 'seller':
-        return '/dashboard'
-      case 'buyer':
-        return '/dashboard'
-      default:
-        return '/dashboard'
-    }
+    // Use the dynamic URL pattern: /dashboard/[userType]/[id]
+    return `/dashboard/${user.userType}/${user.$id}`
   }
 
   // Get dashboard icon based on user type
@@ -87,6 +78,10 @@ export default function UserDropdown() {
         return <Shield className="h-4 w-4 mr-2" />
       case 'agent':
         return <Building2 className="h-4 w-4 mr-2" />
+      case 'seller':
+        return <HomeIcon className="h-4 w-4 mr-2" />
+      case 'buyer':
+        return <HomeIcon className="h-4 w-4 mr-2" />
       default:
         return <HomeIcon className="h-4 w-4 mr-2" />
     }
@@ -110,6 +105,14 @@ export default function UserDropdown() {
     }
   }
 
+  // Get profile link based on user type - UPDATED for dynamic URLs
+  const getProfileLink = () => {
+    if (!user?.$id || !user?.userType) return '/profile'
+
+    // Use the dynamic URL pattern: /profile/[userType]/[id]
+    return `/profile/${user.userType}/${user.$id}`
+  }
+
   // Get list property link based on user type
   const getListPropertyLink = () => {
     if (user?.userType === 'agent') {
@@ -127,7 +130,7 @@ export default function UserDropdown() {
         {/* Show "List Property" skeleton for sellers and agents (not admin) */}
         <div className="hidden sm:block">
           <Button variant="outline" disabled className="opacity-50">
-            List Property
+            <PlusIcon className="w-10 h-10" />
           </Button>
         </div>
 
@@ -179,7 +182,9 @@ export default function UserDropdown() {
       {/* Show "List Property" for sellers and agents, hide for buyers and admin */}
       {(user?.userType === 'seller' || user?.userType === 'agent') && (
         <Button variant="outline" asChild>
-          <Link href={getListPropertyLink()}>List Property</Link>
+          <Link href={getListPropertyLink()} aria-label="List Property">
+            <PlusIcon className="w-10 font-bold h-10" />
+          </Link>
         </Button>
       )}
 
@@ -227,15 +232,15 @@ export default function UserDropdown() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
 
-          {/* Profile */}
+          {/* Profile - UPDATED for dynamic URL */}
           <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
-            <Link href="/profile" className="cursor-pointer">
+            <Link href={getProfileLink()} className="cursor-pointer">
               <User className="h-4 w-4 mr-2" />
               My Profile
             </Link>
           </DropdownMenuItem>
 
-          {/* Dashboard - Dynamic based on user type */}
+          {/* Dashboard - Dynamic based on user type - UPDATED for dynamic URL */}
           <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
             <Link href={getDashboardLink()} className="cursor-pointer">
               {getDashboardIcon()}
@@ -246,14 +251,22 @@ export default function UserDropdown() {
           {/* User Type Specific Links */}
           {user?.userType === 'agent' && (
             <>
+              {/* Agent properties - Updated for dynamic URL if needed */}
               <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
-                <Link href="/agent/properties" className="cursor-pointer">
+                <Link
+                  href={`/dashboard/agent/${user?.$id || ''}/properties`}
+                  className="cursor-pointer"
+                >
                   <HomeIcon className="h-4 w-4 mr-2" />
                   My Properties
                 </Link>
               </DropdownMenuItem>
+              {/* Agent leads - Updated for dynamic URL if needed */}
               <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
-                <Link href="/agent/leads" className="cursor-pointer">
+                <Link
+                  href={`/dashboard/agent/${user?.$id || ''}/leads`}
+                  className="cursor-pointer"
+                >
                   <User className="h-4 w-4 mr-2" />
                   My Leads
                 </Link>
@@ -264,20 +277,32 @@ export default function UserDropdown() {
           {/* Admin specific links */}
           {user?.userType === 'admin' && (
             <>
+              {/* Admin user management */}
               <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
-                <Link href="/admin/users" className="cursor-pointer">
+                <Link
+                  href={`/dashboard/admin/${user?.$id || ''}/users`}
+                  className="cursor-pointer"
+                >
                   <User className="h-4 w-4 mr-2" />
                   User Management
                 </Link>
               </DropdownMenuItem>
+              {/* Admin approvals */}
               <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
-                <Link href="/admin/approvals" className="cursor-pointer">
+                <Link
+                  href={`/dashboard/admin/${user?.$id || ''}/approvals`}
+                  className="cursor-pointer"
+                >
                   <Shield className="h-4 w-4 mr-2" />
                   Approval Queue
                 </Link>
               </DropdownMenuItem>
+              {/* Admin property management */}
               <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
-                <Link href="/admin/properties" className="cursor-pointer">
+                <Link
+                  href={`/dashboard/admin/${user?.$id || ''}/properties`}
+                  className="cursor-pointer"
+                >
                   <HomeIcon className="h-4 w-4 mr-2" />
                   Property Management
                 </Link>
@@ -286,25 +311,58 @@ export default function UserDropdown() {
           )}
 
           {/* Seller specific links */}
-          {/* {user?.userType === 'seller' && (
+          {user?.userType === 'seller' && (
             <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
-              <Link href="/my-properties" className="cursor-pointer">
+              <Link
+                href={`/dashboard/seller/${user?.$id || ''}/properties`}
+                className="cursor-pointer"
+              >
                 <HomeIcon className="h-4 w-4 mr-2" />
                 My Listings
               </Link>
             </DropdownMenuItem>
-          )} */}
+          )}
+
+          {/* Buyer specific links */}
+          {user?.userType === 'buyer' && (
+            <>
+              <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
+                <Link
+                  href={`/dashboard/${user?.userType}/${user?.$id || ''}/saved`}
+                  className="cursor-pointer"
+                >
+                  <Heart className="h-4 w-4 mr-2" />
+                  Saved Properties
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
+                <Link
+                  href={`/dashboard/${user?.userType}/${user?.$id || ''}/searches`}
+                  className="cursor-pointer"
+                >
+                  <HomeIcon className="h-4 w-4 mr-2" />
+                  Saved Searches
+                </Link>
+              </DropdownMenuItem>
+            </>
+          )}
 
           {/* Common Links for All Users */}
           <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
-            <Link href="/favorites" className="cursor-pointer">
+            <Link
+              href={`/dashboard/${user?.userType}/${user?.$id || ''}/favorites`}
+              className="cursor-pointer"
+            >
               <Heart className="h-4 w-4 mr-2" />
               Favorites
             </Link>
           </DropdownMenuItem>
 
           <DropdownMenuItem asChild onClick={() => setIsOpen(false)}>
-            <Link href="/calculations/history">
+            <Link
+              href={`/dashboard/${user?.userType || ''}/${user?.$id || ''}/calculations/history`}
+              className="cursor-pointer"
+            >
               <Calculator className="h-4 w-4 mr-2" />
               Calculation History
             </Link>

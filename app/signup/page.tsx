@@ -1,4 +1,5 @@
 // app/(auth)/signup/page.tsx
+
 'use client'
 
 import { useState } from 'react'
@@ -7,7 +8,7 @@ import Link from 'next/link'
 import { RegistrationForm } from '@/components/auth/RegistrationForm'
 
 export default function SignUpPage() {
-  const [email, setEmail] = useState('')
+  const [email] = useState('')
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

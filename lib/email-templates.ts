@@ -13,7 +13,7 @@ export function generateVerificationEmail(params: EmailTemplateParams): {
   subject: string
   html: string
 } {
-  const { name, email, verificationUrl, userType, phone, agency, city } = params
+  const { name, verificationUrl, userType, phone, agency, city } = params
 
   // Extract token from URL for display
   const url = new URL(verificationUrl)

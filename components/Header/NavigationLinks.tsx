@@ -15,6 +15,7 @@ import {
   Plane,
   ShieldCheck,
   TrendingUp,
+  Users,
 } from 'lucide-react'
 
 import {
@@ -52,42 +53,6 @@ export default function NavigationLinks() {
               Properties for Rent
             </Link>
           </DropdownMenuItem>
-          {/* <DropdownMenuItem asChild>
-            <Link
-              href="/properties?type=luxury-homes"
-              className="flex items-center cursor-pointer"
-            >
-              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2" />
-              Luxury Homes
-            </Link>
-          </DropdownMenuItem> */}
-          {/* <DropdownMenuItem asChild>
-            <Link
-              href="/properties?type=affordable-housing"
-              className="flex items-center cursor-pointer"
-            >
-              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2" />
-              Affordable Housing
-            </Link>
-          </DropdownMenuItem> */}
-          {/* <DropdownMenuItem asChild>
-            <Link
-              href="/properties?type=waterfront"
-              className="flex items-center cursor-pointer"
-            >
-              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2" />
-              Waterfront Properties
-            </Link>
-          </DropdownMenuItem> */}
-          {/* <DropdownMenuItem asChild>
-            <Link
-              href="/properties?type=investment-plots"
-              className="flex items-center cursor-pointer"
-            >
-              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2" />
-              Investment Plots
-            </Link>
-          </DropdownMenuItem> */}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -168,6 +133,34 @@ export default function NavigationLinks() {
                   Financing through partners
                 </p>
               </div>
+            </Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* AGENTS - NEW SECTION */}
+      <DropdownMenu>
+        <DropdownMenuTrigger className="flex items-center text-sm text-gray-700 hover:text-emerald-600 transition-colors">
+          Agents
+          <ChevronDown className="h-3 w-3 ml-1" />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="center" className="w-48">
+          <DropdownMenuItem asChild>
+            <Link href="/agents" className="flex items-center cursor-pointer">
+              <Users className="h-4 w-4 mr-2 text-emerald-600" />
+              <div>
+                <p className="font-medium">Browse All Agents</p>
+                <p className="text-xs text-gray-500">View all listing agents</p>
+              </div>
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link
+              href="/list-property"
+              className="flex items-center cursor-pointer text-emerald-600 font-medium"
+            >
+              <Handshake className="h-4 w-4 mr-2" />
+              Become an Agent
             </Link>
           </DropdownMenuItem>
         </DropdownMenuContent>

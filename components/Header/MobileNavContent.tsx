@@ -1,12 +1,31 @@
 // components/Header/MobileNavContent.tsx
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
-import { Heart, Shield } from 'lucide-react'
+import {
+  BadgeQuestionMark,
+  Building,
+  Calculator,
+  ChevronRight,
+  FileCheck,
+  Globe,
+  Handshake,
+  Heart,
+  Plane,
+  Shield,
+  TrendingUp,
+  Users,
+} from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { Separator } from '@/components/ui/separator'
 
 import NotificationBell from '../NotificationBell'
@@ -21,6 +40,10 @@ export default function MobileNavContent({
   isAuthenticated,
 }: MobileNavContentProps) {
   const { user, logout } = useAuth()
+  const [openProperties, setOpenProperties] = useState(false)
+  const [openServices, setOpenServices] = useState(false)
+  const [openAgents, setOpenAgents] = useState(false)
+  const [openResources, setOpenResources] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -33,45 +56,234 @@ export default function MobileNavContent({
 
   return (
     <div className="space-y-6 mt-6">
-      {/* Mobile Nav Links */}
-      <nav className="flex flex-col space-y-4 px-6">
+      {/* Mobile Nav Links - Organized like desktop */}
+      <nav className="flex flex-col space-y-1 px-4">
+        {/* Properties Dropdown */}
+        <Collapsible
+          open={openProperties}
+          onOpenChange={setOpenProperties}
+          className="border-b border-gray-100 last:border-0"
+        >
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors">
+            <span>Properties</span>
+            <ChevronRight
+              className={`h-4 w-4 transition-transform ${openProperties ? 'rotate-90' : ''}`}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-2 pl-4 pb-3">
+            <Link
+              href="/properties?type=buy"
+              className="flex items-center text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-3" />
+              Properties for Sale
+            </Link>
+            <Link
+              href="/properties?type=rent"
+              className="flex items-center text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-3" />
+              Properties for Rent
+            </Link>
+            <Link
+              href="/sell"
+              className="flex items-center text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-3" />
+              List Your Property
+            </Link>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Services Dropdown */}
+        <Collapsible
+          open={openServices}
+          onOpenChange={setOpenServices}
+          className="border-b border-gray-100 last:border-0"
+        >
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors">
+            <span>Services</span>
+            <ChevronRight
+              className={`h-4 w-4 transition-transform ${openServices ? 'rotate-90' : ''}`}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-3 pl-4 pb-3">
+            <Link
+              href="/services/verification"
+              className="flex items-start space-x-3 text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <FileCheck className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">Property Verification</p>
+                <p className="text-xs text-gray-500">
+                  Title checks & due diligence
+                </p>
+              </div>
+            </Link>
+            <Link
+              href="/services/advisory"
+              className="flex items-start space-x-3 text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <TrendingUp className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">Investment Advisory</p>
+                <p className="text-xs text-gray-500">
+                  Personalized strategy & planning
+                </p>
+              </div>
+            </Link>
+            <Link
+              href="/services/diaspora"
+              className="flex items-start space-x-3 text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <Globe className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">Diaspora Support</p>
+                <p className="text-xs text-gray-500">
+                  Buy from abroad securely
+                </p>
+              </div>
+            </Link>
+            <Link
+              href="/services/construction"
+              className="flex items-start space-x-3 text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <Building className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">Construction Management</p>
+                <p className="text-xs text-gray-500">
+                  Turnkey building projects
+                </p>
+              </div>
+            </Link>
+            <Link
+              href="/services/mortgage"
+              className="flex items-start space-x-3 text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <div className="h-5 w-5 flex items-center justify-center text-emerald-600 font-bold text-lg shrink-0">
+                ₦
+              </div>
+              <div>
+                <p className="font-medium">Mortgage Access</p>
+                <p className="text-xs text-gray-500">
+                  Financing through partners
+                </p>
+              </div>
+            </Link>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Agents Dropdown */}
+        <Collapsible
+          open={openAgents}
+          onOpenChange={setOpenAgents}
+          className="border-b border-gray-100 last:border-0"
+        >
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors">
+            <span>Agents</span>
+            <ChevronRight
+              className={`h-4 w-4 transition-transform ${openAgents ? 'rotate-90' : ''}`}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-2 pl-4 pb-3">
+            <Link
+              href="/agents"
+              className="flex items-start space-x-3 text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <Users className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium">Browse All Agents</p>
+                <p className="text-xs text-gray-500">View all listing agents</p>
+              </div>
+            </Link>
+            <Link
+              href="/list-property"
+              className="flex items-start space-x-3 text-emerald-600 font-medium py-2"
+              onClick={closeSheet}
+            >
+              <Handshake className="h-5 w-5 shrink-0" />
+              <div>
+                <p className="font-medium">Become an Agent</p>
+                <p className="text-xs text-emerald-500">Join our network</p>
+              </div>
+            </Link>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Resources Dropdown */}
+        <Collapsible
+          open={openResources}
+          onOpenChange={setOpenResources}
+          className="border-b border-gray-100 last:border-0"
+        >
+          <CollapsibleTrigger className="flex items-center justify-between w-full py-3 text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors">
+            <span>Resources</span>
+            <ChevronRight
+              className={`h-4 w-4 transition-transform ${openResources ? 'rotate-90' : ''}`}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-2 pl-4 pb-3">
+            <Link
+              href="/mortgage"
+              className="flex items-center text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <Calculator className="h-5 w-5 text-emerald-600 mr-3 shrink-0" />
+              Mortgage Calculator
+            </Link>
+            <Link
+              href="/faqs"
+              className="flex items-center text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <BadgeQuestionMark className="h-5 w-5 text-emerald-600 mr-3 shrink-0" />
+              Frequently Asked Questions
+            </Link>
+            <Link
+              href="/resources/diaspora"
+              className="flex items-center text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <Plane className="h-5 w-5 text-emerald-600 mr-3 shrink-0" />
+              Diaspora Investor Guide
+            </Link>
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Simple Links (No Dropdown) */}
         <Link
-          href="/properties?type=buy"
-          className="text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors"
+          href="/about"
+          className="py-3 text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors border-b border-gray-100"
           onClick={closeSheet}
         >
-          Buy
+          Company
         </Link>
         <Link
-          href="/properties?type=rent"
-          className="text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors"
+          href="/contact"
+          className="py-3 text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors border-b border-gray-100"
           onClick={closeSheet}
         >
-          Rent
-        </Link>
-        <Link
-          href="/sell"
-          className="text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors"
-          onClick={closeSheet}
-        >
-          Sell
-        </Link>
-        <Link
-          href="/agents"
-          className="text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors"
-          onClick={closeSheet}
-        >
-          Find Agents
+          Contact
         </Link>
 
+        {/* Favorites (Only for authenticated users) */}
         {isAuthenticated && (
           <Link
             href="/favorites"
-            className="flex items-center space-x-2 text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors"
+            className="flex items-center space-x-3 py-3 text-lg font-medium text-gray-900 hover:text-emerald-600 transition-colors border-b border-gray-100"
             onClick={closeSheet}
           >
-            <Heart className="h-4 w-4" />
-            <span>Favorites</span>
+            <Heart className="h-5 w-5" />
+            <span>My Favorites</span>
           </Link>
         )}
       </nav>
@@ -80,11 +292,11 @@ export default function MobileNavContent({
 
       {/* Auth / Profile Section */}
       {isAuthenticated ? (
-        <div className="space-y-4 px-6">
+        <div className="space-y-4 px-4">
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12">
               <AvatarImage src={user?.avatar} alt={user?.name} />
-              <AvatarFallback className="bg-blue-100 text-emerald-600 text-lg">
+              <AvatarFallback className="bg-emerald-100 text-emerald-600 text-lg">
                 {user?.name?.[0]?.toUpperCase() || 'U'}
               </AvatarFallback>
             </Avatar>
@@ -140,9 +352,9 @@ export default function MobileNavContent({
           </Button>
         </div>
       ) : (
-        <div className="flex flex-col space-y-3 px-6">
+        <div className="flex flex-col space-y-3 px-4">
           <Button
-            className="w-full bg-emerald-600 hover:bg-blue-700"
+            className="w-full bg-emerald-600 hover:bg-emerald-700"
             onClick={() => {
               openAuth()
               closeSheet()
@@ -152,7 +364,7 @@ export default function MobileNavContent({
           </Button>
           <Button
             variant="outline"
-            className="w-full"
+            className="w-full border-emerald-600 text-emerald-600 hover:bg-emerald-50"
             onClick={() => {
               openAuth()
               closeSheet()

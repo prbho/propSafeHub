@@ -92,7 +92,7 @@ export default function CalculationHistoryPage() {
               Please sign in to view your saved calculations and mortgage
               estimates.
             </p>
-            <Link href="/auth/signin">
+            <Link href="/login">
               <Button className="bg-blue-600 hover:bg-blue-700 text-white">
                 Sign In to View History
               </Button>

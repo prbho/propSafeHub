@@ -280,6 +280,7 @@ export async function POST(request: NextRequest) {
         avatar: finalAvatarUrl,
         phone: phone || '',
         mobilePhone: phone || '',
+        userId: appwriteUser.$id,
       }
 
       // Add user-specific fields
@@ -316,7 +317,7 @@ export async function POST(request: NextRequest) {
       userDoc = await serverDatabases.createDocument(
         DATABASE_ID,
         collectionId,
-        appwriteUser.$id, // Use the same ID for document
+        appwriteUser.$id,
         documentData
       )
 

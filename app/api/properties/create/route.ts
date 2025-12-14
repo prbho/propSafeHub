@@ -50,9 +50,7 @@ export async function POST(request: NextRequest) {
         })
         correctAgentName = agent.name
       }
-    } catch (error) {
-      console.log('❌ Agent not found by provided ID, searching by name...')
-
+    } catch {
       // Try to find agent by name
       try {
         const agents = await serverDatabases.listDocuments(
@@ -64,11 +62,6 @@ export async function POST(request: NextRequest) {
         if (agents.documents.length > 0) {
           const foundAgent = agents.documents[0]
           correctAgentId = foundAgent.$id
-          console.log('✅ Agent found by name:', {
-            originalAgentId: cleanPropertyData.agentId,
-            correctedAgentId: correctAgentId,
-            name: foundAgent.name,
-          })
         } else {
           console.error(
             '❌ No agent found with name:',
@@ -189,11 +182,6 @@ export async function POST(request: NextRequest) {
       customPlanMonths: cleanPropertyData.customPlanMonths || 12,
     }
 
-    console.log('📄 Creating property with agent:', {
-      agentId: correctAgentId,
-      agentName: correctAgentName,
-    })
-
     // Create the property in Appwrite
     const property = await serverDatabases.createDocument(
       DATABASE_ID,
@@ -201,8 +189,6 @@ export async function POST(request: NextRequest) {
       propertyId,
       documentData
     )
-
-    console.log('✅ Property created successfully:', property.$id)
 
     // Increment totalListings count for the CORRECT agent
     try {

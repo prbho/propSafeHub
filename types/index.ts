@@ -15,12 +15,14 @@ export interface Property {
   $permissions: string[]
   // Properties attributes
   agentId: string
+  userId: string
+  name: string
   propertyId: string
   agentName: string
   title: string
   description: string
   propertyType: 'house' | 'apartment' | 'condo' | 'land' | 'townhouse'
-  status: 'for-sale' | 'for-rent' | 'sold' | 'rented'
+  status: 'for-sale' | 'for-rent' | 'sold' | 'rented' | 'active'
   price: number
   priceUnit: 'monthly' | 'yearly' | 'total'
   originalPrice?: number
@@ -62,6 +64,10 @@ export interface Property {
   customPlanAvailable: boolean
   customPlanDepositPercent: number
   customPlanMonths: number
+
+  // analytics
+  leads?: number // Add this
+  conversionRate?: number // Add this
 }
 
 export interface PriceHistory {
@@ -847,6 +853,12 @@ export interface AnalyticsData {
   }[]
   recentViewings: ScheduleViewing[]
   topPerformingProperties: Property[]
+  timelineData: {
+    date: string
+    viewings: number
+    leads: number
+  }[]
+  performanceTrends: Record<string, number>
 }
 
 // types/leads.ts

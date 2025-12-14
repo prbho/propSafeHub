@@ -40,7 +40,7 @@ export function usePropertyFavorite(property: Property) {
   // Check favorite status on mount and when dependencies change
   useEffect(() => {
     checkFavoriteStatus()
-  }, [user?.$id, property?.$id])
+  }, [user?.$id, checkFavoriteStatus, property?.$id])
 
   const toggleFavorite = async () => {
     console.log(

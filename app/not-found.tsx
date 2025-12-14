@@ -1,25 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Building,
-  Compass,
-  Globe,
-  Home,
-  Map,
-  RefreshCw,
-  Search,
-  Shield,
-  TrendingUp,
-} from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { AlertTriangle, RefreshCw } from 'lucide-react'
 
 export default function NotFound() {
   const router = useRouter()

@@ -21,7 +21,7 @@ export default function HeaderDesktop({ openAuth }: HeaderDesktopProps) {
   const { isAuthenticated } = useAuth()
 
   return (
-    <div className="hidden md:flex max-w-7xl mx-auto h-16 items-center">
+    <div className="hidden md:flex max-w-11/12 px-6 mx-auto h-16 items-center">
       {/* Left Section (Logo + Search) */}
       <div className="flex items-center flex-1">
         {/* Logo */}

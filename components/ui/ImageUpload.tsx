@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { Image as ImageIcon, Upload, X } from 'lucide-react'
 
@@ -23,11 +23,19 @@ export default function ImageUpload({
   const [imageFiles, setImageFiles] = useState<ImageFile[]>([])
   const [isDragging, setIsDragging] = useState(false)
 
+  // Use a ref to track imageFiles for callbacks
+  const imageFilesRef = useRef<ImageFile[]>([])
+
+  // Keep the ref in sync with state
+  useEffect(() => {
+    imageFilesRef.current = imageFiles
+  }, [imageFiles])
+
   const processFiles = useCallback(
     (files: FileList) => {
       const fileArray = Array.from(files).slice(
         0,
-        maxImages - imageFiles.length
+        maxImages - imageFilesRef.current.length
       )
 
       if (fileArray.length === 0) return
@@ -39,17 +47,19 @@ export default function ImageUpload({
       }))
 
       // Add new files to existing ones
-      const updatedImageFiles = [...imageFiles, ...newImageFiles].slice(
-        0,
-        maxImages
-      )
+      const updatedImageFiles = [
+        ...imageFilesRef.current,
+        ...newImageFiles,
+      ].slice(0, maxImages)
 
       setImageFiles(updatedImageFiles)
 
-      // Send only the File objects to parent
-      onImagesChange(updatedImageFiles.map((img) => img.file))
+      // Schedule parent update to avoid render-phase issues
+      requestAnimationFrame(() => {
+        onImagesChange(updatedImageFiles.map((img) => img.file))
+      })
     },
-    [imageFiles, maxImages, onImagesChange]
+    [maxImages, onImagesChange]
   )
 
   const handleDrop = useCallback(
@@ -89,16 +99,19 @@ export default function ImageUpload({
 
   const removeImage = useCallback(
     (index: number) => {
-      setImageFiles((prev) => {
-        const newImageFiles = prev.filter((_, i) => i !== index)
+      // Calculate new files
+      const currentFiles = imageFilesRef.current
+      const newImageFiles = currentFiles.filter((_, i) => i !== index)
 
-        // Clean up the preview URL to prevent memory leaks
-        URL.revokeObjectURL(prev[index].previewUrl)
+      // Clean up the preview URL
+      URL.revokeObjectURL(currentFiles[index].previewUrl)
 
-        // Update parent with remaining files
+      // Update local state
+      setImageFiles(newImageFiles)
+
+      // Schedule parent update
+      requestAnimationFrame(() => {
         onImagesChange(newImageFiles.map((img) => img.file))
-
-        return newImageFiles
       })
     },
     [onImagesChange]

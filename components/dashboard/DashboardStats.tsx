@@ -3,11 +3,12 @@
 
 interface StatCard {
   title: string
-  value: number
+  value: string | number
   icon: any
   description: string
   color: string
   bgColor: string
+  urgent?: boolean
 }
 
 interface DashboardStatsProps {

@@ -20,10 +20,11 @@ import Portal from './Portal'
 
 interface PropertyCardProps {
   property: Property
-  userId?: string
+  userId: string
   featured?: boolean
   priority?: boolean
   className?: string
+  agentProfileId?: string
 }
 
 // Enhanced time ago function with more precise formatting
@@ -68,7 +69,10 @@ const getTimeAgo = (date: string | Date): string => {
   }
 }
 
-export default function PropertyCard({ property }: PropertyCardProps) {
+export default function PropertyCard({
+  property,
+  agentProfileId,
+}: PropertyCardProps) {
   const [showMortgageCalc, setShowMortgageCalc] = useState(false)
   const [isFavoriteLoading, setIsFavoriteLoading] = useState(false)
   const { isFavorited, toggleFavorite } = useFavorites()
@@ -122,7 +126,10 @@ export default function PropertyCard({ property }: PropertyCardProps) {
   }
 
   // Check if the current user owns this property
-  const isOwner = user && property.agentId === user.$id
+  const isOwner =
+    user &&
+    (property.agentId === user.$id || // Posted as seller
+      (agentProfileId && property.agentId === agentProfileId)) // Posted as agent
   const isFavoritedByUser = isFavorited(property)
 
   return (
@@ -130,7 +137,7 @@ export default function PropertyCard({ property }: PropertyCardProps) {
       {/* EDIT BUTTON - Only show if user owns the property */}
       {isOwner && (
         <Link
-          href={`/agent/properties/edit/${property.$id}`}
+          href={`/dashboard/${user?.userType}/${user?.$id}/properties/edit/${property.$id}`}
           onClick={handleEditClick}
           className="
             absolute top-2 left-2 z-20

@@ -1,17 +1,17 @@
-// components/messages/MessageModal.tsx - FIXED VERSION
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
 'use client'
 
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Message } from '@/types'
 import { Check, CheckCheck, Send, X } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface MessageModalProps {
   toUserId: string
   toUserName: string
-  propertyId?: string | null // ✅ Allow null values
+  toUserType?: string
+  propertyId?: string
   propertyTitle?: string
   onClose: () => void
 }
@@ -28,7 +28,8 @@ const formatTime = (dateString: string): string => {
 export default function MessageModal({
   toUserId,
   toUserName,
-  propertyId, // This might be null/undefined
+  toUserType = 'agent',
+  propertyId,
   propertyTitle,
   onClose,
 }: MessageModalProps) {
@@ -37,26 +38,18 @@ export default function MessageModal({
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
-  const [fetchingMessages, setFetchingMessages] = useState(false)
 
   useEffect(() => {
     if (user && toUserId) {
       fetchMessages()
-
-      // Set up polling for real-time updates
-      // const interval = setInterval(() => {
-      //   fetchMessages()
-      // }, 3000)
-
-      // return () => clearInterval(interval)
     }
-  }, [user, toUserId, propertyId])
+  }, [user, toUserId, propertyId, propertyTitle, onClose])
 
   const fetchMessages = async () => {
     if (!user?.$id || !toUserId) return
 
     try {
-      setFetchingMessages(true)
+      setLoading(true)
 
       const params = new URLSearchParams({
         userId: user.$id,
@@ -67,10 +60,11 @@ export default function MessageModal({
         params.append('propertyId', propertyId)
       }
 
-      // console.log('🔍 MODAL - Fetching messages:', {
-      //   propertyId: propertyId || 'NULL/undefined',
-      //   url: `/api/messages?${params}`,
-      // })
+      console.log('🔍 MODAL - Fetching messages:', {
+        userId: user.$id,
+        otherUserId: toUserId,
+        propertyId,
+      })
 
       const response = await fetch(`/api/messages?${params}`)
 
@@ -79,22 +73,10 @@ export default function MessageModal({
       }
 
       const messagesData = await response.json()
-
-      // console.log('🔍 MODAL - Messages loaded:', {
-      //   total: messagesData.length,
-      //   fromCurrentUser: messagesData.filter(
-      //     (m: any) => m.fromUserId === user.$id
-      //   ).length,
-      //   fromOtherUser: messagesData.filter(
-      //     (m: any) => m.fromUserId === toUserId
-      //   ).length,
-      // })
-
       setMessages(messagesData)
     } catch (error) {
       console.error('Error fetching messages:', error)
     } finally {
-      setFetchingMessages(false)
       setLoading(false)
     }
   }
@@ -105,22 +87,16 @@ export default function MessageModal({
     try {
       setSending(true)
 
-      // ✅ FIXED: Only include propertyId if it has a value
-      const messageData: any = {
+      const messageData = {
         userId: user.$id,
         toUserId: toUserId,
+        toUserType: toUserType,
+        propertyId: propertyId || null,
         message: newMessage.trim(),
         messageType: 'text',
       }
 
-      // Only add propertyId if it exists and is not null/empty
-      if (propertyId) {
-        messageData.propertyId = propertyId
-      }
-
-      // console.log('🔍 MODAL - Sending message:', {
-      //   propertyId: propertyId || 'NULL/undefined',
-      // })
+      console.log('📨 Sending message:', messageData)
 
       const response = await fetch('/api/messages', {
         method: 'POST',
@@ -136,12 +112,11 @@ export default function MessageModal({
       }
 
       setNewMessage('')
-      // Refresh messages after a short delay
-      setTimeout(() => {
-        fetchMessages()
-      }, 1000)
+      // Refresh messages
+      await fetchMessages()
     } catch (error) {
       console.error('Error sending message:', error)
+      toast.error('Failed to send message')
     } finally {
       setSending(false)
     }
@@ -178,7 +153,7 @@ export default function MessageModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-xl w-full max-w-md max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="border-b border-gray-200 px-4 py-3">
@@ -222,48 +197,41 @@ export default function MessageModal({
               <p className="text-sm mt-1">Start the conversation!</p>
             </div>
           ) : (
-            <>
-              {fetchingMessages && (
-                <div className="flex justify-center mb-4">
-                  {/* <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div> */}
-                </div>
-              )}
-              <div className="space-y-3">
-                {messages.map((message: any) => (
+            <div className="space-y-3">
+              {messages.map((message: any) => (
+                <div
+                  key={message.$id}
+                  className={`flex ${message.fromUserId === user?.$id ? 'justify-end' : 'justify-start'}`}
+                >
                   <div
-                    key={message.$id}
-                    className={`flex ${message.fromUserId === user?.$id ? 'justify-end' : 'justify-start'}`}
+                    className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                      message.fromUserId === user?.$id
+                        ? 'bg-blue-600 text-white rounded-br-none'
+                        : 'bg-white text-gray-900 border border-gray-200 rounded-bl-none'
+                    }`}
                   >
+                    <p className="text-sm">{message.message}</p>
                     <div
-                      className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${
+                      className={`flex items-center justify-end gap-1 mt-1 text-xs ${
                         message.fromUserId === user?.$id
-                          ? 'bg-blue-600 text-white rounded-br-none'
-                          : 'bg-white text-gray-900 border border-gray-200 rounded-bl-none'
+                          ? 'text-blue-100'
+                          : 'text-gray-500'
                       }`}
                     >
-                      <p className="text-sm">{message.message}</p>
-                      <div
-                        className={`flex items-center justify-end gap-1 mt-1 text-xs ${
-                          message.fromUserId === user?.$id
-                            ? 'text-blue-100'
-                            : 'text-gray-500'
-                        }`}
-                      >
-                        <span>
-                          {formatTime(message.sentAt || message.$createdAt)}
-                        </span>
-                        {message.fromUserId === user?.$id &&
-                          (message.isRead ? (
-                            <CheckCheck className="w-3 h-3" />
-                          ) : (
-                            <Check className="w-3 h-3" />
-                          ))}
-                      </div>
+                      <span>
+                        {formatTime(message.sentAt || message.$createdAt)}
+                      </span>
+                      {message.fromUserId === user?.$id &&
+                        (message.isRead ? (
+                          <CheckCheck className="w-3 h-3" />
+                        ) : (
+                          <Check className="w-3 h-3" />
+                        ))}
                     </div>
                   </div>
-                ))}
-              </div>
-            </>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 

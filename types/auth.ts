@@ -23,8 +23,10 @@ export interface User {
   lastVerificationRequest: string
   city: string
   state: string
+  recentlyViewed?: string[]
 
   // Agent-specific fields
+  agentDocumentId?: string
   agency?: string
   licenseNumber?: string
   yearsExperience?: number

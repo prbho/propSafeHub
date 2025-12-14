@@ -97,6 +97,8 @@ const mapDocumentToProperty = (doc: any): Property => ({
   $updatedAt: doc.$updatedAt || '',
   $permissions: doc.$permissions || [],
   agentId: doc.agentId || '',
+  userId: doc.userId || '',
+  name: doc.name || '',
   propertyId: doc.propertyId || doc.$id || '',
   agentName: doc.agentName || '',
   title: doc.title || '',

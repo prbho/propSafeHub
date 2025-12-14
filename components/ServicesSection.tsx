@@ -363,7 +363,7 @@ export default function ServicesSection() {
                       variant="outline"
                       className="border-white bg-transparent hover:text-white text-white hover:bg-white/10 px-8 py-6 text-lg font-semibold rounded-lg"
                     >
-                      <Link href="#">Contact Our Team</Link>
+                      <Link href="/contact">Contact Our Team</Link>
                     </Button>
                   </>
                 ) : (
@@ -406,7 +406,7 @@ export default function ServicesSection() {
                       asChild
                       className="border-white bg-emerald-600 text-white hover:bg-white/10 px-8 py-6 text-lg font-semibold rounded-lg"
                     >
-                      <Link href="#">Contact Our Team</Link>
+                      <Link href="contact">Contact Our Team</Link>
                     </Button>
                   </div>
                 )}

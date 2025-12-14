@@ -41,7 +41,7 @@ export default function ReviewsSection({
   useEffect(() => {
     loadReviews()
     loadReviewStats()
-  }, [targetId, targetType])
+  }, [targetId, targetType, targetName, user, isSubmitting])
 
   const loadReviews = async () => {
     try {
@@ -145,9 +145,9 @@ export default function ReviewsSection({
     }
   }
 
-  const canModify = (review: Review) => {
-    return user?.$id === review.userId
-  }
+  // const canModify = (review: Review) => {
+  //   return user?.$id === review.userId
+  // }
 
   if (isLoading) {
     return (

@@ -26,19 +26,18 @@ export default function PopularLocations({
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    loadPopularLocations()
-  }, [])
-
-  const loadPopularLocations = async () => {
-    try {
-      const locations = await clientLocationService.getPopularLocations(limit)
-      setPopularLocations(locations)
-    } catch (error) {
-      console.error('Error loading popular locations:', error)
-    } finally {
-      setIsLoading(false)
+    const loadPopularLocations = async () => {
+      try {
+        const locations = await clientLocationService.getPopularLocations(limit)
+        setPopularLocations(locations)
+      } catch (error) {
+        console.error('Error loading popular locations:', error)
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }
+    loadPopularLocations()
+  }, [limit])
 
   const handleLocationClick = (location: Location) => {
     onLocationSelect(location)

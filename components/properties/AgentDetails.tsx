@@ -114,7 +114,7 @@ export default function AgentDetails({ property }: AgentDetailsProps) {
 
   useEffect(() => {
     fetchAgentData()
-  }, [property?.agentId, property?.agentName, user])
+  }, [property?.agentId, property?.agentName, user, fetchAgentData])
 
   useEffect(() => {
     setAvatarError(false)

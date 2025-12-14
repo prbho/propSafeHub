@@ -60,7 +60,7 @@ export async function syncUserToAgent(userData: {
         errorMessage = errorData.error || errorMessage
         errorDetails = errorData.details || ''
         console.error('❌ Sync API error:', errorData)
-      } catch (parseError) {
+      } catch {
         const errorText = await response.text()
         console.error('❌ Sync API raw error:', errorText)
         errorDetails = errorText

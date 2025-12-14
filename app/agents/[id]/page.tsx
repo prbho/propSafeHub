@@ -70,6 +70,7 @@ export default async function AgentProfilePage({
                 agentId={agent.$id}
                 initialProperties={agentProperties}
                 agentName={agent.name}
+                userId={''}
               />
             )}
 
