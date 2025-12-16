@@ -6,6 +6,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowRight,
+  Code2, // Added for Cofellow
+  ExternalLink, // Added for Cofellow
   Facebook,
   FileText,
   Globe,
@@ -62,25 +64,21 @@ const COMPANY_LINKS = [
   {
     title: 'About Us',
     href: '/about',
-    // icon: Info,
     description: 'Our story, mission & team',
   },
   {
     title: 'Services',
     href: '/services',
-    // icon: Building,
     description: 'All our offerings',
   },
   {
     title: 'Properties',
     href: '/properties',
-    // icon: Home,
     description: 'Browse listings',
   },
   {
     title: 'Contact',
     href: '/contact',
-    // icon: Phone,
     description: 'Get in touch',
   },
 ]
@@ -329,7 +327,6 @@ export default function Footer() {
           {/* Popular Real Estate Markets */}
           <div>
             <h4 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
-              {/* <TrendingUp className="h-4 w-4 text-emerald-500" /> */}
               Hot Markets
             </h4>
             <ul className="space-y-3">
@@ -373,7 +370,6 @@ export default function Footer() {
           {/* Popular Apartment Cities */}
           <div>
             <h4 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
-              {/* <Home className="h-4 w-4 text-emerald-500" /> */}
               Top Rentals
             </h4>
             <ul className="space-y-3">
@@ -419,7 +415,6 @@ export default function Footer() {
           {/* Company Links */}
           <div>
             <h4 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
-              {/* <Info className="h-4 w-4 text-emerald-500" /> */}
               Company
             </h4>
             <ul className="space-y-3">
@@ -429,9 +424,6 @@ export default function Footer() {
                     href={link.href}
                     className="text-slate-400 hover:text-white transition-colors group flex items-start gap-2"
                   >
-                    {/* <div className="p-1.5 bg-slate-900 rounded group-hover:bg-emerald-900/30 transition-colors">
-                      <link.icon className="h-3.5 w-3.5 text-emerald-500" />
-                    </div> */}
                     <div>
                       <div className="text-sm group-hover:text-emerald-400 transition-colors">
                         {link.title}
@@ -449,7 +441,6 @@ export default function Footer() {
           {/* Services Links */}
           <div>
             <h4 className="text-white font-semibold text-lg mb-4 flex items-center gap-2">
-              {/* <Building className="h-4 w-4 text-emerald-500" /> */}
               Services
             </h4>
             <ul className="space-y-3">
@@ -475,72 +466,7 @@ export default function Footer() {
               ))}
             </ul>
           </div>
-
-          {/* Resources Links */}
-          {/* <div> */}
-          {/* <h4 className="text-white font-semibold text-lg mb-4 flex items-center gap-2"> */}
-          {/* <FileText className="h-4 w-4 text-emerald-500" /> */}
-          {/* Resources */}
-          {/* </h4> */}
-          {/* <ul className="space-y-3"> */}
-          {/* {RESOURCE_LINKS.map((link) => (
-                <li key={link.title}>
-                  <Link
-                    href={link.href}
-                    className="text-slate-400 hover:text-white transition-colors group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm group-hover:text-emerald-400 transition-colors">
-                        {link.title}
-                      </span>
-                      <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all" />
-                    </div>
-                    {link.description && (
-                      <div className="text-xs text-slate-500 mt-0.5">
-                        {link.description}
-                      </div>
-                    )}
-                  </Link>
-                </li>
-              ))} */}
-          {/* </ul> */}
-          {/* </div> */}
         </div>
-
-        {/* Stats Bar */}
-        {footerData.stats && (
-          <div className="bg-slate-900/50 rounded-xl p-6 border border-slate-800 mb-12">
-            <h4 className="text-white font-semibold text-lg mb-6 text-center">
-              Trusted by Nigerians Nationwide
-            </h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-400 mb-1">
-                  {footerData.stats.totalProperties.toLocaleString()}+
-                </div>
-                <div className="text-sm text-slate-400">Total Properties</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-400 mb-1">
-                  {footerData.stats.verifiedProperties.toLocaleString()}+
-                </div>
-                <div className="text-sm text-slate-400">Verified Listings</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-400 mb-1">
-                  {footerData.stats.happyClients.toLocaleString()}+
-                </div>
-                <div className="text-sm text-slate-400">Happy Clients</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-emerald-400 mb-1">
-                  {footerData.stats.citiesCovered}+
-                </div>
-                <div className="text-sm text-slate-400">Cities Covered</div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Bottom Bar */}
         <div className="border-t border-slate-800 pt-8">
@@ -549,6 +475,20 @@ export default function Footer() {
               <div className="mb-1">
                 © {new Date().getFullYear()} PropSafeHub — All Rights Reserved.
               </div>
+              {/* Cofellow Attribution */}
+              {/* <div className="flex items-center gap-2 mt-2 text-xs text-slate-600 hover:text-slate-400 transition-colors group">
+                <Code2 className="h-3 w-3" />
+                <span>Web Development by</span>
+                <Link
+                  href="https://cofellow.com?utm_source=propsafehub&utm_medium=footer&utm_campaign=portfolio"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-emerald-500 hover:text-emerald-400 font-medium flex items-center gap-1"
+                >
+                  Cofellow
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </div> */}
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-4 text-xs">

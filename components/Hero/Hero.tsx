@@ -24,9 +24,9 @@ export default function Hero() {
         'A secured real estate listing and investment platform built with embedded due diligence on property documentation before listing.',
     },
     {
-      title: 'A Secured & Transparent Real Estate Ecosystem',
+      title: 'Zero Investor Risk with Our Insurance Cover',
       description:
-        'Invest confidently in real estate without fear of fraud, misinformation, or poor decision-making.',
+        'Every investment is backed by comprehensive insurance coverage against fraud, title disputes, and market fluctuations.',
     },
   ]
 
