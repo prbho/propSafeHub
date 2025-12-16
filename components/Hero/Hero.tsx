@@ -1,12 +1,44 @@
 // components/Hero/Hero.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 import HeroSearch from './HeroSearch'
 
 export default function Hero() {
   const [searchType, setSearchType] = useState<'buy' | 'rent'>('buy')
+  const [textIndex, setTextIndex] = useState(0)
+  const [fade, setFade] = useState(true)
+
+  // Text variations to cycle through
+  const textVariations = [
+    {
+      title: 'Your Trusted Path to Secure, Verified Real Estate.',
+      description:
+        'Search verified property listings for sale and rent—diligently checked for your safety.',
+    },
+    {
+      title: 'PropSafe Hub: The first of its kind in West Africa',
+      // subtitle: 'The first of its kind in West Africa',
+      description:
+        'A secured real estate listing and investment platform built with embedded due diligence on property documentation before listing.',
+    },
+  ]
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Start fade out
+      setFade(false)
+
+      // After fade out completes, change text and fade back in
+      setTimeout(() => {
+        setTextIndex((prev) => (prev + 1) % textVariations.length)
+        setFade(true)
+      }, 700) // Half of transition duration
+    }, 5000) // Change text every 5 seconds
+
+    return () => clearInterval(interval)
+  }, [])
 
   const handleSearch = (query: string, type: 'buy' | 'rent') => {
     if (query.trim()) {
@@ -26,6 +58,8 @@ export default function Hero() {
     }
   }
 
+  const currentText = textVariations[textIndex]
+
   return (
     <section className="relative bg-black min-h-[70vh] flex items-center justify-center border-b border-gray-200">
       {/* Clean Background */}
@@ -41,18 +75,39 @@ export default function Hero() {
       {/* Content Container */}
       <div className="relative w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="flex flex-col items-center justify-center text-center">
-          {/* Main Heading Section */}
+          {/* Main Heading Section with Fade Transition */}
           <div className="mb-12 max-w-3xl mx-auto">
             {/* Simple Headline */}
             <div className="max-w-3xl mx-auto">
-              <h1 className="text-3xl md:text-5xl font-bold mb-6 text-white leading-tight">
-                Your Trusted Path to Secure, Verified Real Estate.
+              <h1
+                className={`text-3xl md:text-5xl font-bold mb-6 text-white leading-tight transition-all duration-500 ease-in-out ${
+                  fade ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+                }`}
+              >
+                {currentText.title}
               </h1>
+
+              {/* Conditional subtitle for PropSafe Hub version */}
+              {/* {currentText.subtitle && (
+                <p
+                  className={`text-2xl md:text-4xl font-bold mb-4 text-white leading-tight transition-all duration-500 ease-in-out delay-100 ${
+                    fade
+                      ? 'opacity-100 translate-y-0'
+                      : 'opacity-0 translate-y-4'
+                  }`}
+                >
+                  {currentText.subtitle}
+                </p>
+              )} */}
             </div>
+
             {/* Clean Subtitle */}
-            <p className="text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
-              Search verified property listings for sale and rent—diligently
-              checked for your safety.
+            <p
+              className={`text-xl text-white/80 max-w-2xl mx-auto leading-relaxed transition-all duration-500 ease-in-out delay-200 ${
+                fade ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+              }`}
+            >
+              {currentText.description}
             </p>
           </div>
 
@@ -88,6 +143,28 @@ export default function Hero() {
                 <HeroSearch searchType={searchType} onSearch={handleSearch} />
               </div>
             </div>
+          </div>
+
+          {/* Optional: Add indicator dots */}
+          <div className="flex space-x-2 mt-8">
+            {textVariations.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setFade(false)
+                  setTimeout(() => {
+                    setTextIndex(index)
+                    setFade(true)
+                  }, 500)
+                }}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  index === textIndex
+                    ? 'bg-white scale-125'
+                    : 'bg-white/50 hover:bg-white/75'
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              />
+            ))}
           </div>
         </div>
       </div>
