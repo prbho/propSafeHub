@@ -265,6 +265,18 @@ export default function RootLayout({
 
         {/* Structured Data */}
         <StructuredData data={jsonLd} />
+
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+      if ('serviceWorker' in navigator && window.location.hostname !== 'localhost') {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+    `,
+          }}
+        />
       </head>
       <body className="antialiased">
         {/* Skip to content link for accessibility */}

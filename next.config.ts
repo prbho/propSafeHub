@@ -38,6 +38,7 @@ const nextConfig = {
               "img-src 'self' data: https:; " +
               "font-src 'self' https://fonts.gstatic.com; " +
               "connect-src 'self' https://cloud.appwrite.io https://*.appwrite.io https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://static.cloudflareinsights.com; " +
+              "manifest-src 'self'; " +
               "frame-src 'self'; " +
               "object-src 'none'; " +
               "base-uri 'self'; " +

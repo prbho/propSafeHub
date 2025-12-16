@@ -23,6 +23,11 @@ export default function Hero() {
       description:
         'A secured real estate listing and investment platform built with embedded due diligence on property documentation before listing.',
     },
+    {
+      title: 'A Secured & Transparent Real Estate Ecosystem',
+      description:
+        'Invest confidently in real estate without fear of fraud, misinformation, or poor decision-making.',
+    },
   ]
 
   useEffect(() => {
