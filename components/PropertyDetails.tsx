@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react' // Add useEffect
 import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
@@ -29,7 +29,16 @@ interface PropertyDetailsProps {
 
 export default function PropertyDetails({ property }: PropertyDetailsProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
-  const { user } = useAuth() // Add this to get the user
+  const { user } = useAuth()
+
+  // Add debug useEffect
+  useEffect(() => {
+    console.log('🔄 PropertyDetails rendered')
+  })
+
+  useEffect(() => {
+    console.log('👤 User updated:', user?.$id)
+  }, [user])
 
   const formatPrice = (price: number, unit: string) => {
     const formatter = new Intl.NumberFormat('en-NG', {

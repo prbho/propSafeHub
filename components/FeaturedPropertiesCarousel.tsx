@@ -1,48 +1,42 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { Property } from '@/types'
+import useSWR from 'swr'
 
 import PropertyCarousel from './PropertyCarousel'
 import PropertyCarouselLoading from './PropertyCarouselLoading'
 
+// SWR fetcher function
+const fetcher = (url: string) => fetch(url).then((res) => res.json())
+
 export default function FeaturedPropertiesCarousel() {
-  const [featuredProperties, setFeaturedProperties] = useState<Property[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    const fetchFeaturedProperties = async () => {
-      try {
-        const response = await fetch('/api/properties?isFeatured=true&limit=12')
-        if (response.ok) {
-          const data = await response.json()
-          setFeaturedProperties(data.documents || [])
-        }
-      } catch (error) {
-        console.error('Error fetching featured properties:', error)
-      } finally {
-        setLoading(false)
-      }
+  const { data, error, isLoading } = useSWR(
+    '/api/properties?isFeatured=true&limit=12',
+    fetcher,
+    {
+      revalidateOnFocus: false, // don't refetch when user focuses tab
+      dedupingInterval: 60000, // prevent multiple requests per minute
     }
+  )
 
-    fetchFeaturedProperties()
-  }, [])
+  const featuredProperties: Property[] = data?.documents || []
 
-  if (loading) {
-    return <PropertyCarouselLoading />
-  }
+  // Loading state
+  if (isLoading) return <PropertyCarouselLoading />
 
-  if (featuredProperties.length === 0) {
-    return null // Don't show if no featured properties
-  }
+  // Error handling
+  if (error)
+    return (
+      <div>Unable to load featured properties. Please try again later.</div>
+    )
+
+  // No featured properties
+  if (featuredProperties.length === 0) return null
 
   return (
     <PropertyCarousel
       properties={featuredProperties}
       title="Explore Verified Properties"
-      subtitle="Discover our hand-picked selection of authentic, verified, and future-proof properties with complete peace of mind."
-      autoPlay={false}
-      autoPlayInterval={5000}
       userId={''}
     />
   )

@@ -1013,20 +1013,6 @@ export default function DynamicDashboardPage({}: {
                   })}
                 </p>
               </div>
-              <button
-                onClick={() =>
-                  router.push(`/profile/${user.userType}/${user.$id}`)
-                }
-                className="rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-              >
-                <Image
-                  className="rounded-full"
-                  src={user.avatar}
-                  width={44}
-                  height={44}
-                  alt="User"
-                />
-              </button>
             </div>
           </div>
         </div>

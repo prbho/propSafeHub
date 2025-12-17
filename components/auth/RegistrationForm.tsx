@@ -39,12 +39,14 @@ export function RegistrationForm({
   const [step, setStep] = useState<RegistrationStep>('basic-info')
   const [email, setEmail] = useState(initialEmail)
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('') // Add confirm password state
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('+234')
   const [userType, setUserType] = useState<'buyer' | 'seller' | 'agent'>(
     'buyer'
   )
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false) // Add confirm password visibility state
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
@@ -156,13 +158,19 @@ export function RegistrationForm({
     e.preventDefault()
 
     // Basic validation
-    if (!name || !password) {
+    if (!name || !password || !confirmPassword) {
       toast.error('Please fill in all required fields')
       return
     }
 
     if (password.length < 8) {
       toast.error('Password must be at least 8 characters long')
+      return
+    }
+
+    // Validate password match
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match. Please re-enter your password')
       return
     }
 
@@ -292,6 +300,13 @@ export function RegistrationForm({
 
   const handleAgentInfoSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Re-validate passwords on agent info submit as well
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match. Please check your passwords')
+      return
+    }
+
     await submitRegistration()
   }
 
@@ -468,6 +483,47 @@ export function RegistrationForm({
           </p>
         </div>
 
+        {/* Add Confirm Password Field */}
+        <div>
+          <Label
+            htmlFor="confirmPassword"
+            className="text-sm font-medium text-gray-700"
+          >
+            Confirm Password *
+          </Label>
+          <div className="relative mt-1">
+            <Input
+              id="confirmPassword"
+              type={showConfirmPassword ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Re-enter your password"
+              className="h-12 pr-10"
+              required
+              minLength={8}
+              disabled={isLoading}
+            />
+            <button
+              type="button"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              disabled={isLoading}
+            >
+              {showConfirmPassword ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </button>
+          </div>
+          {password && confirmPassword && password !== confirmPassword && (
+            <p className="text-xs text-red-500 mt-1">Passwords do not match</p>
+          )}
+          {password && confirmPassword && password === confirmPassword && (
+            <p className="text-xs text-green-500 mt-1">Passwords match ✓</p>
+          )}
+        </div>
+
         {/* Avatar Upload Section */}
 
         <div>
@@ -516,7 +572,13 @@ export function RegistrationForm({
             type="submit"
             className={`${showBackButton ? 'flex-1' : 'w-full'} h-12 bg-linear-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-4 text-base font-semibold rounded-xl transition-all duration-200`}
             disabled={
-              isLoading || !name || !email || !password || password.length < 8
+              isLoading ||
+              !name ||
+              !email ||
+              !password ||
+              !confirmPassword ||
+              password.length < 8 ||
+              password !== confirmPassword
             }
           >
             {getSubmitButtonText()}

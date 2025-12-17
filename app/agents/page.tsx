@@ -1,9 +1,11 @@
 // app/agents/page.tsx
-import { Suspense } from 'react'
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { Agent } from '@/types'
 import { Query } from 'node-appwrite'
 
 import AgentCard from '@/components/AgentCard'
+import SortSelect from '@/components/agents/SortSelect'
 import AgentsSearchFilters from '@/components/AgentsSearchFilters'
 import {
   AGENTS_COLLECTION_ID,
@@ -11,97 +13,184 @@ import {
   serverDatabases,
 } from '@/lib/appwrite-server'
 
+// New function to fetch unique values from the database
+async function getUniqueValues(field: string): Promise<string[]> {
+  try {
+    const response = await serverDatabases.listDocuments(
+      DATABASE_ID,
+      AGENTS_COLLECTION_ID,
+      [Query.select([field]), Query.limit(1000)]
+    )
+
+    // Extract values and handle both strings and arrays
+    const allValues: string[] = []
+
+    response.documents.forEach((doc: any) => {
+      const value = doc[field]
+
+      if (value === undefined || value === null) return
+
+      if (Array.isArray(value)) {
+        // Handle array values
+        value.forEach((item) => {
+          if (typeof item === 'string' && item.trim() !== '') {
+            allValues.push(item.trim())
+          }
+        })
+      } else if (typeof value === 'string' && value.trim() !== '') {
+        // Handle string values
+        allValues.push(value.trim())
+      }
+    })
+
+    // Remove duplicates and sort
+    const uniqueValues = [...new Set(allValues)].sort()
+
+    console.log(`✅ Found ${uniqueValues.length} unique values for ${field}`)
+    return uniqueValues
+  } catch (error) {
+    console.error(`Error fetching unique ${field}:`, error)
+    return []
+  }
+}
+
 async function getAgents(filters?: {
   city?: string
   specialties?: string[]
   minExperience?: number
   minRating?: number
+  sortBy?: string
 }): Promise<{ agents: Agent[]; error?: string }> {
   try {
     console.log('🔍 Fetching agents with filters:', filters)
 
-    // First, let's verify the database connection and collection
-    try {
-      const collection = await serverDatabases.getCollection(
-        DATABASE_ID,
-        AGENTS_COLLECTION_ID
-      )
-      console.log('✅ Collection found:', collection.name)
-    } catch (collectionError) {
-      console.error('❌ Collection error:', collectionError)
-      return {
-        agents: [],
-        error: `Collection not found: ${AGENTS_COLLECTION_ID}`,
-      }
-    }
+    const queries: any[] = [Query.limit(100)]
 
-    const queries = []
-
-    // Add filters to queries with proper error handling
-    if (filters?.city) {
-      console.log('📍 Filtering by city:', filters.city)
-      queries.push(Query.equal('city', filters.city))
+    if (filters?.city && filters.city.trim()) {
+      queries.push(Query.equal('city', filters.city.trim()))
     }
 
     if (filters?.specialties && filters.specialties.length > 0) {
-      console.log('🎯 Filtering by specialties:', filters.specialties)
-      queries.push(Query.contains('specialties', filters.specialties))
+      filters.specialties.forEach((specialty) => {
+        if (specialty.trim()) {
+          queries.push(Query.contains('specialties', specialty.trim()))
+        }
+      })
     }
 
-    if (filters?.minExperience) {
-      console.log('📅 Filtering by min experience:', filters.minExperience)
+    if (filters?.minExperience && filters.minExperience > 0) {
       queries.push(
         Query.greaterThanEqual('yearsExperience', filters.minExperience)
       )
     }
 
-    if (filters?.minRating) {
-      console.log('⭐ Filtering by min rating:', filters.minRating)
+    if (filters?.minRating && filters.minRating > 0) {
       queries.push(Query.greaterThanEqual('rating', filters.minRating))
     }
 
-    // If no filters, just get all agents
-    const finalQueries = queries.length > 0 ? queries : [Query.limit(50)]
+    // Handle sorting based on sortBy parameter
+    switch (filters?.sortBy) {
+      case 'experience':
+        queries.push(Query.orderDesc('yearsExperience'))
+        queries.push(Query.orderDesc('rating')) // Secondary sort
+        break
+      case 'listings':
+        queries.push(Query.orderDesc('totalListings'))
+        queries.push(Query.orderDesc('rating')) // Secondary sort
+        break
+      case 'name':
+        queries.push(Query.orderAsc('name'))
+        queries.push(Query.orderDesc('rating')) // Secondary sort
+        break
+      case 'rating':
+      default:
+        queries.push(Query.orderDesc('rating'))
+        queries.push(Query.orderDesc('yearsExperience')) // Secondary sort
+        break
+    }
 
     const response = await serverDatabases.listDocuments(
       DATABASE_ID,
       AGENTS_COLLECTION_ID,
-      finalQueries
+      queries
     )
 
     console.log(`✅ Found ${response.total} agents`)
-    return { agents: response.documents as unknown as Agent[] }
-  } catch {
+
+    const agents: Agent[] = response.documents.map((doc: any) => ({
+      $id: doc.$id,
+      $createdAt: doc.$createdAt,
+      $updatedAt: doc.$updatedAt,
+      name: doc.name || 'Unknown Agent',
+      email: doc.email || '',
+      phone: doc.phone || '',
+      avatar: doc.avatar || '',
+      agency: doc.agency || 'Independent Agent',
+      city: doc.city || '',
+      state: doc.state || '',
+      yearsExperience: doc.yearsExperience || 0,
+      specialties: doc.specialties || [],
+      languages: doc.languages || ['English'],
+      rating: doc.rating || 0,
+      reviewCount: doc.reviewCount || 0,
+      totalListings: doc.totalListings || 0,
+      licenseNumber: doc.licenseNumber || '',
+      isVerified: doc.isVerified || false,
+      bio: doc.bio || '',
+      officePhone: doc.officePhone || '',
+      mobilePhone: doc.mobilePhone || '',
+      website: doc.website || '',
+      verificationDocuments: doc.verificationDocuments || [],
+    }))
+
+    return { agents }
+  } catch (error: any) {
+    console.error('❌ Error fetching agents:', error)
     return {
       agents: [],
+      error: error.message || 'Failed to fetch agents',
     }
   }
 }
 
 interface AgentsPageProps {
   searchParams: Promise<{
-    // searchParams is now a Promise
     city?: string
     specialties?: string
     minExperience?: string
     minRating?: string
+    sortBy?: string
   }>
 }
 
 export default async function AgentsPage({ searchParams }: AgentsPageProps) {
-  // Await the searchParams Promise
   const params = await searchParams
+
+  console.log('📋 Search params received:', params)
 
   const filters = {
     city: params.city,
-    specialties: params.specialties ? [params.specialties] : undefined,
+    specialties: params.specialties ? params.specialties.split(',') : undefined,
     minExperience: params.minExperience
       ? parseInt(params.minExperience)
       : undefined,
     minRating: params.minRating ? parseFloat(params.minRating) : undefined,
+    sortBy: params.sortBy || 'rating',
   }
 
-  const { agents, error } = await getAgents(filters)
+  // Fetch agents data and unique values in parallel
+  const [agentsResult, uniqueCities, uniqueSpecialties] = await Promise.all([
+    getAgents(filters),
+    getUniqueValues('city'),
+    getUniqueValues('specialties'),
+  ])
+
+  const { agents, error } = agentsResult
+
+  console.log('📊 Unique values:', {
+    cities: uniqueCities.length,
+    specialties: uniqueSpecialties.length,
+  })
 
   // If there's a database error, show it
   if (error) {
@@ -121,6 +210,21 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
       </div>
     )
   }
+
+  // Function to build URL with sort parameter
+  // const buildSortUrl = (sortValue: string) => {
+  //   const params = new URLSearchParams()
+
+  //   if (filters.city) params.set('city', filters.city)
+  //   if (filters.specialties?.length)
+  //     params.set('specialties', filters.specialties.join(','))
+  //   if (filters.minExperience)
+  //     params.set('minExperience', filters.minExperience.toString())
+  //   if (filters.minRating) params.set('minRating', filters.minRating.toString())
+  //   params.set('sortBy', sortValue)
+
+  //   return `/agents?${params.toString()}`
+  // }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -150,6 +254,7 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
                 minExperience: filters.minExperience,
                 minRating: filters.minRating,
               }}
+              availableCities={uniqueCities}
             />
           </div>
 
@@ -166,15 +271,10 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
               </div>
 
               {/* Sort Options */}
-              <select className="border border-gray-300 rounded-lg px-4 py-2 text-sm bg-white">
-                <option value="rating">Highest Rated</option>
-                <option value="experience">Most Experienced</option>
-                <option value="listings">Most Listings</option>
-                <option value="name">Name A-Z</option>
-              </select>
+              <SortSelect currentSort={filters.sortBy} />
             </div>
 
-            <Suspense fallback={<AgentsSkeleton />}>
+            <>
               {agents.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {agents.map((agent) => (
@@ -194,25 +294,10 @@ export default async function AgentsPage({ searchParams }: AgentsPageProps) {
                   </p>
                 </div>
               )}
-            </Suspense>
+            </>
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-function AgentsSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-      {[...Array(6)].map((_, i) => (
-        <div key={i} className="animate-pulse">
-          <div className="bg-gray-200 h-64 rounded-lg mb-4"></div>
-          <div className="bg-gray-200 h-4 rounded w-3/4 mb-2"></div>
-          <div className="bg-gray-200 h-4 rounded w-1/2 mb-2"></div>
-          <div className="bg-gray-200 h-4 rounded w-2/3"></div>
-        </div>
-      ))}
     </div>
   )
 }

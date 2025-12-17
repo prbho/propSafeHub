@@ -256,7 +256,6 @@ export async function POST(request: NextRequest) {
       emailTo: email,
     })
 
-    let emailError = null
     try {
       const { error } = await resend.emails.send({
         from: 'PropSafeHub <noreply@notifications.propsafehub.com>',
@@ -264,12 +263,6 @@ export async function POST(request: NextRequest) {
         subject: 'Verify your email - PropSafeHub',
         html: emailHtml,
       })
-
-      if (error) {
-        emailError = error
-        console.error('❌ Resend API error:', error)
-        throw error
-      }
 
       console.log('✅ Email sent via Resend')
     } catch {

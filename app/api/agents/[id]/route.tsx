@@ -16,10 +16,7 @@ export async function GET(request: NextRequest, context: Context) {
     const params = await context.params
     const agentId = params.id
 
-    console.log('🔍 API Route - Received request for agent ID:', agentId)
-
     if (!agentId || agentId.trim().length === 0) {
-      console.log('❌ Invalid agent ID received:', agentId)
       return NextResponse.json(
         { error: 'Agent ID is required' },
         { status: 400 }

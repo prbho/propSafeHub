@@ -614,7 +614,21 @@ export function AgentRegistrationForm({
                   <SelectLabel>Areas of Expertise</SelectLabel>
                   <SelectItem value="Residential">Residential</SelectItem>
                   <SelectItem value="Commercial">Commercial</SelectItem>
-                  <SelectItem value="Luxury Homes">Luxury Homes</SelectItem>
+                  <SelectItem value="Commercial">Industrial</SelectItem>
+                  <SelectItem value="Commercial">Land/Raw Land</SelectItem>
+                  <SelectItem value="Commercial">Luxury Homes</SelectItem>
+                  <SelectItem value="Luxury Homes">
+                    Green/Eco-Friendly
+                  </SelectItem>
+                  <SelectItem value="Luxury Homes">
+                    Foreclosures and Short Sales
+                  </SelectItem>
+                  <SelectItem value="Luxury Homes">
+                    Buyer Representation
+                  </SelectItem>
+                  <SelectItem value="Luxury Homes">
+                    Seller Representation
+                  </SelectItem>
                   <SelectItem value="Property Management">
                     Property Management
                   </SelectItem>

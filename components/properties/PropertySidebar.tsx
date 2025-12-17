@@ -1,7 +1,7 @@
-// components/properties/PropertySidebar.tsx - WITH FIXED OWNERSHIP CHECK
+// components/properties/PropertySidebar.tsx
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react' // Add useMemo
 import { useAuth } from '@/contexts/AuthContext'
 import { Property } from '@/types'
 import { Calculator, Calendar } from 'lucide-react'
@@ -24,24 +24,22 @@ export default function PropertySidebar({
   property,
   agentProfileId,
 }: PropertySidebarProps) {
+  const [agentData, setAgentData] = useState<{
+    name?: string
+    avatar?: string
+    rating?: number
+    reviewCount?: number
+    agency?: string
+  } | null>(null)
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [showMortgageCalculator, setShowMortgageCalculator] = useState(false)
   const { user } = useAuth()
 
-  // SIMPLE AND RELIABLE OWNERSHIP CHECK
-  const isOwner = () => {
+  // Use useMemo to prevent re-calculating on every render
+  const isOwner = useMemo(() => {
     if (!user || !property.agentId) {
       return false
     }
-
-    // Debug info
-    console.log('🔍 PropertySidebar Ownership Check:', {
-      userAccountId: user.$id,
-      userType: user.userType,
-      userAgentDocumentId: user.agentDocumentId || 'No agent document ID',
-      propertyAgentId: property.agentId,
-      agentProfileId: agentProfileId || 'Not provided',
-    })
 
     // Check all possible ownership scenarios
     const checks = [
@@ -65,10 +63,7 @@ export default function PropertySidebar({
     })
 
     return result
-  }
-
-  const ownerStatus = isOwner()
-  // const isPropertyOwner = Boolean(ownerStatus)
+  }, [user, property.agentId, agentProfileId]) // Add dependencies
 
   const handleScheduleViewing = async (scheduleData: ScheduleData) => {
     try {
@@ -118,6 +113,41 @@ export default function PropertySidebar({
         return formattedPrice
     }
   }
+
+  useEffect(() => {
+    async function fetchAgent() {
+      if (!property.agentId) return
+
+      try {
+        console.log('🔍 Fetching agent data for:', property.agentId)
+        const response = await fetch(`/api/agents/${property.agentId}`)
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch agent')
+        }
+
+        const data = await response.json()
+        console.log('✅ Agent data fetched:', {
+          name: data.name,
+          avatar: data.avatar,
+          agency: data.agency,
+          rating: data.rating,
+        })
+
+        setAgentData({
+          name: data.name,
+          avatar: data.avatar,
+          rating: data.rating,
+          reviewCount: data.reviewCount,
+          agency: data.agency,
+        })
+      } catch (error) {
+        console.error('❌ Failed to fetch agent:', error)
+      }
+    }
+
+    fetchAgent()
+  }, [property.agentId])
 
   return (
     <>
@@ -176,7 +206,7 @@ export default function PropertySidebar({
 
           <div className="space-y-3 mb-6">
             {/* CONDITIONAL MESSAGE BUTTON - Hide if user is owner */}
-            {!ownerStatus ? (
+            {!isOwner ? (
               <MessageButton
                 property={property}
                 agentId={property.agentId}
@@ -212,15 +242,15 @@ export default function PropertySidebar({
               variant="outline"
               className="w-full py-6 border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => setShowScheduleModal(true)}
-              disabled={ownerStatus}
+              disabled={isOwner}
               title={
-                ownerStatus
+                isOwner
                   ? "You can't schedule a viewing for your own property"
                   : 'Schedule a property viewing'
               }
             >
               <Calendar className="h-5 w-5 mr-2" />
-              {ownerStatus ? 'Manage Viewings' : 'Schedule Viewing'}
+              {isOwner ? 'Manage Viewings' : 'Schedule Viewing'}
             </Button>
 
             <Portal>
