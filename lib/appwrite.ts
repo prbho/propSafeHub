@@ -10,28 +10,17 @@ import {
   Storage,
 } from 'appwrite'
 
-// Don't throw errors during build - check if we're in build vs runtime
-const isBuildTime =
-  typeof window === 'undefined' && process.env.NODE_ENV === 'production'
-
 const client = new Client()
 
-// Use safe getters that don't throw during build
-const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || ''
-const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || ''
+const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!
+const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!
 
-// Only initialize and validate if we have the config and we're not in build
-if (endpoint && projectId && !isBuildTime) {
-  client.setEndpoint(endpoint).setProject(projectId)
-
-  // Optionally set API key if available
-  // const apiKey = process.env.APPWRITE_API_KEY
-  // if (apiKey) {
-  //   client.setKey(apiKey)
-  // }
+if (!endpoint || !projectId) {
+  throw new Error('Missing Appwrite configuration')
 }
 
-// Export clients (will be properly initialized at runtime)
+client.setEndpoint(endpoint).setProject(projectId)
+
 export const databases = new Databases(client)
 export const account = new Account(client)
 export const storage = new Storage(client)
@@ -39,26 +28,18 @@ export const realtime = new Realtime(client)
 
 export { Query, ID }
 
-// Database and Collection IDs - with fallbacks for build time
-export const DATABASE_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'fallback-db-id'
+// Database and Collection IDs
+export const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!
 export const PROPERTIES_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID || 'fallback-properties'
+  process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID!
 export const USERS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_USERS_TABLE_ID || 'fallback-users'
+  process.env.NEXT_PUBLIC_APPWRITE_USERS_TABLE_ID!
 export const AGENTS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_AGENTS_TABLE_ID || 'fallback-agents'
+  process.env.NEXT_PUBLIC_APPWRITE_AGENTS_TABLE_ID!
 export const FAVORITES_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_FAVORITES_TABLE_ID || 'fallback-favorites'
-export const STORAGE_BUCKET_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_STORAGE_ID || 'fallback-storage'
+  process.env.NEXT_PUBLIC_APPWRITE_FAVORITES_TABLE_ID!
+export const STORAGE_BUCKET_ID = process.env.NEXT_PUBLIC_APPWRITE_STORAGE_ID!
 
-// Helper to check if Appwrite is configured
-export function isAppwriteConfigured(): boolean {
-  return !!(endpoint && projectId && DATABASE_ID)
-}
-
-// Update all functions to check configuration first
 interface UserUpdateData {
   name?: string
   phone?: string
@@ -72,29 +53,29 @@ interface StorageFile extends Models.Document {
   name: string
 }
 
-// Generic profile update function
+// Generic profile update function (internal/private - not exported)
 async function _updateProfile(
   userId: string,
   collectionId: string,
   data: Partial<User>
 ): Promise<User> {
-  if (!isAppwriteConfigured()) {
-    throw new Error('Appwrite not configured')
-  }
-
   try {
     // Validate input data
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid data provided for profile update')
     }
 
+    // Only include fields that exist in your Appwrite collection
     const updateData: UserUpdateData = {}
+
+    // Safely check each property with nullish checks
     if (data.name != null) updateData.name = data.name
     if (data.phone != null) updateData.phone = data.phone
     if (data.bio != null) updateData.bio = data.bio
     if (data.city != null) updateData.city = data.city
     if (data.state != null) updateData.state = data.state
 
+    // Validate that at least one field is being updated
     if (Object.keys(updateData).length === 0) {
       throw new Error('No valid fields to update')
     }
@@ -133,7 +114,7 @@ async function _updateProfile(
   }
 }
 
-// User-specific wrapper
+// User-specific wrapper (exported - use this for users)
 export async function updateUserProfile(
   userId: string,
   data: Partial<User>
@@ -147,7 +128,7 @@ export async function updateUserProfile(
   return _updateProfile(userId, USERS_COLLECTION_ID, data)
 }
 
-// Agent-specific wrapper
+// Agent-specific wrapper (exported - use this for agents)
 export async function updateAgentProfile(
   agentId: string,
   data: Partial<User>
@@ -167,11 +148,8 @@ export async function uploadAvatar(
   file: File | Blob,
   collectionId: string = USERS_COLLECTION_ID
 ): Promise<string> {
-  if (!isAppwriteConfigured()) {
-    throw new Error('Appwrite not configured')
-  }
-
   try {
+    // Convert blob to file if needed
     let uploadFile: File
     if (file instanceof Blob && !(file instanceof File)) {
       uploadFile = new File([file], 'avatar.jpg', {
@@ -182,7 +160,10 @@ export async function uploadAvatar(
       uploadFile = file as File
     }
 
-    // Delete old avatar if exists
+    // Show upload progress
+    showToast('Uploading avatar...', 'info')
+
+    // Delete old avatar if exists - search by name pattern
     try {
       const existingFiles = await storage.listFiles(STORAGE_BUCKET_ID)
       const userAvatarFile = existingFiles.files.find((f) => {
@@ -198,26 +179,41 @@ export async function uploadAvatar(
       }
     } catch (error) {
       console.log('No existing avatar found or error deleting:', error)
+      // Continue with upload even if deletion fails
     }
 
-    // Upload new avatar
+    // Create unique filename with userId
+    // const fileName = `avatar_${userId}_${Date.now()}.jpg`
+
+    // Upload new avatar with proper permissions
     const result = await storage.createFile(
       STORAGE_BUCKET_ID,
       ID.unique(),
       uploadFile
     )
 
+    // Get the file URL - use getFileView for permanent URLs
     const avatarUrl = storage
       .getFileView(STORAGE_BUCKET_ID, result.$id)
       .toString()
 
+    // Update user/agent document with avatar URL
     await databases.updateDocument(DATABASE_ID, collectionId, userId, {
       avatar: avatarUrl,
     })
 
+    console.log('✅ User document updated with avatar URL')
+
+    // Show success toast
+    showToast('Avatar uploaded successfully!', 'success')
+
     return avatarUrl
   } catch (error) {
     console.error('❌ Error uploading avatar:', error)
+
+    // Show error toast
+    showToast('Failed to upload avatar. Please try again.', 'warning')
+
     throw new Error('Failed to upload avatar')
   }
 }
@@ -238,16 +234,14 @@ export async function uploadAgentAvatar(
   return uploadAvatar(agentId, file, AGENTS_COLLECTION_ID)
 }
 
-// Generic delete account function
+// Generic delete account function (internal)
 async function _deleteAccount(
   userId: string,
   collectionId: string
 ): Promise<void> {
-  if (!isAppwriteConfigured()) {
-    throw new Error('Appwrite not configured')
-  }
-
   try {
+    console.log('🗑️ Starting account deletion for user:', userId)
+
     // 1. Delete user's avatar from storage if exists
     try {
       const existingFiles = await storage.listFiles(STORAGE_BUCKET_ID)
@@ -261,12 +255,16 @@ async function _deleteAccount(
 
       for (const file of userAvatarFiles) {
         await storage.deleteFile(STORAGE_BUCKET_ID, file.$id)
+        console.log(
+          '✅ Deleted avatar file:',
+          (file as unknown as StorageFile).name
+        )
       }
     } catch (error) {
       console.log('No avatar files found or error deleting avatars:', error)
     }
 
-    // 2. Delete user's favorites
+    // 2. Delete user's favorites (if you have a separate favorites collection)
     try {
       const favorites = await databases.listDocuments(
         DATABASE_ID,
@@ -280,6 +278,7 @@ async function _deleteAccount(
           FAVORITES_COLLECTION_ID,
           favorite.$id
         )
+        console.log('✅ Deleted favorite:', favorite.$id)
       }
     } catch (error) {
       console.log('No favorites found or error deleting favorites:', error)
@@ -287,16 +286,25 @@ async function _deleteAccount(
 
     // 3. Delete user document from database
     await databases.deleteDocument(DATABASE_ID, collectionId, userId)
+    console.log('✅ Deleted user document')
 
-    // 4. Delete user's account
+    // 4. Delete user's account (this will also delete sessions)
     await account.deleteIdentity(userId)
+    console.log('✅ Deleted user account')
+
+    // Show success toast
+    showToast('Account deleted successfully', 'success')
   } catch (error) {
     console.error('❌ Error deleting user account:', error)
+
+    // Show error toast
+    showToast('Failed to delete account. Please try again.', 'warning')
+
     throw new Error('Failed to delete account')
   }
 }
 
-// User-specific delete wrapper
+// User-specific delete wrapper (exported)
 export async function deleteUserAccount(userId: string): Promise<void> {
   if (!userId) {
     throw new Error('User ID is required')
@@ -304,7 +312,7 @@ export async function deleteUserAccount(userId: string): Promise<void> {
   return _deleteAccount(userId, USERS_COLLECTION_ID)
 }
 
-// Agent-specific delete wrapper
+// Agent-specific delete wrapper (exported)
 export async function deleteAgentAccount(agentId: string): Promise<void> {
   if (!agentId) {
     throw new Error('Agent ID is required')
@@ -312,22 +320,17 @@ export async function deleteAgentAccount(agentId: string): Promise<void> {
   return _deleteAccount(agentId, AGENTS_COLLECTION_ID)
 }
 
-// Toast notification function - only works in browser
+// Toast notification function using browser dialogs
 function showToast(
   message: string,
   type: 'success' | 'warning' | 'info' = 'info'
 ): void {
-  // Only run in browser
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    console.log(`[Toast ${type}]: ${message}`)
-    return
-  }
-
   const existingToast = document.getElementById('custom-toast')
   if (existingToast) {
     existingToast.remove()
   }
 
+  // Create toast element
   const toast = document.createElement('div')
   toast.id = 'custom-toast'
   toast.style.cssText = `
@@ -347,20 +350,22 @@ function showToast(
     animation: slideIn 0.3s ease-out;
   `
 
+  // Set background color based on type
   switch (type) {
     case 'success':
-      toast.style.backgroundColor = '#10b981'
+      toast.style.backgroundColor = '#10b981' // green
       break
     case 'warning':
-      toast.style.backgroundColor = '#f59e0b'
+      toast.style.backgroundColor = '#f59e0b' // amber
       break
     case 'info':
-      toast.style.backgroundColor = '#3b82f6'
+      toast.style.backgroundColor = '#3b82f6' // blue
       break
   }
 
   toast.textContent = message
 
+  // Add styles for animation
   const style = document.createElement('style')
   style.textContent = `
     @keyframes slideIn {
@@ -386,8 +391,11 @@ function showToast(
     }
   `
   document.head.appendChild(style)
+
+  // Add to DOM
   document.body.appendChild(toast)
 
+  // Auto remove after 4 seconds
   setTimeout(() => {
     toast.style.animation = 'slideOut 0.3s ease-in forwards'
     setTimeout(() => {
@@ -400,6 +408,7 @@ function showToast(
     }, 300)
   }, 4000)
 
+  // Optional: Allow manual dismissal by clicking
   toast.addEventListener('click', () => {
     toast.style.animation = 'slideOut 0.3s ease-in forwards'
     setTimeout(() => {
@@ -415,10 +424,6 @@ function showToast(
 
 // Helper functions
 export const getCurrentUser = async () => {
-  if (!isAppwriteConfigured()) {
-    return null
-  }
-
   try {
     return await account.get()
   } catch (error: unknown) {

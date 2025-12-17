@@ -12,170 +12,85 @@ import {
 const client = new Client()
 
 // For Edge Runtime compatibility, we need to handle environment variables differently
-const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || ''
-const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || ''
-const apiKey = process.env.APPWRITE_API_KEY || ''
+const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT
+const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID
+const apiKey = process.env.APPWRITE_API_KEY
 
-// DON'T run validation/console.log at the top level during build
-// Instead, initialize lazily and check only when needed
-let initialized = false
+// Check if we're in a server environment
+const isServer = typeof window === 'undefined'
 
-function initializeAppwrite() {
-  if (initialized) return
-
-  // Check if we're in a server environment and NOT during build
-  const isServer = typeof window === 'undefined'
-  const isBuildTime =
-    isServer &&
-    process.env.NODE_ENV === 'production' &&
-    !process.env.RESEND_API_KEY
-
-  if (isServer && !isBuildTime) {
-    console.log('🔧 Appwrite Server Config Check:')
-    console.log('NEXT_PUBLIC_APPWRITE_ENDPOINT:', endpoint ? '✓' : '✗')
-    console.log('NEXT_PUBLIC_APPWRITE_PROJECT_ID:', projectId ? '✓' : '✗')
-    console.log('APPWRITE_API_KEY:', apiKey ? '✓ (hidden)' : '✗')
-  }
-
-  if (!endpoint || !projectId || !apiKey) {
-    if (isServer && !isBuildTime) {
-      console.warn('⚠️ Missing Appwrite server configuration')
-      console.warn(
-        '⚠️ Some features may not work. Check your environment variables.'
-      )
-    }
-    // Don't throw error - just don't initialize
-    return
-  } else {
-    try {
-      client.setEndpoint(endpoint).setProject(projectId).setKey(apiKey)
-      initialized = true
-      if (isServer && !isBuildTime) {
-        console.log('✅ Appwrite client initialized successfully')
-      }
-    } catch (error) {
-      if (isServer && !isBuildTime) {
-        console.error('❌ Failed to initialize Appwrite client:', error)
-      }
-    }
-  }
+if (isServer) {
+  console.log('🔧 Appwrite Server Config Check:')
+  console.log('NEXT_PUBLIC_APPWRITE_ENDPOINT:', endpoint ? '✓' : '✗')
+  console.log('NEXT_PUBLIC_APPWRITE_PROJECT_ID:', projectId ? '✓' : '✗')
+  console.log('APPWRITE_API_KEY:', apiKey ? '✓' : '✗')
 }
 
-// Initialize on first use
-function ensureInitialized() {
-  if (!initialized) {
-    initializeAppwrite()
+if (!endpoint || !projectId || !apiKey) {
+  if (isServer) {
+    console.error('❌ Missing Appwrite server configuration')
+    console.error('Please check your environment variables in .env')
   }
-  return initialized
+} else {
+  client.setEndpoint(endpoint).setProject(projectId).setKey(apiKey)
 }
 
-// Create clients but they won't work until initialized
 export const serverDatabases = new Databases(client)
 export const serverAccount = new Account(client)
 export const serverUsers = new Users(client)
 export const serverStorage = new Storage(client)
 
-// Wrap each method to ensure initialization
-export const databases = {
-  createDocument: async (
-    ...args: Parameters<typeof serverDatabases.createDocument>
-  ) => {
-    if (!ensureInitialized()) {
-      throw new Error('Appwrite not configured')
-    }
-    return serverDatabases.createDocument(...args)
-  },
-  listDocuments: async (
-    ...args: Parameters<typeof serverDatabases.listDocuments>
-  ) => {
-    if (!ensureInitialized()) {
-      throw new Error('Appwrite not configured')
-    }
-    return serverDatabases.listDocuments(...args)
-  },
-  getDocument: async (
-    ...args: Parameters<typeof serverDatabases.getDocument>
-  ) => {
-    if (!ensureInitialized()) {
-      throw new Error('Appwrite not configured')
-    }
-    return serverDatabases.getDocument(...args)
-  },
-  updateDocument: async (
-    ...args: Parameters<typeof serverDatabases.updateDocument>
-  ) => {
-    if (!ensureInitialized()) {
-      throw new Error('Appwrite not configured')
-    }
-    return serverDatabases.updateDocument(...args)
-  },
-  deleteDocument: async (
-    ...args: Parameters<typeof serverDatabases.deleteDocument>
-  ) => {
-    if (!ensureInitialized()) {
-      throw new Error('Appwrite not configured')
-    }
-    return serverDatabases.deleteDocument(...args)
-  },
-  // Add other methods you use...
-}
+export { ID, Query }
 
-// Database and Collection IDs - with fallbacks for build
-export const DATABASE_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'fallback-db-id'
+// Database and Collection IDs
+export const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!
 export const USERS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_USERS_TABLE_ID || 'fallback-users'
+  process.env.NEXT_PUBLIC_APPWRITE_USERS_TABLE_ID!
 export const PROPERTIES_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID || 'fallback-properties'
+  process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID!
 export const AGENTS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_AGENTS_TABLE_ID || 'fallback-agents'
+  process.env.NEXT_PUBLIC_APPWRITE_AGENTS_TABLE_ID!
 export const FAVORITES_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_FAVORITES_TABLE_ID || 'fallback-favorites'
+  process.env.NEXT_PUBLIC_APPWRITE_FAVORITES_TABLE_ID!
 export const REVIEWS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_REVIEWS_TABLE_ID || 'fallback-reviews'
+  process.env.NEXT_PUBLIC_APPWRITE_REVIEWS_TABLE_ID!
 export const MESSAGES_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_MESSAGES_TABLE_ID || 'fallback-messages'
+  process.env.NEXT_PUBLIC_APPWRITE_MESSAGES_TABLE_ID!
 export const PAYMENT_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_PAYMENT_TABLE_ID || 'fallback-payment'
+  process.env.NEXT_PUBLIC_APPWRITE_PAYMENT_TABLE_ID!
 export const PREMIUM_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_PREMIUM_TABLE_ID || 'fallback-premium'
+  process.env.NEXT_PUBLIC_APPWRITE_PREMIUM_TABLE_ID!
 export const PAYMENTPLANS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_PAYMENTPLANS_TABLE_ID ||
-  'fallback-paymentplans'
+  process.env.NEXT_PUBLIC_APPWRITE_PAYMENTPLANS_TABLE_ID!
 export const MORTGAGECALCULATIONS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_MORTGAGECALCULATIONS_TABLE_ID ||
-  'fallback-mortgage'
+  process.env.NEXT_PUBLIC_APPWRITE_MORTGAGECALCULATIONS_TABLE_ID!
 export const LOCATIONS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_LOCATIONS_TABLE_ID || 'fallback-locations'
+  process.env.NEXT_PUBLIC_APPWRITE_LOCATIONS_TABLE_ID!
 export const SCHEDULE_VIEWING_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_SCHEDULE_VIEWING_COLLECTION_ID || 'fallback-schedule'
+  process.env.NEXT_PUBLIC_SCHEDULE_VIEWING_COLLECTION_ID!
 export const NOTIFICATIONS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_NOTIFICATIONS_COLLECTION_ID ||
-  'fallback-notifications'
-export const LEADS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_LEADS_COLLECTION_ID || 'fallback-leads'
+  process.env.NEXT_PUBLIC_NOTIFICATIONS_COLLECTION_ID!
+export const LEADS_COLLECTION_ID = process.env.NEXT_PUBLIC_LEADS_COLLECTION_ID!
 
-// Storage
-export const STORAGE_BUCKET_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_STORAGE_ID || 'fallback-storage'
+//Storage
+export const STORAGE_BUCKET_ID = process.env.NEXT_PUBLIC_APPWRITE_STORAGE_ID!
 
-// Validation function - only run at runtime, not during build
+// Validation function to check if all required environment variables are set
 export function validateAppwriteConfig(): boolean {
-  const isBuildTime =
-    typeof window === 'undefined' &&
-    process.env.NODE_ENV === 'production' &&
-    !process.env.RESEND_API_KEY
-
-  if (isBuildTime) {
-    // During build, return true to avoid breaking
-    return true
-  }
-
   const required = [
     'NEXT_PUBLIC_APPWRITE_ENDPOINT',
     'NEXT_PUBLIC_APPWRITE_PROJECT_ID',
     'APPWRITE_API_KEY',
     'NEXT_PUBLIC_APPWRITE_DATABASE_ID',
+    'NEXT_PUBLIC_APPWRITE_AGENTS_TABLE_ID',
+    'NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID',
+    'NEXT_PUBLIC_APPWRITE_REVIEWS_TABLE_ID',
+    'NEXT_PUBLIC_APPWRITE_MESSAGES_TABLE_ID',
+    'NEXT_PUBLIC_APPWRITE_PREMIUM_TABLE_ID',
+    'NEXT_PUBLIC_APPWRITE_PAYMENT_TABLE_ID',
+    'NEXT_PUBLIC_APPWRITE_PAYMENTPLANS_TABLE_ID',
+    'MORTGAGECALCULATIONS_COLLECTION_ID',
+    'LOCATIONS_COLLECTION_ID',
   ]
 
   const missing = required.filter((key) => !process.env[key])
@@ -187,6 +102,3 @@ export function validateAppwriteConfig(): boolean {
 
   return missing.length === 0
 }
-
-// Export for backward compatibility
-export { ID, Query }

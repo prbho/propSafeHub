@@ -1,3 +1,5 @@
+// app/api/stats/route.ts
+
 import { NextResponse } from 'next/server'
 import { Query } from 'appwrite'
 
@@ -12,17 +14,11 @@ export async function GET() {
   try {
     console.log('📊 Fetching stats from Appwrite...')
 
-    // Check if Appwrite is configured
-    // if (!isAppwriteConfigured()) {
-    //   console.log('Appwrite not configured, returning fallback stats')
-    //   return getFallbackStats()
-    // }
-
     // Get total properties count
     const properties = await databases.listDocuments(
       DATABASE_ID,
       PROPERTIES_COLLECTION_ID,
-      [Query.equal('isActive', true), Query.limit(1)]
+      [Query.equal('isActive', true), Query.limit(1)] // Just get count
     )
 
     // Get verified properties count
@@ -64,25 +60,20 @@ export async function GET() {
       success: true,
       stats: stats,
     })
-  } catch (error) {
-    console.error('Error fetching stats:', error)
-    return getFallbackStats()
-  }
-}
+  } catch {
+    // Return fallback stats on error
+    const fallbackStats = {
+      totalProperties: 10000,
+      verifiedProperties: 8000,
+      usersCount: 50000,
+      satisfactionRate: 4.9,
+      responseTime: '< 24h',
+      marketCoverage: 'All major cities',
+    }
 
-function getFallbackStats() {
-  const fallbackStats = {
-    totalProperties: 10000,
-    verifiedProperties: 8000,
-    usersCount: 50000,
-    satisfactionRate: 4.9,
-    responseTime: '< 24h',
-    marketCoverage: 'All major cities',
+    return NextResponse.json({
+      success: false,
+      stats: fallbackStats,
+    })
   }
-
-  return NextResponse.json({
-    success: false,
-    stats: fallbackStats,
-    message: 'Using fallback data',
-  })
 }
