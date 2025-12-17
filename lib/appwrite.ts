@@ -15,11 +15,25 @@ const client = new Client()
 const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!
 const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!
 
-if (!endpoint || !projectId) {
-  throw new Error('Missing Appwrite configuration')
-}
+// FIX: Only throw if we're NOT in a build environment
+// This allows the build to continue even without environment variables
+const isBuildTime =
+  typeof window === 'undefined' &&
+  process.env.NODE_ENV === 'production' &&
+  !process.env.RESEND_API_KEY
 
-client.setEndpoint(endpoint).setProject(projectId)
+if (!endpoint || !projectId) {
+  if (!isBuildTime) {
+    // ← ONLY throw if not during build
+    throw new Error('Missing Appwrite configuration')
+  }
+  // During build, just skip initialization but don't throw
+  console.warn(
+    '⚠️ Appwrite not configured during build - skipping initialization'
+  )
+} else {
+  client.setEndpoint(endpoint).setProject(projectId)
+}
 
 export const databases = new Databases(client)
 export const account = new Account(client)

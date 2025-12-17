@@ -94,72 +94,65 @@ export default function AboutPage() {
       {/* Founder's Message */}
       <section className="py-16">
         <div className="container mx-auto px-4 max-w-7xl">
-          <div className="bg-linear-to-r from-emerald-50 to-white rounded-3xl p-8 md:p-12">
-            <div className="flex flex-col lg:flex-row gap-12 items-center">
+          <div className="bg-linear-to-r from-emerald-50 to-white rounded-3xl border-b border-emerald-300 border-t">
+            <div className="flex flex-col lg:flex-row gap-12 items-end">
               <div className="lg:w-2/3">
-                <div className="flex items-center gap-3 mb-6">
-                  <Quote className="h-8 w-8 text-emerald-600" />
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    From The Founder
-                  </h2>
-                </div>
-
-                <blockquote className="text-gray-700 text-lg leading-relaxed mb-6">
-                  &quot;I started PropSafe Hub after witnessing too many
-                  Nigerians lose their hard-earned money to real estate scams.
-                  The pain of families who invested their life savings into
-                  properties that turned out to be fake or government-acquired
-                  land was heart-wrenching.
-                </blockquote>
-
-                <p className="text-gray-700 leading-relaxed mb-8">
-                  With over 9 years in real estate and construction, I realized
-                  the problem wasn&apos;t lack of money or desire to invest—it
-                  was lack of <strong>trust</strong> and{' '}
-                  <strong>verified information</strong>. PropSafe Hub is our
-                  solution: a platform where every property is thoroughly
-                  vetted, every document is authenticated, and every investor is
-                  protected and can make decisions with confidence.&quot;
-                </p>
-
-                <div className="border-l-4 border-emerald-600 pl-4">
-                  <div className="font-bold text-gray-900">Tunde Oluwaniyi</div>
-                  <div className="text-emerald-600">
-                    Founder & CEO, PropSafe Hub
+                <div className="pl-10 pb-8">
+                  <div className="flex items-center gap-3 mb-6">
+                    <Quote className="h-8 w-8 text-emerald-600" />
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      From The Founder
+                    </h2>
                   </div>
-                  <div className="text-gray-600 text-sm mt-1">
-                    Executive Director with 10+ years real estate expertise
+
+                  <blockquote className="text-gray-700 text-lg leading-relaxed mb-6">
+                    &quot;I started PropSafe Hub after witnessing too many
+                    Nigerians lose their hard-earned money to real estate scams.
+                    The pain of families who invested their life savings into
+                    properties that turned out to be fake or government-acquired
+                    land was heart-wrenching.
+                  </blockquote>
+
+                  <p className="text-gray-700 leading-relaxed mb-8">
+                    With over 9 years in real estate and construction, I
+                    realized the problem wasn&apos;t lack of money or desire to
+                    invest—it was lack of <strong>trust</strong> and{' '}
+                    <strong>verified information</strong>. PropSafe Hub is our
+                    solution: a platform where every property is thoroughly
+                    vetted, every document is authenticated, and every investor
+                    is protected and can make decisions with confidence.&quot;
+                  </p>
+
+                  <div className="border-l-4 border-emerald-600 pl-4">
+                    <div className="font-bold text-gray-900">
+                      Tunde Oluwaniyi
+                    </div>
+                    <div className="text-emerald-600">
+                      Founder & CEO, PropSafe Hub
+                    </div>
                   </div>
                 </div>
               </div>
 
               <div className="lg:w-1/3">
-                <div className="p-6">
-                  <div className="w-48 h-48 mx-auto rounded-full mb-4 overflow-hidden">
-                    {/* Replace with actual founder image */}
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Image
-                        src="/tunde-oluwaniyi.jpg"
-                        alt="Tunde Oluwaniyi"
-                        width={120}
-                        height={120}
-                        className="rounded-full border border-emerald-600"
-                      />
-                    </div>
+                <div className="w-88 h-auto mx-auto overflow-hidden">
+                  {/* Replace with actual founder image */}
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Image
+                      src="/tunde-oluwaniyi_CEO.png"
+                      alt="Tunde Oluwaniyi"
+                      width={320}
+                      height={320}
+                      className=""
+                    />
                   </div>
-                  <div className="text-center">
+                </div>
+                {/* <div className="text-center">
                     <div className="text-xl font-bold text-gray-900">
                       Tunde Oluwaniyi
                     </div>
                     <div className="text-emerald-600 mb-3">Founder & CEO</div>
-                    <div className="flex items-center justify-center gap-4">
-                      <Award className="h-5 w-5 text-amber-500" />
-                      <span className="text-sm text-gray-600">
-                        Award-Winning Executive Director
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                  </div> */}
               </div>
             </div>
           </div>
