@@ -452,7 +452,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       setStep('email')
       setResetEmail('')
     } catch (error: any) {
-      toast.error('Failed to send recovery email. Please try again.')
+      let errorMessage =
+        error.message || 'Failed to send recovery email. Please try again.'
+
+      toast.error(errorMessage, {
+        duration: 5000,
+        icon: '❌',
+      })
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -518,8 +525,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       setConfirmNewPassword('')
       setResetToken('')
       setUserId('')
-    } catch {
-      toast.error('Failed to reset password. Please try again')
+    } catch (error: any) {
+      let errorMessage =
+        error.message || 'Failed to reset password. Please try again.'
+
+      toast.error(errorMessage, {
+        duration: 5000,
+        icon: '❌',
+      })
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -959,7 +973,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     <form onSubmit={handleForgotPassword} className="space-y-4">
       <div className="mb-4">
         <p className="text-sm text-gray-600 mb-4">
-          Enter your email address and we&apos;ll send you a link to reset your
+          Enter your email address and we'll send you a link to reset your
           password.
         </p>
       </div>
