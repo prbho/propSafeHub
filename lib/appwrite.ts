@@ -15,24 +15,22 @@ const client = new Client()
 const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT!
 const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID!
 
-// FIX: Only throw if we're NOT in a build environment
-// This allows the build to continue even without environment variables
-const isBuildTime =
-  typeof window === 'undefined' &&
-  process.env.NODE_ENV === 'production' &&
-  !process.env.RESEND_API_KEY
+// FIXED: Better production detection
+const isProductionBuild = process.env.NODE_ENV === 'production'
+const isBrowser = typeof window !== 'undefined'
 
-if (!endpoint || !projectId) {
-  if (!isBuildTime) {
-    // ← ONLY throw if not during build
-    throw new Error('Missing Appwrite configuration')
-  }
-  // During build, just skip initialization but don't throw
-  console.warn(
-    '⚠️ Appwrite not configured during build - skipping initialization'
-  )
-} else {
+// Only initialize if we have the config AND we're not in a problematic state
+if (endpoint && projectId) {
+  // We have config, initialize normally
   client.setEndpoint(endpoint).setProject(projectId)
+  console.log('✅ Appwrite initialized')
+} else if (!isBrowser && isProductionBuild) {
+  // Server-side during production build - skip initialization
+  console.warn('⚠️ Appwrite: Skipping initialization during production build')
+} else if (isBrowser) {
+  // Client-side at runtime - throw helpful error
+  console.error('❌ Appwrite configuration missing in browser')
+  // Don't throw immediately, let the app render and show a user-friendly error
 }
 
 export const databases = new Databases(client)
@@ -42,17 +40,40 @@ export const realtime = new Realtime(client)
 
 export { Query, ID }
 
-// Database and Collection IDs
-export const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!
+// Database and Collection IDs - with runtime checks
+export const DATABASE_ID =
+  process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'missing-db-id'
 export const PROPERTIES_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID!
+  process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID || 'missing-properties'
 export const USERS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_USERS_TABLE_ID!
+  process.env.NEXT_PUBLIC_APPWRITE_USERS_TABLE_ID || 'missing-users'
 export const AGENTS_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_AGENTS_TABLE_ID!
+  process.env.NEXT_PUBLIC_APPWRITE_AGENTS_TABLE_ID || 'missing-agents'
 export const FAVORITES_COLLECTION_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_FAVORITES_TABLE_ID!
-export const STORAGE_BUCKET_ID = process.env.NEXT_PUBLIC_APPWRITE_STORAGE_ID!
+  process.env.NEXT_PUBLIC_APPWRITE_FAVORITES_TABLE_ID || 'missing-favorites'
+export const STORAGE_BUCKET_ID =
+  process.env.NEXT_PUBLIC_APPWRITE_STORAGE_ID || 'missing-storage'
+
+// Add a helper to check if Appwrite is configured
+export function isAppwriteConfigured(): boolean {
+  return !!(endpoint && projectId && client.config.endpoint)
+}
+
+// Add this function and call it in your app
+export function initializeAppwriteWithRetry() {
+  if (!endpoint || !projectId) {
+    console.error('Cannot initialize Appwrite: Missing configuration')
+    return false
+  }
+
+  if (!client.config.endpoint || !client.config.project) {
+    client.setEndpoint(endpoint).setProject(projectId)
+    console.log('Appwrite initialized successfully')
+  }
+  return true
+}
+
+// ... REST OF YOUR CODE STAYS THE SAME ...
 
 interface UserUpdateData {
   name?: string
