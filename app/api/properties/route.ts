@@ -1,3 +1,4 @@
+import '@/lib/appwrite-build-fix'
 // app/api/properties/route.ts - UPDATED SEARCH LOGIC
 import { NextRequest, NextResponse } from 'next/server'
 

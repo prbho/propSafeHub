@@ -1,3 +1,4 @@
+import '@/lib/appwrite-build-fix'
 // app/api/calculator/mortgage/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { MortgageRequest } from '@/types/mortgage'

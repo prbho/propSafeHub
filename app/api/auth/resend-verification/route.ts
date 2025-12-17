@@ -1,3 +1,4 @@
+import '@/lib/appwrite-build-fix'
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextRequest, NextResponse } from 'next/server'

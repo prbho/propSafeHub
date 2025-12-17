@@ -1,3 +1,4 @@
+import '@/lib/appwrite-build-fix'
 // app/api/favorites/remove/route.ts - NEW FILE
 import { NextRequest, NextResponse } from 'next/server'
 

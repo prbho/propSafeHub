@@ -1,3 +1,4 @@
+import '@/lib/appwrite-build-fix'
 // app/api/agents/notifications/route.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

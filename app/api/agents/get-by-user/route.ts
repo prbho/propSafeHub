@@ -1,3 +1,4 @@
+import '@/lib/appwrite-build-fix'
 import { NextRequest, NextResponse } from 'next/server'
 import { Query } from 'node-appwrite'
 

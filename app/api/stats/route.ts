@@ -1,3 +1,4 @@
+import '@/lib/appwrite-build-fix'
 // app/api/stats/route.ts
 import { NextResponse } from 'next/server'
 import { Query } from 'appwrite'

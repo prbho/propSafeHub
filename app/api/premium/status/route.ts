@@ -1,3 +1,4 @@
+import '@/lib/appwrite-build-fix'
 // app/api/premium/status/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 

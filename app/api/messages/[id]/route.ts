@@ -1,3 +1,4 @@
+import '@/lib/appwrite-build-fix'
 // app/api/messages/[id]/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { User } from '@/types/auth'

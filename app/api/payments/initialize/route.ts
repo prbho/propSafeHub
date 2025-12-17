@@ -1,3 +1,4 @@
+import '@/lib/appwrite-build-fix'
 // app/api/payments/initialize/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { PlanType } from '@/types'
