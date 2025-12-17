@@ -11,7 +11,7 @@ import {
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
 
-// REMOVE THIS: import '@/lib/appwrite-build-fix'
+// REMOVE THIS:
 
 export async function POST(request: NextRequest) {
   try {

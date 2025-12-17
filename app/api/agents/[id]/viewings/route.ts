@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/agents/[id]/viewings/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { Query } from 'node-appwrite'

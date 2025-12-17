@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/properties/search/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { Query } from 'appwrite'

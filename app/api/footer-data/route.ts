@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/footer-data/route.ts
 import { NextResponse } from 'next/server'
 import { Query } from 'appwrite'

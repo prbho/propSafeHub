@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 import { NextResponse } from 'next/server'
 
 import {

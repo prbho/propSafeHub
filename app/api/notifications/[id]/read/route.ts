@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/notifications/[id]/read/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 

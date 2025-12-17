@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/properties/schedule-viewing/route.ts - WITH NOTIFICATIONS
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

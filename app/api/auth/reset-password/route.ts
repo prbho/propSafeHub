@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/auth/reset-password/route.ts - UPDATED (Using your existing admin API)
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

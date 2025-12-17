@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/properties/[id]/route.ts - FIXED
 import { NextRequest, NextResponse } from 'next/server'
 

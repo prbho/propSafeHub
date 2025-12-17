@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/payments/verify/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 

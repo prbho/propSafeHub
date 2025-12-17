@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/auth/forget-password/route.ts - Custom token system with Resend
 /* eslint-disable @typescript-eslint/no-explicit-any */
 

@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/viewings/[id]/status/route.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
