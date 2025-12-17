@@ -1,7 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Don't initialize Resend at the top level during build
+// Instead, create a function to get it lazily
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY
+
+  // Provide a mock client during build or when API key is missing
+  if (!apiKey) {
+    if (process.env.NODE_ENV === 'production') {
+      console.warn('RESEND_API_KEY is not set')
+    }
+
+    // Return a mock client that won't fail during initialization
+    // but will fail gracefully when trying to send emails
+    return {
+      emails: {
+        send: async () => {
+          throw new Error('Resend API key not configured')
+        },
+      },
+    } as unknown as Resend
+  }
+
+  return new Resend(apiKey)
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,14 +39,14 @@ export async function POST(request: NextRequest) {
 
     console.log('Sending verification email to:', email)
 
+    // Initialize Resend client inside the POST handler (runtime)
+    const resend = getResendClient()
+
     const { data, error } = await resend.emails.send({
       from: 'PropSafeHub <noreply@notifications.propsafehub.com>',
       to: email,
       subject: 'Verify your email - PropSafeHub',
-      react: VerificationEmail({
-        verificationUrl,
-        userName: userName || email,
-      }),
+      html: generateVerificationEmail(verificationUrl, userName || email), // Changed to html
     })
 
     if (error) {
@@ -43,7 +66,20 @@ export async function POST(request: NextRequest) {
       message: 'Verification email sent successfully!',
       emailId: data?.id,
     })
-  } catch {
+  } catch (error: any) {
+    console.error('Error in send-verification-email:', error)
+
+    // Handle missing API key gracefully
+    if (error.message === 'Resend API key not configured') {
+      return NextResponse.json(
+        {
+          error: 'Email service is temporarily unavailable.',
+          code: 'SERVICE_UNAVAILABLE',
+        },
+        { status: 503 }
+      )
+    }
+
     return NextResponse.json(
       { error: 'Failed to send verification email.' },
       { status: 500 }
@@ -51,14 +87,8 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Email template component
-function VerificationEmail({
-  verificationUrl,
-  userName,
-}: {
-  verificationUrl: string
-  userName: string
-}) {
+// Email template function (returns HTML string, not React component)
+function generateVerificationEmail(verificationUrl: string, userName: string) {
   return `
     <!DOCTYPE html>
     <html>
@@ -81,7 +111,7 @@ function VerificationEmail({
             <a href="${verificationUrl}" class="button">Verify Email Address</a>
           </p>
           <p>If the button doesn't work, you can also copy and paste this link into your browser:</p>
-          <p>${verificationUrl}</p>
+          <p><a href="${verificationUrl}">${verificationUrl}</a></p>
           <p>This verification link will expire in 24 hours.</p>
           <div class="footer">
             <p>If you didn't create an account with PropSafeHub, please ignore this email.</p>
