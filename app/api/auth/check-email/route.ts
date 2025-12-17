@@ -1,4 +1,3 @@
-import '@/lib/appwrite-build-fix'
 // app/api/auth/check-email/route.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -7,10 +6,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
-  Query, // Import Query helper
-  serverDatabases,
+  databases, // Use the NEW wrapped databases (not serverDatabases)
+  Query,
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
+
+// REMOVE THIS: import '@/lib/appwrite-build-fix'
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,13 +30,13 @@ export async function POST(request: NextRequest) {
     try {
       // Using Query.equal() for proper query syntax
       const [usersResponse, agentsResponse] = await Promise.all([
-        // Check users collection
-        serverDatabases.listDocuments(DATABASE_ID, USERS_COLLECTION_ID, [
+        // Check users collection - use databases.listDocuments (the wrapper)
+        databases.listDocuments(DATABASE_ID, USERS_COLLECTION_ID, [
           Query.equal('email', email),
           Query.limit(1),
         ]),
-        // Check agents collection
-        serverDatabases.listDocuments(DATABASE_ID, AGENTS_COLLECTION_ID, [
+        // Check agents collection - use databases.listDocuments (the wrapper)
+        databases.listDocuments(DATABASE_ID, AGENTS_COLLECTION_ID, [
           Query.equal('email', email),
           Query.limit(1),
         ]),
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
 
       // Debug: List all agents to see what's in the collection
       try {
-        const allAgents = await serverDatabases.listDocuments(
+        const allAgents = await databases.listDocuments(
           DATABASE_ID,
           AGENTS_COLLECTION_ID,
           [Query.limit(5)]
@@ -136,6 +137,17 @@ export async function POST(request: NextRequest) {
       console.error('❌ Database query error:', error.message)
       console.error('❌ Error details:', error)
 
+      // Check if it's a configuration error
+      if (error.message.includes('Appwrite not configured')) {
+        return NextResponse.json(
+          {
+            exists: false,
+            error: 'Service configuration error',
+          },
+          { status: 503 }
+        )
+      }
+
       // If query fails, we can't determine if email exists, so allow registration
       return NextResponse.json({
         exists: false,
@@ -144,9 +156,12 @@ export async function POST(request: NextRequest) {
     }
   } catch (error: any) {
     console.error('❌ General error:', error.message)
-    return NextResponse.json({
-      exists: false,
-      error: 'Service temporarily unavailable',
-    })
+    return NextResponse.json(
+      {
+        exists: false,
+        error: 'Service temporarily unavailable',
+      },
+      { status: 500 }
+    )
   }
 }

@@ -73,8 +73,6 @@ export function initializeAppwriteWithRetry() {
   return true
 }
 
-// ... REST OF YOUR CODE STAYS THE SAME ...
-
 interface UserUpdateData {
   name?: string
   phone?: string
