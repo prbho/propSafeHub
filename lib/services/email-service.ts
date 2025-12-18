@@ -1,4 +1,4 @@
-// app/services/email-service.ts - FIXED VERSION (No logic changes)
+// app/services/email-service.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Resend } from 'resend'
@@ -10,68 +10,53 @@ import {
 } from '@/lib/email-templates'
 
 export class EmailService {
-  private resend: Resend | null = null // ← Change from Resend to Resend | null
-  private initialized = false
+  private resend: Resend | null = null
 
   constructor() {
-    // Don't initialize in constructor - do it lazily
-    // This prevents throwing during build
-  }
-
-  private initialize(): boolean {
-    if (this.initialized) return true
-
-    // Check if we're in a build environment
-    const isBuildTime =
-      typeof window === 'undefined' &&
-      process.env.NODE_ENV === 'production' &&
-      !process.env.RESEND_API_KEY
-
-    if (isBuildTime) {
-      console.log('📧 Skipping email initialization during build')
-      return false
-    }
-
     // Make sure RESEND_API_KEY is set in your .env.local file
     const apiKey = process.env.RESEND_API_KEY
-    if (!apiKey) {
-      console.error('❌ RESEND_API_KEY is not set in environment variables')
-      // Don't throw - just return false
-      return false
+
+    // Don't throw during build time
+    const isBuildTime =
+      typeof window === 'undefined' && process.env.NODE_ENV === 'production'
+
+    if (!apiKey && isBuildTime) {
+      console.warn(
+        '⚠️ RESEND_API_KEY not set during build - skipping initialization'
+      )
+      return // Don't throw, just skip
     }
 
-    try {
-      this.resend = new Resend(apiKey)
-      this.initialized = true
-      return true
-    } catch (error) {
-      console.error('❌ Failed to create Resend client:', error)
-      return false
+    if (!apiKey) {
+      console.error('❌ RESEND_API_KEY is not set in environment variables')
+      throw new Error('RESEND_API_KEY is required')
     }
+
+    this.resend = new Resend(apiKey)
   }
 
   async sendVerificationEmail(
     params: EmailTemplateParams
   ): Promise<{ success: boolean; error?: string }> {
-    // Initialize only when needed
-    if (!this.initialize()) {
-      console.log(
-        `📧 [SIMULATED] Verification email would be sent to: ${params.email}`
-      )
-      return {
-        success: true,
-        error: 'Email service not configured (simulated)',
-      }
-    }
-
     try {
+      // Check if resend is initialized (might be null during build)
+      if (!this.resend) {
+        console.log(
+          `📧 [Build simulation] Verification email would be sent to: ${params.email}`
+        )
+        return {
+          success: true,
+          error: 'Email service not configured during build',
+        }
+      }
+
       const { subject, html } = generateVerificationEmail(params)
 
       const fromAddress = this.getFromAddress(params.userType)
 
       console.log('📤 Sending verification email to:', params.email)
 
-      const { data, error } = await this.resend!.emails.send({
+      const { data, error } = await this.resend.emails.send({
         from: fromAddress,
         to: params.email,
         subject,
@@ -97,18 +82,18 @@ export class EmailService {
   async sendPasswordResetEmail(
     params: EmailTemplateParams
   ): Promise<{ success: boolean; error?: string }> {
-    // Initialize only when needed
-    if (!this.initialize()) {
-      console.log(
-        `📧 [SIMULATED] Password reset email would be sent to: ${params.email}`
-      )
-      return {
-        success: true,
-        error: 'Email service not configured (simulated)',
-      }
-    }
-
     try {
+      // Check if resend is initialized (might be null during build)
+      if (!this.resend) {
+        console.log(
+          `📧 [Build simulation] Password reset email would be sent to: ${params.email}`
+        )
+        return {
+          success: true,
+          error: 'Email service not configured during build',
+        }
+      }
+
       const { subject, html } = generatePasswordResetEmail(params)
 
       const fromAddress =
@@ -116,7 +101,7 @@ export class EmailService {
 
       console.log('📤 Sending password reset email to:', params.email)
 
-      const { data, error } = await this.resend!.emails.send({
+      const { data, error } = await this.resend.emails.send({
         from: fromAddress,
         to: params.email,
         subject,
@@ -140,18 +125,18 @@ export class EmailService {
   async sendPasswordResetSuccessEmail(
     params: EmailTemplateParams
   ): Promise<{ success: boolean; error?: string }> {
-    // Initialize only when needed
-    if (!this.initialize()) {
-      console.log(
-        `📧 [SIMULATED] Password reset success email would be sent to: ${params.email}`
-      )
-      return {
-        success: true,
-        error: 'Email service not configured (simulated)',
-      }
-    }
-
     try {
+      // Check if resend is initialized (might be null during build)
+      if (!this.resend) {
+        console.log(
+          `📧 [Build simulation] Password reset success email would be sent to: ${params.email}`
+        )
+        return {
+          success: true,
+          error: 'Email service not configured during build',
+        }
+      }
+
       const subject = 'Password Reset Successful - PropSafe Hub'
 
       const html = `
@@ -238,7 +223,7 @@ export class EmailService {
 
       console.log('📤 Sending password reset success email to:', params.email)
 
-      const { data, error } = await this.resend!.emails.send({
+      const { data, error } = await this.resend.emails.send({
         from: fromAddress,
         to: params.email,
         subject,
@@ -264,23 +249,22 @@ export class EmailService {
     }
   }
 
-  // Helper method for testing
   async sendTestEmail(
     to: string
   ): Promise<{ success: boolean; error?: string }> {
-    // Initialize only when needed
-    if (!this.initialize()) {
-      console.log(`📧 [SIMULATED] Test email would be sent to: ${to}`)
-      return {
-        success: true,
-        error: 'Email service not configured (simulated)',
-      }
-    }
-
     try {
+      // Check if resend is initialized (might be null during build)
+      if (!this.resend) {
+        console.log(`📧 [Build simulation] Test email would be sent to: ${to}`)
+        return {
+          success: true,
+          error: 'Email service not configured during build',
+        }
+      }
+
       console.log('📤 Sending test email to:', to)
 
-      const { data, error } = await this.resend!.emails.send({
+      const { data, error } = await this.resend.emails.send({
         from: 'PropSafeHub Test <test@notifications.propsafehub.com>',
         to,
         subject: 'Test Email from PropSafeHub',
