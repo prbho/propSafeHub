@@ -22,7 +22,7 @@ export interface Property {
   title: string
   description: string
   propertyType: 'house' | 'apartment' | 'condo' | 'land' | 'townhouse'
-  status: 'for-sale' | 'for-rent' | 'sold' | 'rented' | 'active'
+  status: 'for-sale' | 'for-rent' | 'short-let' | 'sold' | 'rented' | 'active'
   price: number
   priceUnit: 'monthly' | 'yearly' | 'total'
   originalPrice?: number
@@ -56,6 +56,17 @@ export interface Property {
   tags: string[]
   views: number
   favorites: number
+
+  // FOR SHORT-LET
+  minimumStay?: number // Minimum nights
+  maximumStay?: number // Maximum nights
+  availabilityStart?: string // ISO date string
+  availabilityEnd?: string // ISO date string
+  instantBooking?: boolean // Can be booked instantly
+  checkInTime?: string // e.g., "14:00"
+  checkOutTime?: string // e.g., "11:00"
+  houseRules?: string[] // Array of house rules
+  cancellationPolicy?: 'flexible' | 'moderate' | 'strict'
 
   // paymentOptions
   outright: boolean
@@ -95,10 +106,21 @@ export interface PropertyFormData {
   title: string
   description: string
   propertyType: 'house' | 'apartment' | 'condo' | 'land' | 'townhouse'
-  status: 'for-sale' | 'for-rent' | 'sold' | 'rented'
+  status: 'for-sale' | 'for-rent' | 'short-let' | 'sold' | 'rented'
   price: number
-  priceUnit: 'monthly' | 'yearly' | 'total'
+  priceUnit: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'total'
   originalPrice?: number
+
+  // SHORT-LET SPECIFIC FIELDS
+  minimumStay?: number
+  maximumStay?: number
+  availabilityStart?: string
+  availabilityEnd?: string
+  instantBooking?: boolean
+  checkInTime?: string
+  checkOutTime?: string
+  houseRules?: string[]
+  cancellationPolicy?: 'flexible' | 'moderate' | 'strict'
 
   // Location
   address: string

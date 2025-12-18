@@ -63,6 +63,8 @@ export default function PropertyGridThree({
       converted.status = 'for-sale'
     } else if (searchParams.type === 'rent') {
       converted.status = 'for-rent'
+    } else if (searchParams.type === 'short-let') {
+      converted.status = 'short-let'
     }
 
     // Handle location/city - FIXED: Use 'q' parameter for general search
@@ -106,6 +108,8 @@ export default function PropertyGridThree({
               queryParams.append('type', 'buy')
             } else if (value === 'for-rent') {
               queryParams.append('type', 'rent')
+            } else if (value === 'short-let') {
+              queryParams.append('type', 'short-let')
             }
           } else {
             queryParams.append(key, value.toString())
@@ -234,12 +238,19 @@ export default function PropertyGridThree({
     if (filters.status === 'for-rent') {
       return 'No rental properties match your criteria'
     }
+    if (filters.status === 'short-let') {
+      return 'No short-let properties match your criteria'
+    }
     return 'No properties found'
   }
 
   if (loading) {
     return (
       <div className="space-y-6">
+        <div className="flex gap-x-2">
+          <div className="h-4 w-18 bg-gray-200 rounded-lg"></div>
+          <div className="h-4 w-8 bg-gray-200 rounded-lg"></div>
+        </div>
         {showFilters && (
           <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 animate-pulse">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">

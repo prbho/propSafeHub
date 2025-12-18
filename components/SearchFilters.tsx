@@ -1,9 +1,10 @@
-// components/SearchFilters.tsx
+// components/SearchFilters.tsx - Fixed with short-let support
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { PropertyFilters } from '@/types'
+import { Search } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -36,6 +37,7 @@ export default function SearchFilters() {
     const status = urlSearchParams.get('type')
     if (status === 'buy') params.status = 'for-sale'
     if (status === 'rent') params.status = 'for-rent'
+    if (status === 'short-let') params.status = 'short-let' // Added short-let
 
     const city = urlSearchParams.get('city') || urlSearchParams.get('location')
     if (city) params.city = city
@@ -89,10 +91,17 @@ export default function SearchFilters() {
     // Update URL with filters
     const params = new URLSearchParams()
 
-    if (filters.status === 'for-sale') {
-      params.set('type', 'buy')
-    } else if (filters.status === 'for-rent') {
-      params.set('type', 'rent')
+    // Map status to URL parameter with short-let support
+    switch (filters.status) {
+      case 'for-sale':
+        params.set('type', 'buy')
+        break
+      case 'for-rent':
+        params.set('type', 'rent')
+        break
+      case 'short-let':
+        params.set('type', 'short-let')
+        break
     }
 
     if (filters.city) params.set('city', filters.city)
@@ -149,18 +158,44 @@ export default function SearchFilters() {
       )
   }, [])
 
-  const priceOptions = [
-    { value: '', label: 'Any' },
-    { value: '10000000', label: '₦10M' },
-    { value: '25000000', label: '₦25M' },
-    { value: '50000000', label: '₦50M' },
-    { value: '100000000', label: '₦100M' },
-    { value: '200000000', label: '₦200M' },
-    { value: '500000000', label: '₦500M' },
-  ]
+  // Price options - different for buy/rent/short-let
+  const getPriceOptions = (status: PropertyFilters['status']) => {
+    if (status === 'short-let') {
+      return [
+        { value: '5000', label: '₦5,000' },
+        { value: '15000', label: '₦15,000' },
+        { value: '30000', label: '₦30,000' },
+        { value: '50000', label: '₦50,000' },
+        { value: '100000', label: '₦100K' },
+        { value: '200000', label: '₦200K' },
+      ]
+    } else if (status === 'for-rent') {
+      return [
+        { value: '200000', label: '₦200K' },
+        { value: '500000', label: '₦500K' },
+        { value: '1000000', label: '₦1M' },
+        { value: '2000000', label: '₦2M' },
+        { value: '5000000', label: '₦5M' },
+        { value: '10000000', label: '₦10M' },
+      ]
+    } else {
+      return [
+        { value: '10000000', label: '₦10M' },
+        { value: '25000000', label: '₦25M' },
+        { value: '50000000', label: '₦50M' },
+        { value: '100000000', label: '₦100M' },
+        { value: '200000000', label: '₦200M' },
+        { value: '500000000', label: '₦500M' },
+      ]
+    }
+  }
+
+  const priceOptions = getPriceOptions(filters.status)
+  const minPriceOptions = [{ value: 'any', label: 'Any Min' }, ...priceOptions]
+  const maxPriceOptions = [{ value: 'any', label: 'Any Max' }, ...priceOptions]
 
   const bedroomOptions = [
-    { value: '', label: 'Any' },
+    { value: 'any', label: 'Any' }, // Changed from empty string to 'any'
     { value: '1', label: '1+' },
     { value: '2', label: '2+' },
     { value: '3', label: '3+' },
@@ -169,7 +204,7 @@ export default function SearchFilters() {
   ]
 
   const propertyTypeOptions = [
-    { value: '', label: 'Any' },
+    { value: 'any', label: 'Any' }, // Changed from empty string to 'any'
     { value: 'house', label: 'House' },
     { value: 'apartment', label: 'Apartment' },
     { value: 'condo', label: 'Condo' },
@@ -183,19 +218,19 @@ export default function SearchFilters() {
       <CardContent className="p-6">
         {/* Main Filters Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-          {/* Status */}
+          {/* Status with short-let */}
           <div className="space-y-2">
             <Label htmlFor="status" className="text-sm font-medium">
               I want to
             </Label>
             <Select
-              value={filters.status === 'for-sale' ? 'buy' : 'rent'}
-              onValueChange={(value) =>
-                handleFilterChange(
-                  'status',
-                  value === 'buy' ? 'for-sale' : 'for-rent'
-                )
-              }
+              value={filters.status === 'for-sale' ? 'buy' : filters.status}
+              onValueChange={(value) => {
+                let newStatus: PropertyFilters['status'] = 'for-sale'
+                if (value === 'rent') newStatus = 'for-rent'
+                if (value === 'short-let') newStatus = 'short-let'
+                handleFilterChange('status', newStatus)
+              }}
             >
               <SelectTrigger id="status">
                 <SelectValue placeholder="Select..." />
@@ -203,6 +238,7 @@ export default function SearchFilters() {
               <SelectContent>
                 <SelectItem value="buy">Buy</SelectItem>
                 <SelectItem value="rent">Rent</SelectItem>
+                <SelectItem value="short-let">Short-let</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -221,25 +257,25 @@ export default function SearchFilters() {
             />
           </div>
 
-          {/* Min Price */}
+          {/* Min Price - Fixed: no empty string values */}
           <div className="space-y-2">
             <Label htmlFor="minPrice" className="text-sm font-medium">
               Min Price
             </Label>
             <Select
-              value={filters.minPrice?.toString() || ''}
+              value={filters.minPrice?.toString() || 'any'}
               onValueChange={(value) =>
                 handleFilterChange(
                   'minPrice',
-                  value ? Number(value) : undefined
+                  value === 'any' ? undefined : Number(value)
                 )
               }
             >
               <SelectTrigger id="minPrice">
-                <SelectValue placeholder="Any" />
+                <SelectValue placeholder="Any Min" />
               </SelectTrigger>
               <SelectContent>
-                {priceOptions.map((option) => (
+                {minPriceOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -248,25 +284,25 @@ export default function SearchFilters() {
             </Select>
           </div>
 
-          {/* Max Price */}
+          {/* Max Price - Fixed: no empty string values */}
           <div className="space-y-2">
             <Label htmlFor="maxPrice" className="text-sm font-medium">
               Max Price
             </Label>
             <Select
-              value={filters.maxPrice?.toString() || ''}
+              value={filters.maxPrice?.toString() || 'any'}
               onValueChange={(value) =>
                 handleFilterChange(
                   'maxPrice',
-                  value ? Number(value) : undefined
+                  value === 'any' ? undefined : Number(value)
                 )
               }
             >
               <SelectTrigger id="maxPrice">
-                <SelectValue placeholder="Any" />
+                <SelectValue placeholder="Any Max" />
               </SelectTrigger>
               <SelectContent>
-                {priceOptions.map((option) => (
+                {maxPriceOptions.map((option) => (
                   <SelectItem key={option.value} value={option.value}>
                     {option.label}
                   </SelectItem>
@@ -277,7 +313,8 @@ export default function SearchFilters() {
 
           {/* Search Button */}
           <div className="flex items-end">
-            <Button onClick={handleSearch} className="w-full h-10">
+            <Button onClick={handleSearch} className="w-full h-10 gap-2">
+              <Search className="h-4 w-4" />
               Apply Filters
             </Button>
           </div>
@@ -285,17 +322,17 @@ export default function SearchFilters() {
 
         {/* Advanced Filters */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200">
-          {/* Bedrooms */}
+          {/* Bedrooms - Fixed: no empty string values */}
           <div className="space-y-2">
             <Label htmlFor="bedrooms" className="text-sm font-medium">
               Bedrooms
             </Label>
             <Select
-              value={filters.bedrooms?.toString() || ''}
+              value={filters.bedrooms?.toString() || 'any'}
               onValueChange={(value) =>
                 handleFilterChange(
                   'bedrooms',
-                  value ? Number(value) : undefined
+                  value === 'any' ? undefined : Number(value)
                 )
               }
             >
@@ -312,15 +349,15 @@ export default function SearchFilters() {
             </Select>
           </div>
 
-          {/* Property Type */}
+          {/* Property Type - Fixed: no empty string values */}
           <div className="space-y-2">
             <Label htmlFor="propertyType" className="text-sm font-medium">
               Property Type
             </Label>
             <Select
-              value={filters.propertyType || ''}
+              value={filters.propertyType || 'any'}
               onValueChange={(value) =>
-                handleFilterChange('propertyType', value || undefined)
+                handleFilterChange('propertyType', value === 'any' ? '' : value)
               }
             >
               <SelectTrigger id="propertyType">

@@ -41,7 +41,7 @@ export default function NavigationLinks() {
               className="flex items-center cursor-pointer"
             >
               <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2" />
-              Properties for Sale
+              For Sale
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
@@ -50,7 +50,27 @@ export default function NavigationLinks() {
               className="flex items-center cursor-pointer"
             >
               <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2" />
-              Properties for Rent
+              For Rent
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild>
+            <Link
+              href="/properties?type=short-let"
+              className="flex items-center cursor-pointer"
+            >
+              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2" />
+              For Short-let
+            </Link>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem asChild>
+            <Link
+              href="/list-property"
+              className="flex items-center cursor-pointer"
+            >
+              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-2" />
+              List Your Property
             </Link>
           </DropdownMenuItem>
         </DropdownMenuContent>
@@ -174,7 +194,7 @@ export default function NavigationLinks() {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="center" className="w-48">
           <DropdownMenuItem asChild>
-            <Link href="/mortgage" className="cursor-pointer">
+            <Link href="/mortgage-calculator" className="cursor-pointer">
               <Calculator className="h-4 w-4 mr-1 text-emerald-600" />
               Mortgage Calculator
             </Link>
@@ -186,7 +206,7 @@ export default function NavigationLinks() {
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem asChild>
-            <Link href="/resources/diaspora" className="cursor-pointer">
+            <Link href="/services/diaspora" className="cursor-pointer">
               <Plane className="h-4 w-4 mr-1 text-emerald-600" />
               Diaspora Investor Guide
             </Link>

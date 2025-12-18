@@ -9,10 +9,16 @@ import {
   BathIcon,
   BedIcon,
   CalculatorIcon,
+  Calendar,
+  Clock,
   CrownIcon,
   Edit,
   Heart,
+  Key,
+  Moon,
   Ruler,
+  Shield,
+  Star,
 } from 'lucide-react'
 
 import { useFavorites } from '@/hooks/useFavorites'
@@ -57,6 +63,70 @@ const getTimeAgo = (date: string | Date) => {
   return `${diffInYears} years ago`
 }
 
+// Helper function to get status badge info
+const getStatusInfo = (status: string) => {
+  switch (status) {
+    case 'for-sale':
+      return {
+        label: 'For Sale',
+        bg: 'bg-linear-to-r from-red-800 to-red-500',
+        icon: null,
+        color: 'text-white',
+      }
+    case 'for-rent':
+      return {
+        label: 'For Rent',
+        bg: 'bg-linear-to-r from-emerald-600 to-teal-500',
+        icon: <Key className="w-3 h-3 mr-1" />,
+        color: 'text-white',
+      }
+    case 'short-let':
+      return {
+        label: 'Short-Let',
+        bg: 'bg-linear-to-r from-purple-600 to-purple-500',
+        icon: <Moon className="w-3 h-3 mr-1" />,
+        color: 'text-white',
+      }
+    case 'sold':
+      return {
+        label: 'Sold',
+        bg: 'bg-linear-to-r from-gray-700 to-gray-600',
+        icon: null,
+        color: 'text-white',
+      }
+    case 'rented':
+      return {
+        label: 'Rented',
+        bg: 'bg-linear-to-r from-blue-600 to-blue-500',
+        icon: null,
+        color: 'text-white',
+      }
+    default:
+      return {
+        label: 'Available',
+        bg: 'bg-linear-to-r from-gray-600 to-gray-500',
+        icon: null,
+        color: 'text-white',
+      }
+  }
+}
+
+// Helper function to get price unit label
+const getPriceUnitLabel = (unit: string) => {
+  switch (unit) {
+    case 'daily':
+      return '/night'
+    case 'weekly':
+      return '/week'
+    case 'monthly':
+      return '/mo'
+    case 'yearly':
+      return '/yr'
+    default:
+      return ''
+  }
+}
+
 function PropertyCard({
   property,
   agentProfileId,
@@ -81,12 +151,13 @@ function PropertyCard({
       maximumFractionDigits: 0,
     })
     const formatted = formatter.format(price)
-    if (unit === 'monthly') return `${formatted}/mo`
-    if (unit === 'yearly') return `${formatted}/yr`
-    return formatted
+    const unitLabel = getPriceUnitLabel(unit)
+    return `${formatted}${unitLabel}`
   }, [])
 
   const mainImage = property.images?.[0] || '/placeholder-property.jpg'
+  const statusInfo = getStatusInfo(property.status)
+  const isShortLet = property.status === 'short-let'
 
   // Handlers wrapped with useCallback to prevent re-creation on every render
   const handleMortgageClick = useCallback((e: React.MouseEvent) => {
@@ -155,7 +226,13 @@ function PropertyCard({
       )}
 
       <Link href={`/properties/${property.$id}`} className="block">
-        <div className="bg-white/90 backdrop-blur-md rounded-2xl overflow-hidden shadow-lg hover:border-purple-300/60 hover:shadow-xl hover:shadow-purple-100/30 transition-all duration-300 mb-6 relative">
+        <div
+          className={`bg-white/90 backdrop-blur-md rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 mb-6 relative ${
+            isShortLet
+              ? 'hover:border-purple-300/60 hover:shadow-purple-100/30 border border-transparent'
+              : 'hover:border-emerald-300/60 hover:shadow-emerald-100/30 border border-transparent'
+          }`}
+        >
           {/* IMAGE */}
           <div className="relative h-48 w-full bg-linear-to-br from-slate-200 to-slate-300">
             <Image
@@ -166,55 +243,97 @@ function PropertyCard({
               priority={priority}
               loading={priority ? 'eager' : 'lazy'}
             />
+
             {/* FEATURED BADGE */}
             {property.isFeatured && (
               <span className="absolute top-2 left-2 z-10 bg-linear-to-r from-amber-400 to-amber-500 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-md flex items-center gap-1">
                 <CrownIcon className="w-3 h-3" />
+                Featured
               </span>
             )}
+
             {/* STATUS BADGE */}
             <span
-              className={`absolute bottom-2 left-2 px-3 py-1 rounded-md text-xs font-bold shadow z-10 ${
-                property.status === 'for-sale'
-                  ? 'bg-linear-to-r from-red-800 to-red-500 text-white'
-                  : property.status === 'for-rent'
-                    ? 'bg-linear-to-r from-emerald-600 to-teal-500 text-white'
-                    : property.status === 'sold'
-                      ? 'bg-linear-to-r from-gray-700 to-gray-600 text-white'
-                      : 'bg-linear-to-r from-purple-600 to-purple-500 text-white'
-              }`}
+              className={`absolute bottom-2 left-2 px-3 py-1 rounded-md text-xs font-bold shadow z-10 flex items-center ${statusInfo.bg} ${statusInfo.color}`}
             >
-              {property.status === 'for-sale'
-                ? 'For Sale'
-                : property.status === 'for-rent'
-                  ? 'For Rent'
-                  : property.status === 'sold'
-                    ? 'Sold'
-                    : 'Rented'}
+              {statusInfo.icon}
+              {statusInfo.label}
             </span>
+
+            {/* SHORT-LET SPECIFIC BADGES */}
+            {isShortLet && (
+              <>
+                {property.instantBooking && (
+                  <span className="absolute top-2 left-2 z-10 bg-emerald-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-md flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Instant Book
+                  </span>
+                )}
+                {/* {property.cancellationPolicy && (
+                  <span className="absolute top-10 right-2 z-10 bg-blue-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-md flex items-center gap-1">
+                    <Shield className="w-3 h-3" />
+                    {property.cancellationPolicy === 'flexible'
+                      ? 'Flexible'
+                      : property.cancellationPolicy === 'moderate'
+                        ? 'Moderate'
+                        : 'Strict'}
+                  </span>
+                )} */}
+                {property.minimumStay && (
+                  <span className="absolute bottom-2 right-2 z-10 bg-purple-600 text-white px-2 py-1 rounded-md text-xs font-semibold shadow-md flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    Min {property.minimumStay} night
+                    {property.minimumStay > 1 ? 's' : ''}
+                  </span>
+                )}
+              </>
+            )}
           </div>
 
           {/* CONTENT */}
           <div className="p-4 bg-linear-to-b from-white/90 to-slate-50/70">
-            <h3 className="text-lg font-semibold text-slate-800 mb-1 line-clamp-1">
-              {property.title}
-            </h3>
+            {/* TITLE & RATING */}
+            {/* <div className="flex justify-between items-start mb-2">
+              <h3 className="text-lg font-semibold text-slate-800 line-clamp-1 flex-1">
+                {property.title}
+              </h3>
+              {isShortLet && property.rating && (
+                <span className="flex items-center bg-amber-50 text-amber-700 px-2 py-1 rounded text-sm">
+                  <Star className="w-3 h-3 mr-1 fill-current" />
+                  {property.rating.toFixed(1)}
+                </span>
+              )}
+            </div> */}
+
             <p className="text-gray-600 text-sm mb-3 line-clamp-1">
               {property.address}, {property.city}, {property.state}
             </p>
 
             {/* PRICE */}
             <div className="flex items-center justify-between mb-3">
-              <span className="text-xl font-bold text-black">
+              <span className="text-lg font-bold text-black">
                 {formatPrice(property.price, property.priceUnit)}
               </span>
               {property.originalPrice &&
                 property.originalPrice > property.price && (
-                  <span className="text-sm text-gray-400 line-through">
+                  <span className="text-xs text-gray-400 line-through">
                     {formatPrice(property.originalPrice, property.priceUnit)}
                   </span>
                 )}
             </div>
+
+            {/* SHORT-LET AVAILABILITY */}
+            {isShortLet &&
+              (property.availabilityStart || property.availabilityEnd) && (
+                <div className="mb-3 p-2 bg-emerald-50 rounded-lg">
+                  <div className="flex items-center text-sm text-emerald-600">
+                    <Calendar className="w-4 h-4 mr-2" />
+                    {property.availabilityStart
+                      ? `Available ${new Date(property.availabilityStart).toLocaleDateString()}`
+                      : 'Check dates for availability'}
+                  </div>
+                </div>
+              )}
 
             {/* META */}
             <div className="flex items-center justify-between text-sm text-gray-700 border-t pt-3">
@@ -250,8 +369,21 @@ function PropertyCard({
                     Mortgage
                   </span>
                 )}
+                {/* SHORT-LET SPECIFIC TAGS */}
+                {isShortLet &&
+                  property.houseRules &&
+                  property.houseRules.length > 0 && (
+                    <span className="px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded-md">
+                      {property.houseRules.length} rules
+                    </span>
+                  )}
+                {isShortLet && property.features?.includes('Free WiFi') && (
+                  <span className="px-2 py-1 bg-green-50 text-green-700 text-xs rounded-md">
+                    WiFi
+                  </span>
+                )}
               </div>
-              {property.mortgageEligible && (
+              {property.mortgageEligible && !isShortLet && (
                 <button
                   onClick={handleMortgageClick}
                   className="ml-auto hover:opacity-80 cursor-pointer transition relative"

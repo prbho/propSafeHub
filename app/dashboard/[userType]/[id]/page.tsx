@@ -4,7 +4,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Property } from '@/types/index'
@@ -1197,71 +1196,6 @@ export default function DynamicDashboardPage({}: {
                 </div>
               </div>
             )}
-
-            {/* Properties Section for Sellers and Agents */}
-            {(userType === 'seller' || userType === 'agent') &&
-              activeTab === 'properties' && (
-                <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      My Property Listings
-                    </h3>
-                    <a
-                      href={
-                        userType === 'seller'
-                          ? '/seller/properties/new'
-                          : '/agent/properties/new'
-                      }
-                      className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Add New Property
-                    </a>
-                  </div>
-
-                  {displayProperties.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Home className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        No Properties Listed
-                      </h3>
-                      <p className="text-gray-500 mb-6">
-                        Get started by listing your first property.
-                      </p>
-                      <a
-                        href={
-                          userType === 'seller'
-                            ? '/seller/properties/new'
-                            : '/agent/properties/new'
-                        }
-                        className="inline-flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-lg hover:bg-emerald-700 transition-colors"
-                      >
-                        <Plus className="w-5 h-5" />
-                        List Your First Property
-                      </a>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {displayProperties.slice(0, 4).map((property) => (
-                        <div key={property.$id} className="relative">
-                          <PropertyCard
-                            property={property}
-                            userId={user?.$id}
-                          />
-                          {property.inquiries && property.inquiries > 0 && (
-                            <div className="absolute top-3 left-3">
-                              <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1">
-                                <Users className="w-3 h-3" />
-                                {property.inquiries} inquiries
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
             {/* Top Performing Agents for Admin */}
             {userType === 'admin' && topPerformingAgents.length > 0 && (

@@ -40,10 +40,21 @@ export async function GET(request: NextRequest) {
       finalStatus = 'for-sale'
     } else if (type === 'rent') {
       finalStatus = 'for-rent'
+    } else if (type === 'short-let') {
+      finalStatus = 'short-let'
     }
 
     if (!finalStatus) {
       finalStatus = 'for-sale'
+    }
+
+    // Allow multiple statuses for "all" view
+    if (finalStatus === 'all' || finalStatus === 'all-properties') {
+      // Don't filter by status for "all" view
+      console.log('🌐 Showing all property types (no status filter)')
+    } else {
+      console.log(`🎯 Filtering by status: ${finalStatus}`)
+      queries.push(Query.equal('status', finalStatus))
     }
 
     console.log(`🎯 Using status: ${finalStatus}`)

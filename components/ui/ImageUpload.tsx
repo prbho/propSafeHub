@@ -184,12 +184,18 @@ export default function ImageUpload({
             {imageFiles.map((imageFile, index) => (
               <div key={index} className="relative group">
                 <div className="aspect-square rounded-lg border border-gray-200 overflow-hidden bg-gray-100">
-                  <Image
+                  <img
                     src={imageFile.previewUrl}
                     alt={`Property image ${index + 1}`}
                     className="w-full h-full object-cover"
-                    width={400}
-                    height={300}
+                    onError={(e) => {
+                      // If blob URL fails, convert to data URL on the fly
+                      const reader = new FileReader()
+                      reader.onload = (event) => {
+                        e.currentTarget.src = event.target?.result as string
+                      }
+                      reader.readAsDataURL(imageFile.file)
+                    }}
                   />
                 </div>
                 <button

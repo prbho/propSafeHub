@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation'
 import { Property } from '@/types'
 
 import PropertyDetails from '@/components/PropertyDetails'
-import PropertyDetailsLoading from '@/components/PropertyDetailsLoading'
 import {
   DATABASE_ID,
   databases,
@@ -52,11 +51,7 @@ export default async function PropertyPage(props: PageProps) {
     notFound()
   }
 
-  return (
-    <Suspense fallback={<PropertyDetailsLoading />}>
-      <PropertyDetails property={property} />
-    </Suspense>
-  )
+  return <PropertyDetails property={property} />
 }
 
 // Generate metadata for SEO

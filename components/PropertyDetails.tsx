@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react' // Add useEffect
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
@@ -8,12 +8,19 @@ import { Property } from '@/types'
 import {
   Bath,
   Bed,
+  Calendar,
   Check,
   ChevronLeft,
+  Clock,
   Home,
+  Key,
   MapPin,
+  Moon,
   Share2,
+  Shield,
   Square,
+  Star,
+  Wifi,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -30,6 +37,8 @@ interface PropertyDetailsProps {
 export default function PropertyDetails({ property }: PropertyDetailsProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
   const { user } = useAuth()
+
+  const isShortLet = property.status === 'short-let'
 
   // Add debug useEffect
   useEffect(() => {
@@ -50,6 +59,10 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
     const formattedPrice = formatter.format(price)
 
     switch (unit) {
+      case 'daily':
+        return `${formattedPrice}/night`
+      case 'weekly':
+        return `${formattedPrice}/week`
       case 'monthly':
         return `${formattedPrice}/mo`
       case 'yearly':
@@ -79,10 +92,55 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
   const mainImage =
     property.images[activeImageIndex] || '/placeholder-property.jpg'
 
+  const formatAppwriteTime = (dateTime: string | undefined): string => {
+    if (!dateTime) return ''
+
+    try {
+      // Appwrite DateTime format: "2025-12-18T14:00:00.000+00:00"
+      const date = new Date(dateTime)
+
+      // Extract just the time part (HH:mm)
+      const hours = date.getUTCHours().toString().padStart(2, '0')
+      const minutes = date.getUTCMinutes().toString().padStart(2, '0')
+
+      return `${hours}:${minutes}`
+    } catch (error) {
+      console.error('Error formatting Appwrite time:', error)
+      return ''
+    }
+  }
+  // Helper function to get status badge
+  const getStatusBadge = () => {
+    switch (property.status) {
+      case 'for-sale':
+        return (
+          <span className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg">
+            For Sale
+          </span>
+        )
+      case 'for-rent':
+        return (
+          <span className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+            <Key className="h-3 w-3" />
+            For Rent
+          </span>
+        )
+      case 'short-let':
+        return (
+          <span className="bg-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+            <Moon className="h-3 w-3" />
+            Short-Let
+          </span>
+        )
+      default:
+        return null
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-40">
+      <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -105,13 +163,13 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
               </button>
               <PropertyFavoriteButton
                 property={property}
-                userId={user?.$id} // Pass the user ID as prop
+                userId={user?.$id}
                 size="md"
-              />{' '}
+              />
             </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
@@ -128,7 +186,8 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                   className="object-cover"
                   priority
                 />
-                <div className="absolute top-4 left-4 flex gap-2">
+                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                  {getStatusBadge()}
                   {property.isFeatured && (
                     <span className="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg">
                       Featured
@@ -138,6 +197,20 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                     <span className="bg-emerald-600 border border-emerald-300 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
                       <Check className="h-3 w-3" />
                       Verified
+                    </span>
+                  )}
+                  {/* Short-Let Specific Badges */}
+                  {isShortLet && property.instantBooking && (
+                    <span className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      Instant Book
+                    </span>
+                  )}
+                  {isShortLet && property.minimumStay && (
+                    <span className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+                      <Calendar className="h-3 w-3" />
+                      Min {property.minimumStay} night
+                      {property.minimumStay > 1 ? 's' : ''}
                     </span>
                   )}
                 </div>
@@ -152,7 +225,9 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                       onClick={() => setActiveImageIndex(index)}
                       className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
                         activeImageIndex === index
-                          ? 'border-emerald-500 shadow-md'
+                          ? isShortLet
+                            ? 'border-purple-500 shadow-md'
+                            : 'border-emerald-500 shadow-md'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
@@ -181,11 +256,152 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                   {property.state}
                 </span>
               </div>
+
+              {/* Short-Let Rating */}
+              {/* {isShortLet && property.rating && (
+                <div className="flex items-center mt-3">
+                  <div className="flex items-center bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg">
+                    <Star className="w-4 h-4 mr-1 fill-current" />
+                    <span className="font-semibold">
+                      {property.rating.toFixed(1)}
+                    </span>
+                    <span className="text-gray-600 ml-1">• Guest rating</span>
+                  </div>
+                </div>
+              )} */}
             </div>
 
+            {/* SHORT-LET AVAILABILITY SECTION */}
+            {isShortLet && (
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+                  <span className="bg-emerald-50 p-2 rounded-xl mr-2">
+                    <Calendar className="h-5 w-5 text-emerald-600" />
+                  </span>
+                  Availability & Booking
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900">
+                      Stay Duration
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-purple-50 rounded-lg">
+                        <div className="text-sm text-purple-700">
+                          Minimum Stay
+                        </div>
+                        <div className="text-lg font-bold text-gray-900">
+                          {property.minimumStay || 1} night
+                          {property.minimumStay || 1} night
+                          {(property.minimumStay || 1) > 1 ? 's' : ''}
+                        </div>
+                      </div>
+                      {property.maximumStay && (
+                        <div className="p-3 bg-gray-50 rounded-lg">
+                          <div className="text-sm text-gray-700">
+                            Maximum Stay
+                          </div>
+                          <div className="text-lg font-bold text-gray-900">
+                            {property.maximumStay} nights
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-gray-900">
+                      Check-in/Out Times
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="p-3 bg-green-50 rounded-lg">
+                        <div className="text-sm text-green-700">Check-in</div>
+                        <div className="text-lg font-bold text-gray-900">
+                          {formatAppwriteTime(property.checkInTime) || '14:00'}
+                        </div>
+                      </div>
+                      <div className="p-3 bg-red-50 rounded-lg">
+                        <div className="text-sm text-red-700">Check-out</div>
+                        <div className="text-lg font-bold text-gray-900">
+                          {formatAppwriteTime(property.checkOutTime) ||
+                            '11:00'}{' '}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Availability Dates */}
+                {(property.availabilityStart || property.availabilityEnd) && (
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <div className="flex items-center text-emerald-800 font-medium mb-2">
+                      <Calendar className="h-4 w-4 mr-2" />
+                      Availability Period
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {property.availabilityStart && (
+                        <div>
+                          <div className="text-sm text-gray-600">
+                            Available from
+                          </div>
+                          <div className="font-medium">
+                            {new Date(
+                              property.availabilityStart
+                            ).toLocaleDateString('en-NG', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {property.availabilityEnd && (
+                        <div>
+                          <div className="text-sm text-gray-600">
+                            Available until
+                          </div>
+                          <div className="font-medium">
+                            {new Date(
+                              property.availabilityEnd
+                            ).toLocaleDateString('en-NG', {
+                              weekday: 'long',
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Cancellation Policy */}
+                {property.cancellationPolicy && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center text-gray-800 font-medium mb-2">
+                      <Shield className="h-4 w-4 mr-2" />
+                      Cancellation Policy:{' '}
+                      {property.cancellationPolicy.charAt(0).toUpperCase() +
+                        property.cancellationPolicy.slice(1)}
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {property.cancellationPolicy === 'flexible' &&
+                        'Full refund up to 24 hours before check-in'}
+                      {property.cancellationPolicy === 'moderate' &&
+                        'Full refund up to 5 days before check-in'}
+                      {property.cancellationPolicy === 'strict' &&
+                        '50% refund up to 7 days before check-in'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Key Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white rounded-xl border border-gray-200 p-5">
+              <div className="bg-white rounded-xl border border-gray-100 p-5 text-center">
                 <div className="w-10 h-10 bg-emerald-50 rounded-lg flex items-center justify-center mx-auto mb-3">
                   <Bed className="h-5 w-5 text-emerald-600" />
                 </div>
@@ -194,7 +410,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                 </div>
                 <div className="text-sm text-gray-600 mt-1">Bedrooms</div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
+              <div className="bg-white rounded-xl border border-gray-100 p-5 text-center">
                 <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mx-auto mb-3">
                   <Bath className="h-5 w-5 text-emerald-600" />
                 </div>
@@ -203,7 +419,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                 </div>
                 <div className="text-sm text-gray-600 mt-1">Bathrooms</div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
+              <div className="bg-white rounded-xl border border-gray-100 p-5 text-center">
                 <div className="w-10 h-10 bg-purple-50 rounded-lg flex items-center justify-center mx-auto mb-3">
                   <Square className="h-5 w-5 text-purple-600" />
                 </div>
@@ -212,12 +428,16 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                 </div>
                 <div className="text-sm text-gray-600 mt-1">Sq Ft</div>
               </div>
-              <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
+              <div className="bg-white rounded-xl border border-gray-100 p-5 text-center">
                 <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center mx-auto mb-3">
-                  <Home className="h-5 w-5 text-orange-600" />
+                  {isShortLet ? (
+                    <Moon className="h-5 w-5 text-purple-600" />
+                  ) : (
+                    <Home className="h-5 w-5 text-orange-600" />
+                  )}
                 </div>
                 <div className="text-lg font-bold text-gray-900 capitalize">
-                  {property.propertyType}
+                  {isShortLet ? 'Short-Let' : property.propertyType}
                 </div>
                 <div className="text-sm text-gray-600 mt-1">Type</div>
               </div>
@@ -226,7 +446,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
             {/* Description */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
-                About This Property
+                About This {isShortLet ? 'Short-Let' : 'Property'}
               </h2>
               <p className="text-gray-700 leading-relaxed">
                 {property.description}
@@ -243,7 +463,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
                       <div className="w-1 h-6 bg-emerald-500 rounded-full mr-3"></div>
-                      Features
+                      {isShortLet ? 'Property Features' : 'Features'}
                     </h3>
                     <div className="space-y-3">
                       {property.features.map((feature, index) => (
@@ -280,6 +500,29 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                   </div>
                 )}
               </div>
+
+              {/* Short-Let House Rules */}
+              {isShortLet &&
+                property.houseRules &&
+                property.houseRules.length > 0 && (
+                  <div className="mt-8 pt-8 border-t">
+                    <h3 className="text-lg font-bold text-gray-900 mb-4 flex items-center">
+                      <Shield className="h-5 w-5 mr-2 text-purple-600" />
+                      House Rules
+                    </h3>
+                    <div className="space-y-2">
+                      {property.houseRules.map((rule, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center text-gray-700"
+                        >
+                          <Check className="h-4 w-4 text-purple-500 mr-3 shrink-0" />
+                          {rule}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </div>
 
             {/* Location */}
@@ -326,7 +569,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
             className="lg:sticky lg:top-24 space-y-6"
             style={{ height: 'fit-content' }}
           >
-            {/* Price Card */}
+            {/* Price Card - Updated to handle short-let */}
             <PropertySidebar property={property} />
           </div>
         </div>

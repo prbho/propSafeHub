@@ -9,10 +9,12 @@ import {
   BadgeCheck,
   Calendar,
   ChevronRight,
+  Clock,
   Eye,
   Home,
   Key,
   MapPin,
+  Moon,
   Shield,
   Star,
   Tag,
@@ -23,10 +25,11 @@ import {
 
 import PropertyGrid from '@/components/PropertyGrid'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 
 export default function ListPropertyPage() {
-  const [selectedType, setSelectedType] = useState<'sale' | 'rent' | null>(null)
+  const [selectedType, setSelectedType] = useState<
+    'sale' | 'rent' | 'short-let' | null
+  >(null)
   const { user } = useAuth()
 
   // If user has selected a type, show the PropertyGrid with filtered properties
@@ -180,9 +183,9 @@ export default function ListPropertyPage() {
         </div>
 
         {/* Listing Options Grid */}
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-10 max-w-6xl mx-auto mb-16">
+        <div className="grid md:grid-cols-3 gap-8 lg:gap-10 max-w-6xl mx-auto mb-16">
           {/* For Sale Option */}
-          <div className="border-gray-100 rounded-2xl hover:border-emerald-200 group overflow-hidden bg-white">
+          <div className="border-gray-100 border rounded-2xl hover:border-emerald-200 group overflow-hidden bg-white">
             <div className="p-8 lg:p-10 relative">
               <div className="flex items-center justify-between mb-6">
                 <div className="w-14 h-14 bg-linear-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -199,7 +202,7 @@ export default function ListPropertyPage() {
 
               <p className="text-gray-600 mb-8 leading-relaxed">
                 List your property for sale and reach thousands of serious
-                buyers.
+                buyers or investors.
               </p>
 
               <div className="space-y-4 mb-8">
@@ -258,7 +261,7 @@ export default function ListPropertyPage() {
                 <Button
                   asChild
                   variant="outline"
-                  className="w-full bg-linear-to-r from-emerald-900 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
+                  className="w-full bg-linear-to-r from-emerald-900 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white py-6 text-sm font-semibold shadow-lg hover:shadow-xl transition-all"
                   size="lg"
                 >
                   <Link
@@ -280,7 +283,7 @@ export default function ListPropertyPage() {
           </div>
 
           {/* For Rent Option */}
-          <div className=" border-gray-100 rounded-2xl group overflow-hidden bg-white">
+          <div className=" border-gray-100 border hover:border-gray-200 rounded-2xl group overflow-hidden bg-white">
             <div className="p-8 lg:p-10 relative">
               <div className="flex items-center justify-between mb-6">
                 <div className="w-14 h-14 bg-linear-to-br from-gray-700 to-gray-800 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
@@ -302,7 +305,7 @@ export default function ListPropertyPage() {
 
               <div className="space-y-4 mb-8">
                 <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 bg-gary-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 mt-0.5">
                     <Calendar className="h-4 w-4 text-gary-600" />
                   </div>
                   <div>
@@ -335,9 +338,7 @@ export default function ListPropertyPage() {
                     <h4 className="font-semibold text-gray-900 mb-1">
                       Wide Reach
                     </h4>
-                    <p className="text-sm text-gray-600">
-                      National exposure to quality tenants
-                    </p>
+                    <p className="text-sm text-gray-600">National exposure</p>
                   </div>
                 </div>
               </div>
@@ -356,11 +357,11 @@ export default function ListPropertyPage() {
                 <Button
                   asChild
                   variant="outline"
-                  className="w-full bg-linear-to-r from-gray-900 to-gray-700 hover:from-gray-900 hover:to-gray-800 text-white hover:text-white py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
+                  className="w-full bg-linear-to-r from-gray-900 to-gray-700 hover:from-gray-900 hover:to-gray-800 text-white hover:text-white py-6 text-sm font-semibold shadow-lg hover:shadow-xl transition-all"
                   size="lg"
                 >
                   <Link
-                    href="/list-property/rent"
+                    href="properties/postt"
                     className="flex items-center justify-center gap-2"
                   >
                     <Key className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />
@@ -370,102 +371,193 @@ export default function ListPropertyPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Benefits Section */}
-        <div className="max-w-6xl mx-auto">
-          <div className="border-t border-gray-200 pt-12">
-            <div className="text-center mb-12">
-              <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4">
-                Why Choose PropSafe Hub?
-              </h2>
-              <p className="text-gray-600 max-w-2xl mx-auto">
-                We provide everything you need for a successful property listing
-                experience
+          {/* ADD THIS: Short-Let Option */}
+          <div className="border-gray-100 border rounded-2xl hover:border-purple-200 group overflow-hidden bg-white">
+            <div className="p-8 lg:p-10 relative">
+              <div className="flex items-center justify-between mb-6">
+                <div className="w-14 h-14 bg-linear-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <Moon className="h-7 w-7 text-white" />
+                </div>
+                <div className="bg-purple-50 text-purple-700 text-sm font-medium px-3 py-1 rounded-full">
+                  Short-Let
+                </div>
+              </div>
+
+              <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
+                Short-Let Property
+              </h3>
+
+              <p className="text-gray-600 mb-8 leading-relaxed">
+                Rent your property for short stays. Perfect for vacation
+                rentals, business trips, or temporary stays.
+              </p>
+
+              <div className="space-y-4 mb-8">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                    <Calendar className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      Flexible Bookings
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Daily, weekly, or monthly rentals
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                    <Clock className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      Instant Booking
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Get guests can book your property immediately
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center shrink-0 mt-0.5">
+                    <Shield className="h-4 w-4 text-purple-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-1">
+                      Guest Protection
+                    </h4>
+                    <p className="text-sm text-gray-600">
+                      Verified guests & secure payments
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <Button
+                  onClick={() => setSelectedType('short-let')}
+                  className="w-full bg-white text-gray-800 py-6 border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50 group"
+                  size="lg"
+                >
+                  <div className="flex items-center justify-center gap-3">
+                    Browse Short-Let Properties
+                    <ChevronRight className="h-5 w-5" />
+                  </div>
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  className="w-full bg-linear-to-r from-purple-900 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white hover:text-white py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all"
+                  size="lg"
+                >
+                  <Link
+                    href="/properties/post"
+                    className="flex items-center justify-center gap-2 text-sm"
+                  >
+                    <Moon className="h-5 w-5 text-gray-600 group-hover:text-purple-600" />
+                    List Your Property for Short-Let
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Benefits Section */}
+      <div className="max-w-6xl mx-auto">
+        <div className="border-t border-gray-200 pt-12">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4">
+              Why Choose PropSafe Hub?
+            </h2>
+            <p className="text-gray-600 max-w-2xl mx-auto">
+              We provide everything you need for a successful property listing
+              experience
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all group">
+              <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <TrendingUp className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h4 className="font-bold text-gray-900 mb-2 text-lg">
+                Maximum Exposure
+              </h4>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Reach thousands of active buyers and tenants across Nigeria with
+                featured listings
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-emerald-200 hover:shadow-lg transition-all group">
-                <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <TrendingUp className="h-6 w-6 text-emerald-600" />
-                </div>
-                <h4 className="font-bold text-gray-900 mb-2 text-lg">
-                  Maximum Exposure
-                </h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Reach thousands of active buyers and tenants across Nigeria
-                  with featured listings
-                </p>
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all group">
+              <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Shield className="h-6 w-6 text-emerald-600" />
               </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-blue-200 hover:shadow-lg transition-all group">
-                <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Shield className="h-6 w-6 text-emerald-600" />
-                </div>
-                <h4 className="font-bold text-gray-900 mb-2 text-lg">
-                  Verified Platform
-                </h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  All listings and users are verified for safety and
-                  authenticity
-                </p>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-purple-200 hover:shadow-lg transition-all group">
-                <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Tag className="h-6 w-6 text-emerald-600" />
-                </div>
-                <h4 className="font-bold text-gray-900 mb-2 text-lg">
-                  Smart Pricing
-                </h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Get real-time market insights and competitive pricing
-                  recommendations
-                </p>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:amber-orange-200 hover:shadow-lg transition-all group">
-                <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-amber-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <Star className="h-6 w-6 text-emerald-600" />
-                </div>
-                <h4 className="font-bold text-gray-900 mb-2 text-lg">
-                  Premium Support
-                </h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Dedicated support team available to help you throughout the
-                  process
-                </p>
-              </div>
+              <h4 className="font-bold text-gray-900 mb-2 text-lg">
+                Verified Platform
+              </h4>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                All listings and users are verified for safety and authenticity
+              </p>
             </div>
 
-            {/* CTA Section */}
-            <div className="mt-12 pt-8 border-t border-gray-200">
-              <div className="text-center">
-                <h3 className="text-xl font-bold text-gray-900 mb-3">
-                  Ready to Get Started?
-                </h3>
-                <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                  Join thousands of property owners who trust PropSafe Hub for
-                  their real estate needs
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button
-                    size="lg"
-                    className="bg-emerald-600 hover:bg-emerald-700 px-8 py-6 cursor-pointer"
-                    onClick={() => setSelectedType('sale')}
-                  >
-                    Browse Properties
-                  </Button>
-                  <Button
-                    asChild
-                    variant="outline"
-                    size="lg"
-                    className="border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-8 py-6"
-                  >
-                    <Link href="/contact">Need Help? Contact Us</Link>
-                  </Button>
-                </div>
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:border-purple-200 hover:shadow-lg transition-all group">
+              <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-emerald-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Tag className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h4 className="font-bold text-gray-900 mb-2 text-lg">
+                Smart Pricing
+              </h4>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Get real-time market insights and competitive pricing
+                recommendations
+              </p>
+            </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-gray-100 hover:amber-orange-200 hover:shadow-lg transition-all group">
+              <div className="w-12 h-12 bg-linear-to-br from-emerald-50 to-amber-100 rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Star className="h-6 w-6 text-emerald-600" />
+              </div>
+              <h4 className="font-bold text-gray-900 mb-2 text-lg">
+                Premium Support
+              </h4>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                Dedicated support team available to help you throughout the
+                process
+              </p>
+            </div>
+          </div>
+
+          {/* CTA Section */}
+          <div className="mt-12 pt-8 border-t border-gray-200 mb-8">
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                Ready to Get Started?
+              </h3>
+              <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                Join thousands of property owners who trust PropSafe Hub for
+                their real estate needs
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Button
+                  size="lg"
+                  className="bg-emerald-600 hover:bg-emerald-700 px-8 border py-6 cursor-pointer"
+                  onClick={() => setSelectedType('sale')}
+                >
+                  Browse Properties
+                </Button>
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="border border-emerald-600 text-emerald-600 hover:bg-emerald-50 px-8 py-6"
+                >
+                  <Link href="/contact">Need Help? Contact Us</Link>
+                </Button>
               </div>
             </div>
           </div>

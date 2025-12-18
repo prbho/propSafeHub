@@ -402,7 +402,7 @@ export default function DashboardPage() {
           {/* Tab Content */}
           <div className="p-6">
             {/* Properties Tab */}
-            {activeTab === 'properties' && (
+            {/* {activeTab === 'properties' && (
               <div>
                 <div className="flex justify-between items-center mb-6">
                   <h3 className="text-lg font-semibold text-gray-900">
@@ -467,7 +467,7 @@ export default function DashboardPage() {
                   </div>
                 )}
               </div>
-            )}
+            )} */}
 
             {/* Messages Tab */}
             {activeTab === 'messages' && (

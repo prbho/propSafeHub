@@ -88,7 +88,15 @@ export default function MobileNavContent({
               Properties for Rent
             </Link>
             <Link
-              href="/sell"
+              href="/properties?type=short-let"
+              className="flex items-center text-gray-700 hover:text-emerald-600 transition-colors py-2"
+              onClick={closeSheet}
+            >
+              <div className="h-2 w-2 rounded-full bg-emerald-500 mr-3" />
+              Properties for Short-let
+            </Link>
+            <Link
+              href="/list-property"
               className="flex items-center text-gray-700 hover:text-emerald-600 transition-colors py-2"
               onClick={closeSheet}
             >

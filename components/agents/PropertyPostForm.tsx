@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import {
   PROPERTY_AMENITIES,
@@ -19,16 +19,21 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
+  Clock,
   DollarSign,
   Globe,
   Home,
+  Key,
   Loader2,
   Map,
   MapPin,
+  Moon,
   Navigation,
+  Shield,
   Square,
   Tag,
   Upload,
+  Wifi,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -50,6 +55,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { Location } from '@/lib/locations/locationService'
 import { clientPropertyService } from '@/lib/properties/clientPropertyService'
@@ -66,17 +72,23 @@ export default function PropertyPostForm({
   onSuccess,
   onCancel,
 }: PropertyPostFormProps) {
+  // Get params inside component
+  const params = useParams()
   const { user, isLoading: authLoading } = useAuth()
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null
   )
+  const userType = params.userType as string
+  const userId = params.id as string
+
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const [pageLoading, setPageLoading] = useState(true)
   const [agentProfileId, setAgentProfileId] = useState<string>('')
   const [fetchingAgentProfile, setFetchingAgentProfile] = useState(false)
+  const [tagsInput, setTagsInput] = useState<string>('')
 
   const [formData, setFormData] = useState<PropertyFormData>({
     // Basic Information
@@ -122,7 +134,56 @@ export default function PropertyPostForm({
     customPlanAvailable: false,
     customPlanDepositPercent: 30,
     customPlanMonths: 12,
+
+    // Short-Let Specific Fields (initialize with defaults)
+    minimumStay: 1,
+    maximumStay: 30,
+    instantBooking: false,
+    checkInTime: '14:00',
+    checkOutTime: '11:00',
+    cancellationPolicy: 'moderate',
+    houseRules: [],
+    availabilityStart: '',
+    availabilityEnd: '',
   })
+
+  // House rules for short-let
+  const houseRulesList = [
+    'No smoking',
+    'No parties or events',
+    'No pets',
+    'No loud noise after 10 PM',
+    'No extra guests without approval',
+    'Shoes off inside',
+    'Keep the property clean',
+    'Report any damages immediately',
+    'Check-in after 2 PM',
+    'Check-out before 11 AM',
+  ]
+
+  // Additional short-let features
+  const shortLetFeaturesList = [
+    'Free WiFi',
+    'Coffee Maker',
+    'Smart TV',
+    'Netflix',
+    'Kitchenette',
+    'Washing Machine',
+    'Dryer',
+    'Iron',
+    'Hair Dryer',
+    'Hot Water',
+    'BBQ Grill',
+    'Fireplace',
+    'Jacuzzi',
+    'Beach Access',
+    'Mountain View',
+    'City View',
+    'Private Entrance',
+    'Self Check-in',
+    '24/7 Support',
+    'Breakfast Included',
+  ]
 
   // Fetch agent profile when user is loaded
   useEffect(() => {
@@ -204,6 +265,26 @@ export default function PropertyPostForm({
     }
   }, [imagePreviews])
 
+  // Update price unit based on status
+  useEffect(() => {
+    if (formData.status === 'short-let') {
+      setFormData((prev) => ({
+        ...prev,
+        priceUnit: 'daily',
+      }))
+    } else if (formData.status === 'for-rent') {
+      setFormData((prev) => ({
+        ...prev,
+        priceUnit: 'monthly',
+      }))
+    } else if (formData.status === 'for-sale') {
+      setFormData((prev) => ({
+        ...prev,
+        priceUnit: 'total',
+      }))
+    }
+  }, [formData.status])
+
   const handleLocationSelect = useCallback((location: Location) => {
     setSelectedLocation(location)
     setFormData((prev) => ({
@@ -220,22 +301,53 @@ export default function PropertyPostForm({
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  const handleTagsInputChange = (value: string) => {
+    setTagsInput(value) // Store raw input
+    // Only update formData.tags when we're done typing
+    const tagsArray = value
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+    setFormData((prev) => ({ ...prev, tags: tagsArray }))
+  }
+
+  // Initialize tagsInput when formData loads
+  useEffect(() => {
+    if (formData.tags.length > 0) {
+      setTagsInput(formData.tags.join(', '))
+    }
+  }, [])
+
   const handleArrayToggle = (
-    field: 'features' | 'amenities' | 'tags',
+    field: 'features' | 'amenities' | 'tags' | 'houseRules',
     value: string
   ) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: prev[field].includes(value)
-        ? prev[field].filter((item) => item !== value)
-        : [...prev[field], value],
+      [field]: prev[field]?.includes(value)
+        ? prev[field]?.filter((item) => item !== value)
+        : [...(prev[field] || []), value],
     }))
   }
 
-  const handleImageChange = (files: File[]) => {
+  const handleImageChange = async (files: File[]) => {
     setUploadedFiles(files)
+
+    // Clean up old URLs
     imagePreviews.forEach((url) => URL.revokeObjectURL(url))
-    const previewUrls = files.map((file) => URL.createObjectURL(file))
+
+    // Convert files to base64 data URLs
+    const previewPromises = files.map((file) => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          resolve(reader.result as string)
+        }
+        reader.readAsDataURL(file)
+      })
+    })
+
+    const previewUrls = await Promise.all(previewPromises)
     setImagePreviews(previewUrls)
   }
 
@@ -270,6 +382,32 @@ export default function PropertyPostForm({
     return uploadedImageUrls
   }
 
+  const getPriceLabel = () => {
+    switch (formData.status) {
+      case 'for-sale':
+        return 'Total Price'
+      case 'for-rent':
+        return 'Monthly Rent'
+      case 'short-let':
+        return 'Daily Rate'
+      default:
+        return 'Price'
+    }
+  }
+
+  const getPriceUnitOptions = () => {
+    switch (formData.status) {
+      case 'for-sale':
+        return ['total']
+      case 'for-rent':
+        return ['monthly', 'yearly']
+      case 'short-let':
+        return ['daily', 'weekly', 'monthly']
+      default:
+        return ['monthly']
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -296,10 +434,22 @@ export default function PropertyPostForm({
     try {
       const imageUrls = await uploadImagesToStorage(uploadedFiles)
 
-      // ✅ FIX: Use agentProfileId (from agents table) instead of user.$id (from users table)
+      // Add short-let specific data to form
       const propertyData = {
         ...formData,
-        agentId: agentProfileId, // Use agent profile ID
+        // Short-let specific fields (only if status is short-let)
+        ...(formData.status === 'short-let' && {
+          minimumStay: formData.minimumStay || 1,
+          maximumStay: formData.maximumStay || 30,
+          instantBooking: formData.instantBooking || false,
+          checkInTime: formData.checkInTime || '14:00',
+          checkOutTime: formData.checkOutTime || '11:00',
+          cancellationPolicy: formData.cancellationPolicy || 'moderate',
+          houseRules: formData.houseRules || [],
+          availabilityStart: formData.availabilityStart || '',
+          availabilityEnd: formData.availabilityEnd || '',
+        }),
+        agentId: agentProfileId,
         agentName: user?.name,
         listedBy: user?.name,
         phone: user?.phone || '',
@@ -308,15 +458,15 @@ export default function PropertyPostForm({
       }
 
       console.log('📤 Creating property with:', {
+        status: formData.status,
         agentId: agentProfileId,
-        agentName: user?.name,
-        userAccountId: user?.$id,
+        priceUnit: formData.priceUnit,
       })
 
       const result = await clientPropertyService.createProperty(propertyData)
       toast.success('Property created successfully!')
       onSuccess?.()
-      router.push('/agent/dashboard?success=true')
+      router.push(`/dashboard/${userType}/${user?.$id || ''}?success=true`)
     } catch (error: any) {
       console.error('❌ Error creating property:', error)
       toast.error(error.message || 'Failed to create property listing')
@@ -348,7 +498,56 @@ export default function PropertyPostForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
+        {/* IMAGES FIRST - Better UX */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="w-5 h-5" />
+              Property Images *
+            </CardTitle>
+            <CardDescription>
+              Upload high-quality photos to showcase your property (First
+              impression matters!)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ImageUpload
+              onImagesChange={handleImageChange}
+              maxImages={10}
+              accept="image/*"
+            />
+            <p className="text-sm text-gray-500">
+              Upload at least one image. Maximum 10 images allowed. Recommended:
+              5+ images for best results.
+            </p>
+
+            {imagePreviews.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">
+                  Image Previews ({imagePreviews.length} images)
+                </h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {imagePreviews.map((previewUrl, index) => (
+                    <div
+                      key={index}
+                      className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden"
+                    >
+                      <Image
+                        src={previewUrl}
+                        alt={`Property image ${index + 1}`}
+                        className="w-full h-full object-cover"
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Basic Information - UPDATED WITH SHORT-LET */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -368,7 +567,13 @@ export default function PropertyPostForm({
                   required
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
-                  placeholder="Beautiful 3-Bedroom Apartment in Lekki"
+                  placeholder={
+                    formData.status === 'short-let'
+                      ? 'Cozy 2-Bedroom Vacation Home with WiFi & Pool'
+                      : formData.status === 'for-rent'
+                        ? 'Modern 3-Bedroom Apartment in Lekki'
+                        : 'Beautiful 4-Bedroom House for Sale'
+                  }
                 />
               </div>
 
@@ -394,19 +599,36 @@ export default function PropertyPostForm({
                 </Select>
               </div>
 
+              {/* UPDATED STATUS FIELD */}
               <div className="space-y-2">
-                <Label htmlFor="status">Status *</Label>
+                <Label htmlFor="status">Listing Type *</Label>
                 <Select
                   required
                   value={formData.status}
                   onValueChange={(value) => handleInputChange('status', value)}
                 >
                   <SelectTrigger id="status">
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder="Select listing type" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="for-sale">For Sale</SelectItem>
-                    <SelectItem value="for-rent">For Rent</SelectItem>
+                    <SelectItem value="for-sale">
+                      <div className="flex items-center gap-2">
+                        <Home className="w-4 h-4" />
+                        For Sale
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="for-rent">
+                      <div className="flex items-center gap-2">
+                        <Key className="w-4 h-4" />
+                        For Rent
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="short-let">
+                      <div className="flex items-center gap-2">
+                        <Moon className="w-4 h-4" />
+                        Short-Let
+                      </div>
+                    </SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -441,12 +663,275 @@ export default function PropertyPostForm({
                 onChange={(e) =>
                   handleInputChange('description', e.target.value)
                 }
-                placeholder="Describe the property features, neighborhood, and unique selling points..."
+                placeholder={
+                  formData.status === 'short-let'
+                    ? 'Describe your short-let property, nearby attractions, unique features, and what makes it perfect for guests...'
+                    : 'Describe the property features, neighborhood, and unique selling points...'
+                }
                 rows={6}
               />
             </div>
           </CardContent>
         </Card>
+
+        {/* SHORT-LET SPECIFIC SECTION */}
+        {formData.status === 'short-let' && (
+          <>
+            {/* Stay Duration & Availability */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Stay Duration & Availability
+                </CardTitle>
+                <CardDescription>
+                  Configure booking options for your short-let property
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="minimumStay">Minimum Stay (nights) *</Label>
+                    <Input
+                      id="minimumStay"
+                      type="number"
+                      placeholder="1"
+                      value={formData.minimumStay || 1}
+                      onChange={(e) =>
+                        handleInputChange(
+                          'minimumStay',
+                          parseInt(e.target.value) || 1
+                        )
+                      }
+                      min="1"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="maximumStay">Maximum Stay (nights)</Label>
+                    <Input
+                      id="maximumStay"
+                      type="number"
+                      placeholder="30"
+                      value={formData.maximumStay || 30}
+                      onChange={(e) =>
+                        handleInputChange(
+                          'maximumStay',
+                          parseInt(e.target.value) || 30
+                        )
+                      }
+                      min="1"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="checkInTime">Check-in Time *</Label>
+                    <Select
+                      value={formData.checkInTime || '14:00'}
+                      onValueChange={(value) =>
+                        handleInputChange('checkInTime', value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="12:00">12:00 PM</SelectItem>
+                        <SelectItem value="13:00">1:00 PM</SelectItem>
+                        <SelectItem value="14:00">2:00 PM</SelectItem>
+                        <SelectItem value="15:00">3:00 PM</SelectItem>
+                        <SelectItem value="16:00">4:00 PM</SelectItem>
+                        <SelectItem value="flexible">Flexible</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="checkOutTime">Check-out Time *</Label>
+                    <Select
+                      value={formData.checkOutTime || '11:00'}
+                      onValueChange={(value) =>
+                        handleInputChange('checkOutTime', value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="10:00">10:00 AM</SelectItem>
+                        <SelectItem value="11:00">11:00 AM</SelectItem>
+                        <SelectItem value="12:00">12:00 PM</SelectItem>
+                        <SelectItem value="flexible">Flexible</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="availabilityStart">Available From</Label>
+                    <Input
+                      id="availabilityStart"
+                      type="date"
+                      value={formData.availabilityStart || ''}
+                      onChange={(e) =>
+                        handleInputChange('availabilityStart', e.target.value)
+                      }
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="availabilityEnd">Available Until</Label>
+                    <Input
+                      id="availabilityEnd"
+                      type="date"
+                      value={formData.availabilityEnd || ''}
+                      onChange={(e) =>
+                        handleInputChange('availabilityEnd', e.target.value)
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="instantBooking"
+                    checked={formData.instantBooking || false}
+                    onCheckedChange={(checked) =>
+                      handleInputChange('instantBooking', checked)
+                    }
+                  />
+                  <Label htmlFor="instantBooking" className="cursor-pointer">
+                    Enable Instant Booking (Guests can book immediately without
+                    approval)
+                  </Label>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Cancellation Policy */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  Cancellation Policy
+                </CardTitle>
+                <CardDescription>
+                  Choose how flexible you want to be with cancellations
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Select
+                  value={formData.cancellationPolicy || 'moderate'}
+                  onValueChange={(value) =>
+                    handleInputChange('cancellationPolicy', value)
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select cancellation policy" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="flexible">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Flexible</span>
+                        <span className="text-sm text-gray-500">
+                          Full refund up to 24 hours before check-in
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="moderate">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Moderate</span>
+                        <span className="text-sm text-gray-500">
+                          Full refund up to 5 days before check-in
+                        </span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="strict">
+                      <div className="flex flex-col">
+                        <span className="font-medium">Strict</span>
+                        <span className="text-sm text-gray-500">
+                          50% refund up to 7 days before check-in
+                        </span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardContent>
+            </Card>
+
+            {/* Short-Let Specific Features */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Wifi className="h-5 w-5" />
+                  Short-Let Features & Amenities
+                </CardTitle>
+                <CardDescription>
+                  Select amenities that are important for short-term stays
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                  {shortLetFeaturesList.map((feature) => (
+                    <div key={feature} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`shortlet-feature-${feature}`}
+                        checked={formData.features.includes(feature)}
+                        onCheckedChange={() =>
+                          handleArrayToggle('features', feature)
+                        }
+                      />
+                      <Label
+                        htmlFor={`shortlet-feature-${feature}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {feature}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* House Rules */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Key className="h-5 w-5" />
+                  House Rules
+                </CardTitle>
+                <CardDescription>
+                  Set clear rules for your guests
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {houseRulesList.map((rule) => (
+                    <div key={rule} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`rule-${rule}`}
+                        checked={formData.houseRules?.includes(rule)}
+                        onCheckedChange={() =>
+                          handleArrayToggle('houseRules', rule)
+                        }
+                      />
+                      <Label
+                        htmlFor={`rule-${rule}`}
+                        className="text-sm cursor-pointer"
+                      >
+                        {rule}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
 
         {/* Location Information */}
         <Card>
@@ -456,7 +941,8 @@ export default function PropertyPostForm({
               Location
             </CardTitle>
             <CardDescription>
-              Help buyers find your property with accurate location details
+              Help {formData.status === 'short-let' ? 'guests' : 'buyers'} find
+              your property
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -478,7 +964,11 @@ export default function PropertyPostForm({
                   required
                   value={formData.address}
                   onChange={(e) => handleInputChange('address', e.target.value)}
-                  placeholder="Street address, building number, etc."
+                  placeholder={
+                    formData.status === 'short-let'
+                      ? 'Exact address for GPS navigation'
+                      : 'Street address, building number, etc.'
+                  }
                 />
               </div>
 
@@ -532,7 +1022,7 @@ export default function PropertyPostForm({
           </CardContent>
         </Card>
 
-        {/* Pricing */}
+        {/* Pricing - UPDATED FOR SHORT-LET */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -546,7 +1036,7 @@ export default function PropertyPostForm({
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">Price *</Label>
+                <Label htmlFor="price">{getPriceLabel()} *</Label>
                 <Input
                   id="price"
                   type="number"
@@ -561,49 +1051,37 @@ export default function PropertyPostForm({
                   }
                 />
               </div>
-              {formData.status === 'for-rent' ? (
-                <div className="space-y-2">
-                  <Label htmlFor="priceUnit">
-                    {formData.status === 'for-rent'
-                      ? 'Price Unit *'
-                      : 'Price Type'}
-                  </Label>
-                  <Select
-                    required
-                    value={formData.priceUnit}
-                    onValueChange={(value) =>
-                      handleInputChange('priceUnit', value)
-                    }
-                  >
-                    <SelectTrigger id="priceUnit">
-                      <SelectValue
-                        placeholder={
-                          formData.status === 'for-rent'
-                            ? 'Select price unit'
-                            : 'Total Price'
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {formData.status === 'for-rent' ? (
-                        <>
-                          <SelectItem value="monthly">Monthly Rent</SelectItem>
-                          <SelectItem value="yearly">Yearly Rent</SelectItem>
-                        </>
-                      ) : (
-                        <SelectItem value="total">Total Price</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-              ) : (
-                <></>
-              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="priceUnit">Price Unit *</Label>
+                <Select
+                  required
+                  value={formData.priceUnit}
+                  onValueChange={(value) =>
+                    handleInputChange('priceUnit', value)
+                  }
+                >
+                  <SelectTrigger id="priceUnit">
+                    <SelectValue placeholder="Select price unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getPriceUnitOptions().map((unit) => (
+                      <SelectItem key={unit} value={unit}>
+                        {unit.charAt(0).toUpperCase() + unit.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex items-end">
                 <Card className="w-full bg-blue-50 border-blue-200">
                   <CardContent className="p-4">
                     <p className="text-sm font-medium text-blue-900">
-                      {formData.status === 'for-rent' ? (
+                      {formData.status === 'for-sale' && (
+                        <>Total Price: ₦{formData.price.toLocaleString()}</>
+                      )}
+                      {formData.status === 'for-rent' && (
                         <>
                           {formData.priceUnit === 'monthly' && 'Monthly: '}
                           {formData.priceUnit === 'yearly' && 'Yearly: '}₦
@@ -611,8 +1089,17 @@ export default function PropertyPostForm({
                           {formData.priceUnit === 'monthly' && '/mo'}
                           {formData.priceUnit === 'yearly' && '/yr'}
                         </>
-                      ) : (
-                        <>Total Price: ₦{formData.price.toLocaleString()}</>
+                      )}
+                      {formData.status === 'short-let' && (
+                        <>
+                          {formData.priceUnit === 'daily' && 'Daily: '}
+                          {formData.priceUnit === 'weekly' && 'Weekly: '}
+                          {formData.priceUnit === 'monthly' && 'Monthly: '}₦
+                          {formData.price.toLocaleString()}
+                          {formData.priceUnit === 'daily' && '/night'}
+                          {formData.priceUnit === 'weekly' && '/week'}
+                          {formData.priceUnit === 'monthly' && '/month'}
+                        </>
                       )}
                     </p>
                   </CardContent>
@@ -819,7 +1306,8 @@ export default function PropertyPostForm({
           <CardHeader>
             <CardTitle>Payment Options</CardTitle>
             <CardDescription>
-              Configure available payment methods for buyers
+              Configure available payment methods for{' '}
+              {formData.status === 'short-let' ? 'guests' : 'buyers'}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -832,7 +1320,9 @@ export default function PropertyPostForm({
                 }
               />
               <Label htmlFor="paymentOutright" className="cursor-pointer">
-                Outright Purchase Available
+                {formData.status === 'short-let'
+                  ? 'Full Payment Required'
+                  : 'Outright Purchase Available'}
               </Label>
             </div>
 
@@ -845,7 +1335,9 @@ export default function PropertyPostForm({
                 }
               />
               <Label htmlFor="paymentPlan" className="cursor-pointer">
-                Payment Plan Available
+                {formData.status === 'short-let'
+                  ? 'Deposit + Installment'
+                  : 'Payment Plan Available'}
               </Label>
             </div>
 
@@ -925,53 +1417,6 @@ export default function PropertyPostForm({
           </CardContent>
         </Card>
 
-        {/* Images */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="w-5 h-5" />
-              Property Images *
-            </CardTitle>
-            <CardDescription>
-              Upload high-quality photos to showcase your property
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ImageUpload
-              onImagesChange={handleImageChange}
-              maxImages={10}
-              accept="image/*"
-            />
-            <p className="text-sm text-gray-500">
-              Upload at least one image. Maximum 10 images allowed.
-            </p>
-
-            {imagePreviews.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  Image Previews ({imagePreviews.length} images)
-                </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {imagePreviews.map((previewUrl, index) => (
-                    <div
-                      key={index}
-                      className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden"
-                    >
-                      <Image
-                        src={previewUrl}
-                        alt={`Property image ${index + 1}`}
-                        className="w-full h-full object-cover"
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
         {/* Additional Options */}
         <Card>
           <CardHeader>
@@ -1001,18 +1446,22 @@ export default function PropertyPostForm({
               <Label htmlFor="tags">Tags (comma separated)</Label>
               <Input
                 id="tags"
-                value={formData.tags.join(', ')}
-                onChange={(e) =>
-                  handleInputChange(
-                    'tags',
-                    e.target.value
-                      .split(',')
-                      .map((tag) => tag.trim())
-                      .filter(Boolean)
-                  )
-                }
+                value={tagsInput} // Use the raw input state
+                onChange={(e) => handleTagsInputChange(e.target.value)}
                 placeholder="e.g., luxury, waterfront, new, renovated"
               />
+              {formData.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {formData.tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -1034,6 +1483,8 @@ export default function PropertyPostForm({
                   </div>
                 ) : !agentProfileId ? (
                   'Agent Profile Required'
+                ) : formData.status === 'short-let' ? (
+                  'Publish Short-Let'
                 ) : (
                   'Publish Property'
                 )}

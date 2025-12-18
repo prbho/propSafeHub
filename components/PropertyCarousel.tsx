@@ -81,9 +81,11 @@ export default function PropertyCarousel({
     <div className="py-12 border-t border-gray-100">
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-          <div className="flex items-center gap-4">
+        <div className="flex items-end md:items-center justify-between mb-8">
+          <h2 className="text-lg md:text-2xl font-bold text-gray-900">
+            {title}
+          </h2>
+          <div className="flex items-center flex-col sm:flex-row gap-1 md:gap-4">
             {hasMultiplePages && (
               <div className="flex items-center gap-2">
                 <Button
