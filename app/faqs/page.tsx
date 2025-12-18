@@ -393,7 +393,7 @@ const faqData: FAQItem[] = [
           >
             <a href="tel:+2349023558992">
               <Phone className="mr-2 h-4 w-4" />
-              Call +234 902 355 8992
+              Call +234 704 800 0553
             </a>
           </Button>
         </div>
@@ -659,7 +659,7 @@ export default function FAQPage() {
                         <p className="font-semibold text-gray-900 mb-1">
                           Call Us
                         </p>
-                        <p className="text-gray-700">+234 902 355 8992</p>
+                        <p className="text-gray-700"> +234 704 800 0553</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-4">

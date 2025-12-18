@@ -88,8 +88,8 @@ export default function ContactPage() {
 
   const contactInfo = {
     office: '50, Emerald Avenue, Monastery Road, Sangotedo, Ajah, Lagos',
-    phone: '+234 902 355 8992',
-    whatsapp: '+234 902 355 8992',
+    phone: ' +234 704 800 0553',
+    whatsapp: ' +234 704 800 0553',
     email: 'propsafehub@gmail.com',
     hours:
       'Monday - Friday: 8:00 AM - 6:00 PM\nSaturday: 10:00 AM - 4:00 PM\nSunday: Closed',

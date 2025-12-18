@@ -418,7 +418,7 @@ export default function TermsOfServicePage() {
                   </h4>
                   <div className="space-y-2 text-gray-600">
                     <p>Email: legal@propsafehub.com</p>
-                    <p>Phone: +234 902 355 8992</p>
+                    <p>Phone: +234 704 800 0553</p>
                   </div>
                 </div>
                 <div>

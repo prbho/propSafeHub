@@ -127,7 +127,7 @@ export default function ListPropertyPage() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-12 lg:py-16">
+      <div className="container mx-auto px-4 space-y-20 py-12 lg:py-16">
         {/* How It Works */}
         <div className="max-w-6xl mx-auto mb-16">
           <div className="text-center mb-12">
@@ -141,7 +141,7 @@ export default function ListPropertyPage() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8 mb-12">
-            <div className="relative">
+            <div className="relative bg-white border p-10 rounded-2xl">
               <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
                 <span className="text-2xl font-bold text-emerald-600">1</span>
               </div>
@@ -154,7 +154,7 @@ export default function ListPropertyPage() {
               </p>
             </div>
 
-            <div className="relative">
+            <div className="relative bg-white border p-10 rounded-2xl">
               <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
                 <span className="text-2xl font-bold text-emerald-600">2</span>
               </div>
@@ -167,7 +167,7 @@ export default function ListPropertyPage() {
               </p>
             </div>
 
-            <div className="relative">
+            <div className="relative bg-white border p-10 rounded-2xl">
               <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center mb-6 mx-auto">
                 <span className="text-2xl font-bold text-emerald-600">3</span>
               </div>
@@ -181,7 +181,31 @@ export default function ListPropertyPage() {
             </div>
           </div>
         </div>
+        <div className="text-center mb-12 max-w-4xl mx-auto">
+          <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 mb-4">
+            Choose Your Listing Type
+          </h2>
+          <p className="text-gray-600 text-lg">
+            Select how you want to list your property. Each option is optimized
+            for maximum results in its category.
+          </p>
 
+          {/* Optional: Add these benefit badges */}
+          <div className="flex flex-wrap justify-center gap-4 mt-6">
+            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-sm font-medium">
+              <TrendingUp className="h-4 w-4" />
+              Higher Visibility
+            </div>
+            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-sm font-medium">
+              <Shield className="h-4 w-4" />
+              Secure Transactions
+            </div>
+            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-sm font-medium">
+              <BadgeCheck className="h-4 w-4" />
+              Verified Users
+            </div>
+          </div>
+        </div>
         {/* Listing Options Grid */}
         <div className="grid md:grid-cols-3 gap-8 lg:gap-10 max-w-6xl mx-auto mb-16">
           {/* For Sale Option */}
@@ -197,7 +221,7 @@ export default function ListPropertyPage() {
               </div>
 
               <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
-                Sell Your Property
+                Sell Fast, Maximize Value
               </h3>
 
               <p className="text-gray-600 mb-8 leading-relaxed">
@@ -295,7 +319,7 @@ export default function ListPropertyPage() {
               </div>
 
               <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
-                Rent Your Property
+                Find Perfect Tenants, Fast
               </h3>
 
               <p className="text-gray-600 mb-8 leading-relaxed">
@@ -385,7 +409,7 @@ export default function ListPropertyPage() {
               </div>
 
               <h3 className="text-xl lg:text-2xl font-bold text-gray-900 mb-4">
-                Short-Let Property
+                Earn More with Short-Term Rentals
               </h3>
 
               <p className="text-gray-600 mb-8 leading-relaxed">
