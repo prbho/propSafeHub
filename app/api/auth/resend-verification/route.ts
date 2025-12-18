@@ -2,7 +2,6 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Query } from 'appwrite'
-import { Resend } from 'resend'
 
 import {
   AGENTS_COLLECTION_ID,
@@ -11,7 +10,27 @@ import {
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// DON'T initialize Resend at top level - do it inside the function
+function getResendClient() {
+  const apiKey = process.env.RESEND_API_KEY
+
+  // Don't fail during build
+  if (!apiKey) {
+    const isBuildTime =
+      typeof window === 'undefined' && process.env.NODE_ENV === 'production'
+
+    if (isBuildTime) {
+      console.warn('📧 Skipping Resend initialization during build')
+      return null
+    }
+
+    throw new Error('RESEND_API_KEY is required')
+  }
+
+  // Lazy import to avoid top-level initialization issues
+  const { Resend } = require('resend')
+  return new Resend(apiKey)
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -104,21 +123,13 @@ export async function POST(request: NextRequest) {
     ).toString('base64')
 
     // Create the NEW verification URL with the NEW token
-    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify/${verificationToken}`
+    const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://propsafehub.com'}/verify/${verificationToken}`
 
     console.log('🔐 Generated NEW verification token:', {
       tokenPreview: verificationToken.substring(0, 30) + '...',
       tokenLength: verificationToken.length,
       userId: userDoc.$id,
       verificationUrl: verificationUrl,
-    })
-
-    // Before database update, log current state
-    console.log('📊 BEFORE UPDATE - Current user verification data:', {
-      currentTokenExists: !!userDoc.verificationToken,
-      currentTokenPreview: userDoc.verificationToken?.substring(0, 30) + '...',
-      lastRequest: userDoc.lastVerificationRequest,
-      emailVerified: userDoc.emailVerified,
     })
 
     // Update verification token in database FIRST
@@ -128,31 +139,6 @@ export async function POST(request: NextRequest) {
         lastVerificationRequest: new Date().toISOString(),
       })
       console.log('✅ New verification token stored in database')
-
-      // Verify the update worked
-      try {
-        const updatedDoc = await databases.getDocument(
-          DATABASE_ID,
-          collectionId,
-          userDoc.$id
-        )
-        console.log('✅ CONFIRMED - Updated document verificationToken:', {
-          newTokenExists: !!updatedDoc.verificationToken,
-          newTokenPreview:
-            updatedDoc.verificationToken?.substring(0, 30) + '...',
-          matchesGenerated: updatedDoc.verificationToken === verificationToken,
-          fieldNames: Object.keys(updatedDoc).filter(
-            (k) =>
-              k.toLowerCase().includes('token') ||
-              k.toLowerCase().includes('verif')
-          ),
-        })
-      } catch (fetchError: any) {
-        console.error(
-          '❌ Failed to fetch updated document:',
-          fetchError.message
-        )
-      }
     } catch (updateError: any) {
       console.error('❌ Database update error:', updateError.message)
       return NextResponse.json(
@@ -252,6 +238,19 @@ export async function POST(request: NextRequest) {
     })
 
     try {
+      const resend = getResendClient()
+
+      if (!resend) {
+        // During build, simulate success
+        console.log('📧 [Build simulation] Email would be sent to:', email)
+        return NextResponse.json({
+          success: true,
+          message: 'Verification email would be sent (build simulation)',
+          email: email,
+          simulated: true,
+        })
+      }
+
       const { error } = await resend.emails.send({
         from: 'PropSafeHub <noreply@notifications.propsafehub.com>',
         to: email,
@@ -259,8 +258,20 @@ export async function POST(request: NextRequest) {
         html: emailHtml,
       })
 
+      if (error) {
+        console.error('❌ Email sending error:', error)
+        return NextResponse.json(
+          {
+            error: 'Failed to send verification email',
+            code: 'EMAIL_SEND_FAILED',
+          },
+          { status: 500 }
+        )
+      }
+
       console.log('✅ Email sent via Resend')
-    } catch {
+    } catch (emailError: any) {
+      console.error('❌ Email service error:', emailError.message)
       return NextResponse.json(
         {
           error: 'Failed to send verification email',
@@ -276,8 +287,6 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Verification email sent successfully!',
       email: email,
-      verificationUrl: verificationUrl, // For debugging
-      tokenPreview: verificationToken.substring(0, 20) + '...', // For debugging
     })
   } catch (error: any) {
     console.error('❌ Unhandled error in resend verification:', error.message)
