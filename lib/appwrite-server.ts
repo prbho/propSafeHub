@@ -15,8 +15,8 @@ import {
 const client = new Client()
 
 // Environment variables - NO VALIDATION HERE
-const endpoint = process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT || ''
-const projectId = process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID || ''
+const endpoint = process.env.APPWRITE_ENDPOINT || ''
+const projectId = process.env.APPWRITE_PROJECT_ID || ''
 const apiKey = process.env.APPWRITE_API_KEY || ''
 
 // DON'T initialize or validate at the top level
