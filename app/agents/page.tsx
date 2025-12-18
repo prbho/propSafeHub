@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { Agent } from '@/types'
-import { Query } from 'node-appwrite'
 
 import AgentCard from '@/components/AgentCard'
 import SortSelect from '@/components/agents/SortSelect'
@@ -10,13 +9,14 @@ import AgentsSearchFilters from '@/components/AgentsSearchFilters'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
-  serverDatabases,
+  databases,
+  Query,
 } from '@/lib/appwrite-server'
 
 // New function to fetch unique values from the database
 async function getUniqueValues(field: string): Promise<string[]> {
   try {
-    const response = await serverDatabases.listDocuments(
+    const response = await databases.listDocuments(
       DATABASE_ID,
       AGENTS_COLLECTION_ID,
       [Query.select([field]), Query.limit(1000)]
@@ -109,7 +109,7 @@ async function getAgents(filters?: {
         break
     }
 
-    const response = await serverDatabases.listDocuments(
+    const response = await databases.listDocuments(
       DATABASE_ID,
       AGENTS_COLLECTION_ID,
       queries
