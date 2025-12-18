@@ -2,6 +2,8 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Query } from 'appwrite'
+// Import Resend properly using ES modules
+import { Resend } from 'resend'
 
 import {
   AGENTS_COLLECTION_ID,
@@ -27,8 +29,7 @@ function getResendClient() {
     throw new Error('RESEND_API_KEY is required')
   }
 
-  // Lazy import to avoid top-level initialization issues
-  const { Resend } = require('resend')
+  // Use ES module import - no require()
   return new Resend(apiKey)
 }
 

@@ -1,4 +1,4 @@
-// lib/appwrite-server.ts - FIXED VERSION
+// lib/appwrite-server.ts - FIXED FOR RAILWAY BUILD
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import {
@@ -14,13 +14,17 @@ import {
 // Create UNINITIALIZED client
 const client = new Client()
 
-// Environment variables - NO VALIDATION HERE
-const endpoint = process.env.APPWRITE_ENDPOINT || ''
-const projectId = process.env.APPWRITE_PROJECT_ID || ''
+// CRITICAL FIX: Use server-side variables for Railway build
+// During Railway build, NEXT_PUBLIC_* variables are NOT available
+const endpoint =
+  process.env.APPWRITE_ENDPOINT ||
+  process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT ||
+  ''
+const projectId =
+  process.env.APPWRITE_PROJECT_ID ||
+  process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID ||
+  ''
 const apiKey = process.env.APPWRITE_API_KEY || ''
-
-// DON'T initialize or validate at the top level
-// We'll do it lazily when actually needed
 
 // Export uninitialized clients
 export const serverDatabases = new Databases(client)
@@ -30,9 +34,11 @@ export const serverStorage = new Storage(client)
 
 export { ID, Query }
 
-// Database IDs - with safe fallbacks (not throwing !)
+// Database IDs - use server-side OR client-side fallbacks
 export const DATABASE_ID =
-  process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'default-db-id'
+  process.env.APPWRITE_DATABASE_ID ||
+  process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID ||
+  'default-db-id'
 export const USERS_COLLECTION_ID =
   process.env.NEXT_PUBLIC_APPWRITE_USERS_TABLE_ID || 'users'
 export const PROPERTIES_COLLECTION_ID =
@@ -76,16 +82,35 @@ function initializeIfNeeded(): boolean {
 
   // Don't initialize during build time
   const isBuildTime =
-    typeof window === 'undefined' &&
-    process.env.NODE_ENV === 'production' &&
-    !process.env.RESEND_API_KEY
+    typeof window === 'undefined' && process.env.NODE_ENV === 'production'
 
   if (isBuildTime) {
-    // During build, skip initialization but don't throw
-    return false
+    // During Railway build, we MUST initialize because your page needs data
+    // The old logic was returning false, causing the error
+    if (!endpoint || !projectId || !apiKey) {
+      console.error(
+        '🚨 Railway Build Error: Missing Appwrite server environment variables'
+      )
+      console.error(
+        'Required during build: APPWRITE_ENDPOINT, APPWRITE_PROJECT_ID, APPWRITE_API_KEY'
+      )
+      return false
+    }
+
+    try {
+      client.setEndpoint(endpoint).setProject(projectId).setKey(apiKey)
+      console.log('✅ Appwrite initialized for Railway build')
+      return true
+    } catch (error) {
+      console.error(
+        '❌ Failed to initialize Appwrite during Railway build:',
+        error
+      )
+      return false
+    }
   }
 
-  // Only validate when actually trying to use Appwrite
+  // Runtime initialization (same as before)
   if (!endpoint || !projectId || !apiKey) {
     console.warn('⚠️ Appwrite not configured - some features may not work')
     return false
@@ -101,7 +126,6 @@ function initializeIfNeeded(): boolean {
 }
 
 // Wrapper functions that initialize on demand
-
 export const databases = {
   // Fix createDocument to accept custom fields
   createDocument: async (
@@ -146,7 +170,7 @@ export const databases = {
     databaseId: string,
     collectionId: string,
     documentId: string,
-    data: any, // ← Already fixed, keep as 'any'
+    data: any,
     permissions?: string[]
   ) => {
     if (!initializeIfNeeded()) {
@@ -171,18 +195,32 @@ export const databases = {
   },
 }
 
-// Updated validation function - doesn't run during build
+// Updated validation function - FIXED for Railway
 export function validateAppwriteConfig(): boolean {
-  // Don't validate during build
+  // During Railway build, check server-side variables
   const isBuildTime =
-    typeof window === 'undefined' &&
-    process.env.NODE_ENV === 'production' &&
-    !process.env.RESEND_API_KEY
+    typeof window === 'undefined' && process.env.NODE_ENV === 'production'
 
   if (isBuildTime) {
-    return true // Return true during build to avoid breaking
+    // For Railway build, we need SERVER variables, not NEXT_PUBLIC
+    const required = [
+      'APPWRITE_ENDPOINT',
+      'APPWRITE_PROJECT_ID',
+      'APPWRITE_API_KEY',
+      'APPWRITE_DATABASE_ID',
+    ]
+
+    const missing = required.filter((key) => !process.env[key])
+
+    if (missing.length > 0) {
+      console.error('🚨 Railway Build Missing Variables:', missing)
+      return false
+    }
+
+    return true
   }
 
+  // Runtime validation (same as before)
   const required = [
     'NEXT_PUBLIC_APPWRITE_ENDPOINT',
     'NEXT_PUBLIC_APPWRITE_PROJECT_ID',
