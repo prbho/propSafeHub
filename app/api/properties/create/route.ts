@@ -4,10 +4,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
+  databases,
   ID,
   PROPERTIES_COLLECTION_ID,
   Query,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 export async function POST(request: NextRequest) {
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     // Try to get the agent by the provided ID
     try {
-      const agent = await serverDatabases.getDocument(
+      const agent = await databases.getDocument(
         DATABASE_ID,
         AGENTS_COLLECTION_ID,
         cleanPropertyData.agentId
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     } catch {
       // Try to find agent by name
       try {
-        const agents = await serverDatabases.listDocuments(
+        const agents = await databases.listDocuments(
           DATABASE_ID,
           AGENTS_COLLECTION_ID,
           [Query.equal('name', cleanPropertyData.agentName), Query.limit(1)]
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the property in Appwrite
-    const property = await serverDatabases.createDocument(
+    const property = await databases.createDocument(
       DATABASE_ID,
       PROPERTIES_COLLECTION_ID,
       propertyId,
@@ -192,13 +192,13 @@ export async function POST(request: NextRequest) {
 
     // Increment totalListings count for the CORRECT agent
     try {
-      const agent = await serverDatabases.getDocument(
+      const agent = await databases.getDocument(
         DATABASE_ID,
         AGENTS_COLLECTION_ID,
         correctAgentId
       )
 
-      await serverDatabases.updateDocument(
+      await databases.updateDocument(
         DATABASE_ID,
         AGENTS_COLLECTION_ID,
         correctAgentId,

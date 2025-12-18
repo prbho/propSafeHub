@@ -1,10 +1,12 @@
+//app/api/get-by-user/route.ts
+
 import { NextRequest, NextResponse } from 'next/server'
-import { Query } from 'node-appwrite'
 
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
-  serverDatabases,
+  databases,
+  Query,
 } from '@/lib/appwrite-server'
 
 export async function GET(request: NextRequest) {
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
     // 1. Try by userId (direct link)
     if (userId) {
       try {
-        const agentsByUserId = await serverDatabases.listDocuments(
+        const agentsByUserId = await databases.listDocuments(
           DATABASE_ID,
           AGENTS_COLLECTION_ID,
           [Query.equal('userId', userId), Query.limit(1)]
@@ -37,7 +39,7 @@ export async function GET(request: NextRequest) {
     // 2. Try by email
     if (!agent && email) {
       try {
-        const agentsByEmail = await serverDatabases.listDocuments(
+        const agentsByEmail = await databases.listDocuments(
           DATABASE_ID,
           AGENTS_COLLECTION_ID,
           [Query.equal('email', email), Query.limit(1)]
@@ -52,7 +54,7 @@ export async function GET(request: NextRequest) {
     // 3. Try by name (fuzzy matching)
     if (!agent && name) {
       try {
-        const allAgents = await serverDatabases.listDocuments(
+        const allAgents = await databases.listDocuments(
           DATABASE_ID,
           AGENTS_COLLECTION_ID,
           [Query.limit(50)] // Get more agents for name matching

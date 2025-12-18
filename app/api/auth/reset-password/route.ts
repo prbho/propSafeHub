@@ -6,7 +6,7 @@ import { Query } from 'appwrite'
 
 import {
   DATABASE_ID,
-  serverDatabases,
+  databases,
   serverUsers, // This should have admin privileges
 } from '@/lib/appwrite-server'
 import { emailService } from '@/lib/services/email-service'
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // 1. Find the reset token in database
-      const tokens = await serverDatabases.listDocuments(
+      const tokens = await databases.listDocuments(
         DATABASE_ID,
         PASSWORD_RESET_TOKENS_COLLECTION,
         [
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       const expiresAt = new Date(resetToken.expiresAt)
       if (expiresAt < new Date()) {
         // Mark token as used
-        await serverDatabases.updateDocument(
+        await databases.updateDocument(
           DATABASE_ID,
           PASSWORD_RESET_TOKENS_COLLECTION,
           resetToken.$id,
@@ -117,11 +117,9 @@ export async function POST(request: NextRequest) {
 
       // 3. Get user from appropriate collection
       const collection = resetToken.userCollection || 'users'
-      const users = await serverDatabases.listDocuments(
-        DATABASE_ID,
-        collection,
-        [Query.equal('email', email)]
-      )
+      const users = await databases.listDocuments(DATABASE_ID, collection, [
+        Query.equal('email', email),
+      ])
 
       if (users.total === 0) {
         console.error('❌ User not found in collection:', collection)
@@ -185,7 +183,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 5. Mark token as used
-      await serverDatabases.updateDocument(
+      await databases.updateDocument(
         DATABASE_ID,
         PASSWORD_RESET_TOKENS_COLLECTION,
         resetToken.$id,

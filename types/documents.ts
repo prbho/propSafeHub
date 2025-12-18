@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 export interface MessageDocument {
   avatar: string
   $id: string
@@ -59,4 +61,10 @@ export interface PropertyDocument {
   $createdAt: string
   $updatedAt: string
   $permissions: string[]
+  favorites: number
+  description?: string
+  price?: number
+
+  // Appwrite DefaultDocument fields:
+  [key: string]: any // Add index signature
 }

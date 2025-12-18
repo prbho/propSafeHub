@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import {
   DATABASE_ID,
+  databases,
   SCHEDULE_VIEWING_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 // Cache for frequent status updates
@@ -60,7 +60,7 @@ export async function PUT(request: NextRequest, context: Context) {
       updateData.confirmedAt = new Date().toISOString()
     }
 
-    const updatedViewing = await serverDatabases.updateDocument(
+    const updatedViewing = await databases.updateDocument(
       DATABASE_ID,
       SCHEDULE_VIEWING_COLLECTION_ID,
       viewingId,

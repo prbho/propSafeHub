@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import {
   DATABASE_ID,
+  databases,
   NOTIFICATIONS_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 // Simple in-memory cache for read status updates
@@ -42,7 +42,7 @@ export async function PUT(request: NextRequest, context: Context) {
 
     // First, get the notification to verify it exists and belongs to an agent
     try {
-      const notification = await serverDatabases.getDocument(
+      const notification = await databases.getDocument(
         DATABASE_ID,
         NOTIFICATIONS_COLLECTION_ID,
         notificationId
@@ -55,7 +55,7 @@ export async function PUT(request: NextRequest, context: Context) {
       })
 
       // Update only the isRead field
-      const updatedNotification = await serverDatabases.updateDocument(
+      const updatedNotification = await databases.updateDocument(
         DATABASE_ID,
         NOTIFICATIONS_COLLECTION_ID,
         notificationId,

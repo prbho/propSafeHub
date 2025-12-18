@@ -6,10 +6,10 @@ import { Calculation, toCalculations } from '@/types/mortgage'
 
 import {
   DATABASE_ID,
+  databases,
   MORTGAGECALCULATIONS_COLLECTION_ID,
   PROPERTIES_COLLECTION_ID,
   Query,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 interface HistoryResponse {
@@ -32,7 +32,7 @@ export async function GET(
       )
     }
 
-    const result = await serverDatabases.listDocuments(
+    const result = await databases.listDocuments(
       DATABASE_ID,
       MORTGAGECALCULATIONS_COLLECTION_ID,
       [
@@ -51,7 +51,7 @@ export async function GET(
 
         if (doc.propertyId) {
           try {
-            const property = await serverDatabases.getDocument(
+            const property = await databases.getDocument(
               DATABASE_ID,
               PROPERTIES_COLLECTION_ID,
               doc.propertyId
@@ -101,7 +101,7 @@ export async function DELETE(
       )
     }
 
-    await serverDatabases.deleteDocument(
+    await databases.deleteDocument(
       DATABASE_ID,
       MORTGAGECALCULATIONS_COLLECTION_ID,
       calculationId

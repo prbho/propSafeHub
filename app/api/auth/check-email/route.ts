@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
-  databases, // Use the NEW wrapped databases (not serverDatabases)
+  databases,
   Query,
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'

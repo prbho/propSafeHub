@@ -1,4 +1,6 @@
 // lib/appwrite-server-auth.ts
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { cookies } from 'next/headers'
 import { User } from '@/types/auth'
 import { Client } from 'node-appwrite'

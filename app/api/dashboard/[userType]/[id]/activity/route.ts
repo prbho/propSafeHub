@@ -6,7 +6,7 @@ import { Query } from 'appwrite'
 
 import {
   DATABASE_ID,
-  serverDatabases as databases,
+  databases,
   NOTIFICATIONS_COLLECTION_ID,
   PROPERTIES_COLLECTION_ID,
   SCHEDULE_VIEWING_COLLECTION_ID,

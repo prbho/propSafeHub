@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import {
   DATABASE_ID,
+  databases,
   PROPERTIES_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 interface Context {
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, context: Context) {
 
     console.log('🔍 Fetching property with ID:', propertyId)
 
-    const property = await serverDatabases.getDocument(
+    const property = await databases.getDocument(
       DATABASE_ID,
       PROPERTIES_COLLECTION_ID,
       propertyId
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest, context: Context) {
 
     // Increment view count
     try {
-      await serverDatabases.updateDocument(
+      await databases.updateDocument(
         DATABASE_ID,
         PROPERTIES_COLLECTION_ID,
         propertyId,

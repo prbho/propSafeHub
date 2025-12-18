@@ -4,9 +4,9 @@ import { Query } from 'node-appwrite'
 
 import {
   DATABASE_ID,
+  databases,
   PROPERTIES_COLLECTION_ID,
   SCHEDULE_VIEWING_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 interface Context {
@@ -26,14 +26,14 @@ export async function GET(request: NextRequest, context: Context) {
     }
 
     // Get agent's properties
-    const properties = await serverDatabases.listDocuments(
+    const properties = await databases.listDocuments(
       DATABASE_ID,
       PROPERTIES_COLLECTION_ID,
       [Query.equal('agentId', agentId)]
     )
 
     // Get viewing requests
-    const viewings = await serverDatabases.listDocuments(
+    const viewings = await databases.listDocuments(
       DATABASE_ID,
       SCHEDULE_VIEWING_COLLECTION_ID,
       [Query.equal('agentId', agentId)]

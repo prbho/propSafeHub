@@ -6,9 +6,9 @@ import { ID } from 'node-appwrite'
 
 import {
   DATABASE_ID,
+  databases,
   NOTIFICATIONS_COLLECTION_ID, // Make sure this is in your lib/appwrite-server
   SCHEDULE_VIEWING_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 export async function POST(request: NextRequest) {
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
       isConfirmed: false,
     }
 
-    const schedule = await serverDatabases.createDocument(
+    const schedule = await databases.createDocument(
       DATABASE_ID,
       SCHEDULE_VIEWING_COLLECTION_ID,
       ID.unique(),
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      const notification = await serverDatabases.createDocument(
+      const notification = await databases.createDocument(
         DATABASE_ID,
         NOTIFICATIONS_COLLECTION_ID,
         ID.unique(),

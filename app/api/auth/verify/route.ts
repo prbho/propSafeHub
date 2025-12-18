@@ -7,7 +7,7 @@ import { Query } from 'appwrite'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
-  serverDatabases,
+  databases,
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
 
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     // Search in users collection
     try {
-      const usersWithToken = await serverDatabases.listDocuments(
+      const usersWithToken = await databases.listDocuments(
         DATABASE_ID,
         USERS_COLLECTION_ID,
         [Query.equal('verificationToken', token)]
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     // Search in agents collection if not found
     if (!userDoc) {
       try {
-        const agentsWithToken = await serverDatabases.listDocuments(
+        const agentsWithToken = await databases.listDocuments(
           DATABASE_ID,
           AGENTS_COLLECTION_ID,
           [Query.equal('verificationToken', token)]
@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
 
       // First try users collection
       try {
-        userDoc = await serverDatabases.getDocument(
+        userDoc = await databases.getDocument(
           DATABASE_ID,
           USERS_COLLECTION_ID,
           userId
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       } catch {
         // If not found in users, try agents collection
         try {
-          userDoc = await serverDatabases.getDocument(
+          userDoc = await databases.getDocument(
             DATABASE_ID,
             AGENTS_COLLECTION_ID,
             userId
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
         isActive: true,
       }
 
-      await serverDatabases.updateDocument(
+      await databases.updateDocument(
         DATABASE_ID,
         collectionId!,
         userDoc.$id,

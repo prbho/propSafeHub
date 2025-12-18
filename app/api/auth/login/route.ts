@@ -1,11 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { NextRequest, NextResponse } from 'next/server'
 
+// Import from appwrite-server (server-side SDK)
 import {
-  account,
   DATABASE_ID,
-  databases,
+  databases, // ← Server-side databases wrapper
+  serverAccount, // ← Server-side account (not 'account')
   USERS_COLLECTION_ID,
-} from '@/lib/appwrite'
+} from '@/lib/appwrite-server'
+
+// ← CORRECT import
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,15 +23,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create session with Appwrite
+    // Create session with Appwrite (using SERVER account)
     let session
     try {
-      session = await account.createEmailPasswordSession(email, password)
+      session = await serverAccount.createEmailPasswordSession(email, password)
       console.log('Login session created:', session.$id)
-    } catch {}
+    } catch (error: any) {
+      console.error('Login failed:', error.message)
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      )
+    }
 
-    // Get user details from Appwrite
-    const appwriteUser = await account.get()
+    // Get user details from Appwrite (using SERVER account)
+    const appwriteUser = await serverAccount.get()
 
     // Get or create user document from database
     let userDoc
@@ -48,21 +59,21 @@ export async function POST(request: NextRequest) {
           userType: 'buyer',
           emailVerified: false,
           isActive: true,
-          // No createdAt/updatedAt - Appwrite adds them automatically
-        }
+        } as any // May need 'as any' if createDocument wrapper isn't fixed yet
       )
+      console.log('New user document created:', userDoc.$id)
     }
 
     const userResponse = {
       id: userDoc.$id,
       name: userDoc.name,
       email: userDoc.email,
-      phone: userDoc.phone,
-      userType: userDoc.userType,
-      emailVerified: userDoc.emailVerified,
-      isActive: userDoc.isActive,
-      //   createdAt: userDoc.$createdAt,
-      //   updatedAt: userDoc.$updatedAt,
+      phone: userDoc.phone || '',
+      userType: userDoc.userType || 'buyer',
+      emailVerified: userDoc.emailVerified || false,
+      isActive: userDoc.isActive !== false, // Default to true
+      createdAt: userDoc.$createdAt,
+      updatedAt: userDoc.$updatedAt,
     }
 
     return NextResponse.json({
@@ -70,7 +81,8 @@ export async function POST(request: NextRequest) {
       message: 'Login successful',
       user: userResponse,
     })
-  } catch {
+  } catch (error: any) {
+    console.error('Login error:', error.message)
     return NextResponse.json(
       { error: 'Login failed. Please try again.' },
       { status: 500 }

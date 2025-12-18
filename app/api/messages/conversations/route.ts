@@ -5,11 +5,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
+  databases,
   LEADS_COLLECTION_ID,
   MESSAGES_COLLECTION_ID,
   PROPERTIES_COLLECTION_ID,
   Query,
-  serverDatabases,
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
 
@@ -20,7 +20,7 @@ async function getUserDetails(
   try {
     // Try users collection first
     try {
-      const userDoc = await serverDatabases.getDocument(
+      const userDoc = await databases.getDocument(
         DATABASE_ID,
         USERS_COLLECTION_ID,
         userId
@@ -38,7 +38,7 @@ async function getUserDetails(
 
     // Try agents collection
     try {
-      const agentDoc = await serverDatabases.getDocument(
+      const agentDoc = await databases.getDocument(
         DATABASE_ID,
         AGENTS_COLLECTION_ID,
         userId
@@ -56,7 +56,7 @@ async function getUserDetails(
 
     // Try leads collection
     try {
-      const leadDoc = await serverDatabases.getDocument(
+      const leadDoc = await databases.getDocument(
         DATABASE_ID,
         LEADS_COLLECTION_ID,
         userId
@@ -90,7 +90,7 @@ async function getPropertyDetails(
   if (!propertyId) return { title: 'General Inquiry' }
 
   try {
-    const propertyDoc = await serverDatabases.getDocument(
+    const propertyDoc = await databases.getDocument(
       DATABASE_ID,
       PROPERTIES_COLLECTION_ID,
       propertyId
@@ -117,12 +117,12 @@ export async function GET(request: NextRequest) {
 
     // Get all messages where this user is either sender OR recipient
     const [sentMessages, receivedMessages] = await Promise.all([
-      serverDatabases.listDocuments(DATABASE_ID, MESSAGES_COLLECTION_ID, [
+      databases.listDocuments(DATABASE_ID, MESSAGES_COLLECTION_ID, [
         Query.equal('fromUserId', userId),
         Query.orderDesc('sentAt'),
         Query.limit(100),
       ]),
-      serverDatabases.listDocuments(DATABASE_ID, MESSAGES_COLLECTION_ID, [
+      databases.listDocuments(DATABASE_ID, MESSAGES_COLLECTION_ID, [
         Query.equal('toUserId', userId),
         Query.orderDesc('sentAt'),
         Query.limit(100),

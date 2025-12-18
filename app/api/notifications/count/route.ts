@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import {
   DATABASE_ID,
+  databases,
   NOTIFICATIONS_COLLECTION_ID,
   Query,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 // app/api/notifications/count/route.ts
@@ -21,13 +21,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const unreadNotifications = await serverDatabases.listDocuments(
+    const unreadNotifications = await databases.listDocuments(
       DATABASE_ID,
       NOTIFICATIONS_COLLECTION_ID,
       [Query.equal('userId', userId), Query.equal('isRead', false)]
     )
 
-    const allNotifications = await serverDatabases.listDocuments(
+    const allNotifications = await databases.listDocuments(
       DATABASE_ID,
       NOTIFICATIONS_COLLECTION_ID,
       [Query.equal('userId', userId)]

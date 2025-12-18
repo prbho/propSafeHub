@@ -7,7 +7,7 @@ import { Resend } from 'resend'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
-  serverDatabases,
+  databases,
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
 
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       const usersQuery = [Query.equal('email', email)]
 
       // First check users collection
-      const users = await serverDatabases.listDocuments(
+      const users = await databases.listDocuments(
         DATABASE_ID,
         USERS_COLLECTION_ID,
         usersQuery
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         console.log('✅ User found in USERS collection:', userDoc.$id)
       } else {
         // Check agents collection with same query
-        const agents = await serverDatabases.listDocuments(
+        const agents = await databases.listDocuments(
           DATABASE_ID,
           AGENTS_COLLECTION_ID,
           usersQuery // Reuse the same query
@@ -123,20 +123,15 @@ export async function POST(request: NextRequest) {
 
     // Update verification token in database FIRST
     try {
-      await serverDatabases.updateDocument(
-        DATABASE_ID,
-        collectionId,
-        userDoc.$id,
-        {
-          verificationToken: verificationToken, // Store in verificationToken field
-          lastVerificationRequest: new Date().toISOString(),
-        }
-      )
+      await databases.updateDocument(DATABASE_ID, collectionId, userDoc.$id, {
+        verificationToken: verificationToken, // Store in verificationToken field
+        lastVerificationRequest: new Date().toISOString(),
+      })
       console.log('✅ New verification token stored in database')
 
       // Verify the update worked
       try {
-        const updatedDoc = await serverDatabases.getDocument(
+        const updatedDoc = await databases.getDocument(
           DATABASE_ID,
           collectionId,
           userDoc.$id

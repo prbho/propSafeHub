@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
-  serverDatabases,
+  databases,
 } from '@/lib/appwrite-server'
 
 interface Context {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest, context: Context) {
 
     console.log('🔍 Fetching agent from database with ID:', agentId)
 
-    const agent = await serverDatabases.getDocument(
+    const agent = await databases.getDocument(
       DATABASE_ID,
       AGENTS_COLLECTION_ID,
       agentId.trim()

@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCurrentUser } from '@/lib/appwrite'
 import {
   DATABASE_ID,
-  serverDatabases,
+  databases,
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
 
@@ -73,16 +73,12 @@ export async function PUT(request: NextRequest) {
     try {
       // First, check if the user document exists
       try {
-        await serverDatabases.getDocument(
-          DATABASE_ID,
-          USERS_COLLECTION_ID,
-          userId
-        )
+        await databases.getDocument(DATABASE_ID, USERS_COLLECTION_ID, userId)
         console.log('✅ User document exists')
       } catch {}
 
       // Update user document
-      const updatedUser = await serverDatabases.updateDocument(
+      const updatedUser = await databases.updateDocument(
         DATABASE_ID,
         USERS_COLLECTION_ID,
         userId,

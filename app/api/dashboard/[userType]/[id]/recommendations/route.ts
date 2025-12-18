@@ -6,7 +6,7 @@ import { Query } from 'appwrite'
 
 import {
   DATABASE_ID,
-  serverDatabases as databases,
+  databases,
   PROPERTIES_COLLECTION_ID,
   USERS_COLLECTION_ID,
   validateAppwriteConfig,

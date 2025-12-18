@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
-  serverDatabases,
+  databases,
 } from '@/lib/appwrite-server'
 
 export async function POST(request: NextRequest) {
@@ -20,12 +20,9 @@ export async function POST(request: NextRequest) {
     console.log('🔄 Linking user to agent profile:', { agentId, userId })
 
     // Update agent profile with userId
-    await serverDatabases.updateDocument(
-      DATABASE_ID,
-      AGENTS_COLLECTION_ID,
-      agentId,
-      { userId }
-    )
+    await databases.updateDocument(DATABASE_ID, AGENTS_COLLECTION_ID, agentId, {
+      userId,
+    })
 
     console.log('✅ Agent profile updated with userId')
     return NextResponse.json({ success: true })

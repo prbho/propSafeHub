@@ -4,7 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ID, Query } from 'appwrite'
 
-import { DATABASE_ID, serverDatabases } from '@/lib/appwrite-server'
+import { DATABASE_ID, databases } from '@/lib/appwrite-server'
 import { EmailTemplateParams } from '@/lib/email-templates'
 import { emailService } from '@/lib/services/email-service'
 
@@ -64,17 +64,15 @@ export async function POST(request: NextRequest) {
       let collection = 'users'
 
       // Check users collection
-      const users = await serverDatabases.listDocuments(DATABASE_ID, 'users', [
+      const users = await databases.listDocuments(DATABASE_ID, 'users', [
         Query.equal('email', email),
       ])
 
       if (users.total === 0) {
         // Check agents collection
-        const agents = await serverDatabases.listDocuments(
-          DATABASE_ID,
-          'agents',
-          [Query.equal('email', email)]
-        )
+        const agents = await databases.listDocuments(DATABASE_ID, 'agents', [
+          Query.equal('email', email),
+        ])
 
         if (agents.total === 0) {
           // User not found, but return success for security
@@ -102,7 +100,7 @@ export async function POST(request: NextRequest) {
       const expiresAt = new Date(Date.now() + 3600000)
 
       // Store token in database
-      await serverDatabases.createDocument(
+      await databases.createDocument(
         DATABASE_ID,
         PASSWORD_RESET_TOKENS_COLLECTION,
         ID.unique(),

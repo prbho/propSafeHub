@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import {
   DATABASE_ID,
+  databases,
   MESSAGES_COLLECTION_ID,
   Query,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 export async function POST(request: NextRequest) {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     // Verify that the user has permission to mark these messages as read
     // Only mark messages where the user is the recipient
-    const messagesToUpdate = await serverDatabases.listDocuments(
+    const messagesToUpdate = await databases.listDocuments(
       DATABASE_ID,
       MESSAGES_COLLECTION_ID,
       [Query.equal('$id', validMessageIds), Query.equal('toUserId', userId)]
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Mark messages as read
     const promises = messagesToUpdate.documents.map((message) =>
-      serverDatabases.updateDocument(
+      databases.updateDocument(
         DATABASE_ID,
         MESSAGES_COLLECTION_ID,
         message.$id,

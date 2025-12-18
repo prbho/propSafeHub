@@ -7,7 +7,7 @@ import { ID } from 'appwrite'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
-  serverDatabases,
+  databases,
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
 import { uploadAvatarServer } from '@/lib/services/appwrite-server-avatar'
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     console.log('🔄 Processing agent upgrade for user:', userId)
 
     // 1. Verify user exists and is currently a buyer
-    const user = await serverDatabases.getDocument(
+    const user = await databases.getDocument(
       DATABASE_ID,
       USERS_COLLECTION_ID,
       userId
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     // 3. Check if agent profile already exists for this user
     try {
-      const existingAgent = await serverDatabases.listDocuments(
+      const existingAgent = await databases.listDocuments(
         DATABASE_ID,
         AGENTS_COLLECTION_ID,
         [`equal("userId", "${userId}")`]
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
       avatar: avatarUrl.substring(0, 100) + '...', // Log truncated URL
     })
 
-    const agent = await serverDatabases.createDocument(
+    const agent = await databases.createDocument(
       DATABASE_ID,
       AGENTS_COLLECTION_ID,
       ID.unique(),
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
       updateData.avatar = avatarUrl
     }
 
-    await serverDatabases.updateDocument(
+    await databases.updateDocument(
       DATABASE_ID,
       USERS_COLLECTION_ID,
       userId,

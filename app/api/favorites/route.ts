@@ -7,9 +7,9 @@ import { ID, Query } from 'node-appwrite'
 import {
   AGENTS_COLLECTION_ID, // ← ADD THIS
   DATABASE_ID,
+  databases,
   FAVORITES_COLLECTION_ID,
   PROPERTIES_COLLECTION_ID,
-  serverDatabases,
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
 import { triggerFavoriteNotification } from '@/lib/services/server/notificationTriggers'
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Appwrite queries:', queries)
 
-    const favoritesResponse = await serverDatabases.listDocuments(
+    const favoritesResponse = await databases.listDocuments(
       DATABASE_ID,
       FAVORITES_COLLECTION_ID,
       queries
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
         favoritesResponse.documents.map(async (favorite) => {
           try {
             // Fetch property details
-            const property = await serverDatabases.getDocument(
+            const property = await databases.getDocument(
               DATABASE_ID,
               PROPERTIES_COLLECTION_ID,
               favorite.propertyId
@@ -134,11 +134,7 @@ export async function POST(request: NextRequest) {
     for (const collection of userCollections) {
       try {
         console.log(`🔍 Checking ${collection} collection...`)
-        user = await serverDatabases.getDocument(
-          DATABASE_ID,
-          collection,
-          userId
-        )
+        user = await databases.getDocument(DATABASE_ID, collection, userId)
         console.log(`✅ User found in ${collection} collection:`, user.name)
         userCollection = collection
         break // Exit loop once user is found
@@ -165,7 +161,7 @@ export async function POST(request: NextRequest) {
     let property
     try {
       console.log('🔍 Validating property:', propertyId)
-      property = await serverDatabases.getDocument(
+      property = await databases.getDocument(
         DATABASE_ID,
         PROPERTIES_COLLECTION_ID,
         propertyId
@@ -180,7 +176,7 @@ export async function POST(request: NextRequest) {
 
     // Check if already favorited
     console.log('🔍 Checking if already favorited...')
-    const existingFavorites = await serverDatabases.listDocuments(
+    const existingFavorites = await databases.listDocuments(
       DATABASE_ID,
       FAVORITES_COLLECTION_ID,
       [Query.equal('userId', userId), Query.equal('propertyId', propertyId)]
@@ -204,7 +200,7 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Creating favorite document:', favoriteData)
 
-    const response = await serverDatabases.createDocument(
+    const response = await databases.createDocument(
       DATABASE_ID,
       FAVORITES_COLLECTION_ID,
       ID.unique(),
@@ -294,7 +290,7 @@ export async function POST(request: NextRequest) {
       const currentFavorites = property.favorites || 0
       console.log('🔍 Current favorites:', currentFavorites)
 
-      await serverDatabases.updateDocument(
+      await databases.updateDocument(
         DATABASE_ID,
         PROPERTIES_COLLECTION_ID,
         propertyId,
@@ -342,7 +338,7 @@ export async function DELETE(request: NextRequest) {
     let currentFavorites = 0
     try {
       console.log('🔍 Getting property:', propertyId)
-      const property = await serverDatabases.getDocument(
+      const property = await databases.getDocument(
         DATABASE_ID,
         PROPERTIES_COLLECTION_ID,
         propertyId
@@ -356,7 +352,7 @@ export async function DELETE(request: NextRequest) {
 
     // Delete the favorite
     console.log('🔍 Deleting favorite:', favoriteId)
-    await serverDatabases.deleteDocument(
+    await databases.deleteDocument(
       DATABASE_ID,
       FAVORITES_COLLECTION_ID,
       favoriteId
@@ -368,7 +364,7 @@ export async function DELETE(request: NextRequest) {
       const newFavoritesCount = Math.max(0, currentFavorites - 1)
       console.log('🔍 New favorites count:', newFavoritesCount)
 
-      await serverDatabases.updateDocument(
+      await databases.updateDocument(
         DATABASE_ID,
         PROPERTIES_COLLECTION_ID,
         propertyId,

@@ -6,8 +6,8 @@ import { Query } from 'node-appwrite'
 
 import {
   DATABASE_ID,
+  databases,
   NOTIFICATIONS_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 export async function GET(request: NextRequest) {
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch notifications for the specific user
-    const notifications = await serverDatabases.listDocuments(
+    const notifications = await databases.listDocuments(
       DATABASE_ID,
       NOTIFICATIONS_COLLECTION_ID,
       [
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     if (actionUrl) notificationData.actionUrl = actionUrl
     if (actionText) notificationData.actionText = actionText
 
-    const notification = await serverDatabases.createDocument(
+    const notification = await databases.createDocument(
       DATABASE_ID,
       NOTIFICATIONS_COLLECTION_ID,
       'unique()',

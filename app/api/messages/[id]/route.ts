@@ -4,8 +4,8 @@ import { User } from '@/types/auth'
 
 import {
   DATABASE_ID,
+  databases,
   MESSAGES_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 import { getCurrentUser } from '@/lib/auth-utils'
 
@@ -24,7 +24,7 @@ export async function PATCH(
     const body = await request.json()
 
     // Verify user owns this message or is the recipient
-    const message = await serverDatabases.getDocument(
+    const message = await databases.getDocument(
       DATABASE_ID,
       MESSAGES_COLLECTION_ID,
       id // Use the extracted id
@@ -34,7 +34,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const updatedMessage = await serverDatabases.updateDocument(
+    const updatedMessage = await databases.updateDocument(
       DATABASE_ID,
       MESSAGES_COLLECTION_ID,
       id, // Use the extracted id

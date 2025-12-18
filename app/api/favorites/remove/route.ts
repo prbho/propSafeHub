@@ -3,9 +3,9 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import {
   DATABASE_ID,
+  databases,
   FAVORITES_COLLECTION_ID,
   PROPERTIES_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 // DELETE /api/favorites/remove - Remove favorite by ID
@@ -22,14 +22,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Get the favorite first to know which property to update
-    const favorite = await serverDatabases.getDocument(
+    const favorite = await databases.getDocument(
       DATABASE_ID,
       FAVORITES_COLLECTION_ID,
       favoriteId
     )
 
     // Delete the favorite
-    await serverDatabases.deleteDocument(
+    await databases.deleteDocument(
       DATABASE_ID,
       FAVORITES_COLLECTION_ID,
       favoriteId
@@ -37,7 +37,7 @@ export async function DELETE(request: NextRequest) {
 
     // Update the property's favorites count
     try {
-      const property = await serverDatabases.getDocument(
+      const property = await databases.getDocument(
         DATABASE_ID,
         PROPERTIES_COLLECTION_ID,
         favorite.propertyId
@@ -46,7 +46,7 @@ export async function DELETE(request: NextRequest) {
       const currentFavorites = property.favorites || 0
       const newFavoritesCount = Math.max(0, currentFavorites - 1)
 
-      await serverDatabases.updateDocument(
+      await databases.updateDocument(
         DATABASE_ID,
         PROPERTIES_COLLECTION_ID,
         favorite.propertyId,

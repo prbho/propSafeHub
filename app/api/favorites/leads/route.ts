@@ -7,9 +7,9 @@ import { ID, Query } from 'node-appwrite'
 import {
   AGENTS_COLLECTION_ID, // ← ADD THIS
   DATABASE_ID,
+  databases,
   LEADS_COLLECTION_ID,
   PROPERTIES_COLLECTION_ID,
-  serverDatabases,
   USERS_COLLECTION_ID,
 } from '@/lib/appwrite-server'
 
@@ -43,11 +43,7 @@ export async function POST(request: NextRequest) {
     for (const collection of userCollections) {
       try {
         console.log(`🔍 Checking ${collection} collection...`)
-        user = await serverDatabases.getDocument(
-          DATABASE_ID,
-          collection,
-          userId
-        )
+        user = await databases.getDocument(DATABASE_ID, collection, userId)
         console.log(`✅ User found in ${collection} collection:`, user.name)
         userCollection = collection
         break // Exit loop once user is found
@@ -68,7 +64,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 Getting property details:', propertyId)
     let property
     try {
-      property = await serverDatabases.getDocument(
+      property = await databases.getDocument(
         DATABASE_ID,
         PROPERTIES_COLLECTION_ID,
         propertyId
@@ -105,7 +101,7 @@ export async function POST(request: NextRequest) {
 
     for (const collection of userCollections) {
       try {
-        const agent = await serverDatabases.getDocument(
+        const agent = await databases.getDocument(
           DATABASE_ID,
           collection,
           property.agentId
@@ -128,7 +124,7 @@ export async function POST(request: NextRequest) {
 
     // Check if lead already exists for this user and property
     console.log('🔍 Checking for existing lead...')
-    const existingLeads = await serverDatabases.listDocuments(
+    const existingLeads = await databases.listDocuments(
       DATABASE_ID,
       LEADS_COLLECTION_ID,
       [
@@ -172,7 +168,7 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Lead data:', leadData)
 
-    const leadResponse = await serverDatabases.createDocument(
+    const leadResponse = await databases.createDocument(
       DATABASE_ID,
       LEADS_COLLECTION_ID,
       ID.unique(),
@@ -231,7 +227,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Appwrite queries:', queries)
 
-    const leadsResponse = await serverDatabases.listDocuments(
+    const leadsResponse = await databases.listDocuments(
       DATABASE_ID,
       LEADS_COLLECTION_ID,
       queries

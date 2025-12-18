@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import {
   DATABASE_ID,
+  databases,
   PROPERTIES_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 export async function GET(
@@ -18,7 +18,7 @@ export async function GET(
     // Get the property with timeout handling
     let property
     try {
-      property = await serverDatabases.getDocument(
+      property = await databases.getDocument(
         DATABASE_ID,
         PROPERTIES_COLLECTION_ID,
         propertyId

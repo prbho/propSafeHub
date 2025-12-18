@@ -6,8 +6,8 @@ import { Query } from 'node-appwrite'
 
 import {
   DATABASE_ID,
+  databases,
   NOTIFICATIONS_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 export async function GET(request: NextRequest) {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const notifications = await serverDatabases.listDocuments(
+    const notifications = await databases.listDocuments(
       DATABASE_ID,
       NOTIFICATIONS_COLLECTION_ID,
       [

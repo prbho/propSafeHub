@@ -72,6 +72,11 @@ export interface AgentDocument {
   avatar?: string
   $id: string
   $sequence: number
+  userId?: string
+  email: string
+  agency?: string
+  city?: string
+  phone?: string
   $collectionId: string
   $databaseId: string
   $createdAt: string

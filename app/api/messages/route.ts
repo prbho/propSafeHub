@@ -4,10 +4,10 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import {
   DATABASE_ID,
+  databases,
   ID,
   MESSAGES_COLLECTION_ID,
   Query,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 export async function POST(request: NextRequest) {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     console.log('📨 Creating message with data:', messageData)
 
-    const message = await serverDatabases.createDocument(
+    const message = await databases.createDocument(
       DATABASE_ID,
       MESSAGES_COLLECTION_ID,
       ID.unique(),
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch messages in a single query
-    const messagesResponse = await serverDatabases.listDocuments(
+    const messagesResponse = await databases.listDocuments(
       DATABASE_ID,
       MESSAGES_COLLECTION_ID,
       queries

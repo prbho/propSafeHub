@@ -6,9 +6,9 @@ import { InstallmentRequest } from '@/types/mortgage'
 
 import {
   DATABASE_ID,
+  databases,
   ID,
   MORTGAGECALCULATIONS_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 function calculateMonthlyPayment(
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
           }
         )
 
-        const result = await serverDatabases.createDocument(
+        const result = await databases.createDocument(
           DATABASE_ID,
           MORTGAGECALCULATIONS_COLLECTION_ID,
           ID.unique(),

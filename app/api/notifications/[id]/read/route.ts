@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 import {
   DATABASE_ID,
+  databases,
   NOTIFICATIONS_COLLECTION_ID,
-  serverDatabases,
 } from '@/lib/appwrite-server'
 
 interface Context {
@@ -26,7 +26,7 @@ export async function PUT(request: NextRequest, context: Context) {
     }
 
     // Update the notification
-    await serverDatabases.updateDocument(
+    await databases.updateDocument(
       DATABASE_ID,
       NOTIFICATIONS_COLLECTION_ID,
       notificationId,

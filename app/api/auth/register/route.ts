@@ -7,9 +7,9 @@ import { v4 as uuidv4 } from 'uuid'
 import {
   AGENTS_COLLECTION_ID,
   DATABASE_ID,
+  databases,
   ID,
   serverAccount,
-  serverDatabases,
   serverStorage,
   serverUsers,
   STORAGE_BUCKET_ID,
@@ -314,7 +314,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create the document
-      userDoc = await serverDatabases.createDocument(
+      userDoc = await databases.createDocument(
         DATABASE_ID,
         collectionId,
         appwriteUser.$id,

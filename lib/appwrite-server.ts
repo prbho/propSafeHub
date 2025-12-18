@@ -1,4 +1,6 @@
 // lib/appwrite-server.ts - FIXED VERSION
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import {
   Account,
   Client,
@@ -99,15 +101,28 @@ function initializeIfNeeded(): boolean {
 }
 
 // Wrapper functions that initialize on demand
+
 export const databases = {
+  // Fix createDocument to accept custom fields
   createDocument: async (
-    ...args: Parameters<typeof serverDatabases.createDocument>
+    databaseId: string,
+    collectionId: string,
+    documentId: string,
+    data: any,
+    permissions?: string[]
   ) => {
     if (!initializeIfNeeded()) {
       throw new Error('Appwrite not configured or not available during build')
     }
-    return serverDatabases.createDocument(...args)
+    return serverDatabases.createDocument(
+      databaseId,
+      collectionId,
+      documentId,
+      data,
+      permissions
+    )
   },
+
   listDocuments: async (
     ...args: Parameters<typeof serverDatabases.listDocuments>
   ) => {
@@ -116,6 +131,7 @@ export const databases = {
     }
     return serverDatabases.listDocuments(...args)
   },
+
   getDocument: async (
     ...args: Parameters<typeof serverDatabases.getDocument>
   ) => {
@@ -124,14 +140,27 @@ export const databases = {
     }
     return serverDatabases.getDocument(...args)
   },
+
+  // Fix updateDocument to accept custom fields
   updateDocument: async (
-    ...args: Parameters<typeof serverDatabases.updateDocument>
+    databaseId: string,
+    collectionId: string,
+    documentId: string,
+    data: any, // ← Already fixed, keep as 'any'
+    permissions?: string[]
   ) => {
     if (!initializeIfNeeded()) {
       throw new Error('Appwrite not configured or not available during build')
     }
-    return serverDatabases.updateDocument(...args)
+    return serverDatabases.updateDocument(
+      databaseId,
+      collectionId,
+      documentId,
+      data,
+      permissions
+    )
   },
+
   deleteDocument: async (
     ...args: Parameters<typeof serverDatabases.deleteDocument>
   ) => {
