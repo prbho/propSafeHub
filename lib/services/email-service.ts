@@ -96,10 +96,14 @@ export class EmailService {
 
       const { subject, html } = generatePasswordResetEmail(params)
 
-      const fromAddress =
-        'PropSafeHub Account Security <security@notifications.propsafehub.com>'
+      // FIXED: Use the getFromAddress method with password-reset type
+      const fromAddress = this.getFromAddress(
+        params.userType || 'user',
+        'password-reset'
+      )
 
       console.log('📤 Sending password reset email to:', params.email)
+      console.log('📤 Using from address:', fromAddress)
 
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
@@ -109,7 +113,13 @@ export class EmailService {
       })
 
       if (error) {
-        console.error('❌ Password reset email sending error:', error)
+        // Enhanced error logging
+        console.error('❌ [PASSWORD RESET] RESEND ERROR DETAILS:', {
+          statusCode: error.statusCode,
+          name: error.name,
+          message: error.message,
+          attemptedFromAddress: fromAddress,
+        })
         return { success: false, error: error.message }
       }
 
@@ -286,18 +296,28 @@ export class EmailService {
   }
 
   private getFromAddress(
-    userType: 'buyer' | 'seller' | 'agent' | 'user'
+    userType: 'buyer' | 'seller' | 'agent' | 'user' | 'admin',
+    emailType: 'verification' | 'password-reset' | 'general' = 'general'
   ): string {
+    const baseEmail = 'noreply@notifications.propsafehub.com'
+
+    if (emailType === 'password-reset') {
+      // Use the working format for password resets
+      return `PropSafeHub <${baseEmail}>`
+    }
+
     switch (userType) {
       case 'agent':
-        return 'PropSafeHub Agent Network <noreply@notifications.propsafehub.com>'
+        return `PropSafeHub Agent Network <${baseEmail}>`
       case 'seller':
-        return 'PropSafeHub Seller Support <noreply@notifications.propsafehub.com>'
+        return `PropSafeHub Seller Support <${baseEmail}>`
       case 'buyer':
-        return 'PropSafeHub <noreply@notifications.propsafehub.com>'
+        return `PropSafeHub <${baseEmail}>`
+      case 'admin':
+        return `PropSafeHub <${baseEmail}>`
       case 'user':
       default:
-        return 'PropSafeHub <noreply@notifications.propsafehub.com>'
+        return `PropSafeHub <${baseEmail}>`
     }
   }
 }
