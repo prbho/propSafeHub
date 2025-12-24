@@ -224,7 +224,7 @@ export default function LoginPage() {
                 href="/register"
                 className="font-semibold text-emerald-600 hover:text-emerald-500 transition-colors"
               >
-                Create account here
+                Create an account
               </Link>
             </div>
           </div>

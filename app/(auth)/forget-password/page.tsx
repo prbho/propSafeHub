@@ -43,7 +43,7 @@ export default function ForgotPasswordPage() {
 
       // Optional: Show success message for a few seconds
       setTimeout(() => {
-        router.push('/auth/signin')
+        router.push('/login')
       }, 3000)
     } catch (err: any) {
       setError(err.message || 'Something went wrong. Please try again.')
