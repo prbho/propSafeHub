@@ -5,7 +5,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
-import { RegistrationForm } from '@/components/auth/RegistrationForm'
+import { MainRegistrationForm } from '@/components/auth/RegistrationForm'
 
 export default function SignUpPage() {
   const [email] = useState('')
@@ -25,7 +25,7 @@ export default function SignUpPage() {
 
         {/* Registration Form */}
         <div className="bg-white py-8 px-6 shadow rounded-lg">
-          <RegistrationForm
+          <MainRegistrationForm
             initialEmail={email}
             onRegistrationComplete={() => {
               // Handle successful registration

@@ -1,4 +1,4 @@
-// components/auth/AgentRegistrationForm.tsx
+// components/auth/MainAgentRegistrationForm.tsx
 import { useEffect, useRef, useState } from 'react'
 import { Crop, Upload, User, X } from 'lucide-react'
 import { toast } from 'sonner'
@@ -25,7 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-interface AgentRegistrationFormProps {
+interface MainAgentRegistrationFormProps {
   agency: string
   setAgency: (value: string) => void
   city: string
@@ -46,7 +46,7 @@ interface AgentRegistrationFormProps {
   onFormValidityChange?: (isValid: boolean) => void
 }
 
-export function AgentRegistrationForm({
+export function MainAgentRegistrationForm({
   agency,
   setAgency,
   city,
@@ -65,13 +65,32 @@ export function AgentRegistrationForm({
   nigerianCities,
   nigerianStates,
   onFormValidityChange,
-}: AgentRegistrationFormProps) {
+}: MainAgentRegistrationFormProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isImageLoading, setIsImageLoading] = useState(false)
   const [showCropDialog, setShowCropDialog] = useState(false)
   const [isCropping, setIsCropping] = useState(false)
   const [uploadedFileName, setUploadedFileName] = useState<string>('')
+
+  // Specialization options array to prevent duplicate keys
+  const SPECIALIZATION_OPTIONS = [
+    { value: 'Residential', label: 'Residential' },
+    { value: 'Commercial', label: 'Commercial' },
+    { value: 'Industrial', label: 'Industrial' },
+    { value: 'Land_Raw_Land', label: 'Land/Raw Land' },
+    { value: 'Luxury_Homes', label: 'Luxury Homes' },
+    { value: 'Green_Eco_Friendly', label: 'Green/Eco-Friendly' },
+    {
+      value: 'Foreclosures_Short_Sales',
+      label: 'Foreclosures and Short Sales',
+    },
+    { value: 'Buyer_Representation', label: 'Buyer Representation' },
+    { value: 'Seller_Representation', label: 'Seller Representation' },
+    { value: 'Property_Management', label: 'Property Management' },
+    { value: 'Real_Estate_Investment', label: 'Real Estate Investment' },
+    { value: 'Land_Acquisition', label: 'Land Acquisition' },
+  ]
 
   // Clean up object URLs to prevent memory leaks
   useEffect(() => {
@@ -603,32 +622,11 @@ export function AgentRegistrationForm({
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Areas of Expertise</SelectLabel>
-                  <SelectItem value="Residential">Residential</SelectItem>
-                  <SelectItem value="Commercial">Commercial</SelectItem>
-                  <SelectItem value="Commercial">Industrial</SelectItem>
-                  <SelectItem value="Commercial">Land/Raw Land</SelectItem>
-                  <SelectItem value="Commercial">Luxury Homes</SelectItem>
-                  <SelectItem value="Luxury Homes">
-                    Green/Eco-Friendly
-                  </SelectItem>
-                  <SelectItem value="Luxury Homes">
-                    Foreclosures and Short Sales
-                  </SelectItem>
-                  <SelectItem value="Luxury Homes">
-                    Buyer Representation
-                  </SelectItem>
-                  <SelectItem value="Luxury Homes">
-                    Seller Representation
-                  </SelectItem>
-                  <SelectItem value="Property Management">
-                    Property Management
-                  </SelectItem>
-                  <SelectItem value="Real Estate Investment">
-                    Real Estate Investment
-                  </SelectItem>
-                  <SelectItem value="Land Acquisition">
-                    Land Acquisition
-                  </SelectItem>
+                  {SPECIALIZATION_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectGroup>
               </SelectContent>
             </Select>
