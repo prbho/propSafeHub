@@ -1035,28 +1035,32 @@ export default function DynamicDashboardPage({}: {
                   </span>
                 </div>
                 <div
-                  className={`grid grid-cols-1 gap-4 ${userType === 'admin' ? 'md:grid-cols-2 lg:grid-cols-3' : 'md:grid-cols-1'}`}
+                  className={`grid grid-cols-1 gap-4 ${userType === 'admin' ? 'md:grid-cols-2 lg:grid-cols-2' : 'md:grid-cols-1'}`}
                 >
                   {getQuickActions().map((action, index) => (
                     <a
                       key={index}
                       href={action.href}
-                      className={`flex items-center text-sm justify-between p-4 rounded-lg text-white ${action.color} transition-all hover:shadow-md hover:scale-[1.02]`}
+                      className={`flex flex-col items-center text-sm justify-between p-4 rounded-lg text-white ${action.color} transition-all hover:shadow-md hover:scale-[1.02]`}
                     >
                       <div className="flex items-center">
-                        <action.icon className="w-5 h-5 mr-3" />
                         <div>
-                          <p className="font-semibold">{action.title}</p>
+                          <div className="flex items-center line-clamp-1">
+                            <action.icon className="w-5 h-5 mr-1" />
+                            <p className="font-semibold line-clamp-1">
+                              {action.title}
+                            </p>
+                            {action.badge !== undefined && action.badge > 0 && (
+                              <span className="bg-white text-orange-600 text-xs rounded-full px-2 py-1 min-w-6 h-6 flex items-center justify-center">
+                                {action.badge}
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm opacity-90">
                             {action.description}
                           </p>
                         </div>
                       </div>
-                      {action.badge !== undefined && action.badge > 0 && (
-                        <span className="bg-white text-orange-600 text-xs rounded-full px-2 py-1 min-w-6 h-6 flex items-center justify-center">
-                          {action.badge}
-                        </span>
-                      )}
                     </a>
                   ))}
                 </div>

@@ -114,7 +114,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
     switch (property.status) {
       case 'for-sale':
         return (
-          <span className="bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg">
+          <span className="bg-red-600 text-red-50 border border-red-700 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg">
             For Sale
           </span>
         )
@@ -194,7 +194,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                     </span>
                   )}
                   {property.isVerified && (
-                    <span className="bg-emerald-600 border border-emerald-300 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+                    <span className="bg-emerald-600 border border-emerald-700 text-emerald-50 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
                       <Check className="h-3 w-3" />
                       Verified
                     </span>

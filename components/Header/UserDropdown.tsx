@@ -7,6 +7,9 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   Building2,
   Calculator,
+  ChevronDown,
+  ChevronDownIcon,
+  ChevronUpIcon,
   Heart,
   HomeIcon,
   Loader2,
@@ -138,17 +141,20 @@ export default function UserDropdown() {
 
         <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              className="relative h-8 w-8 rounded-full"
-              disabled
-            >
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-gray-200 animate-pulse">
-                  <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                </AvatarFallback>
-              </Avatar>
-            </Button>
+            <div className="flex items-center space-x-1">
+              <Button
+                variant="ghost"
+                className="relative h-8 w-8 rounded-full"
+                disabled
+              >
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-gray-200 animate-pulse">
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+              <ChevronDown className="h-4 w-4 text-gray-400" />
+            </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
@@ -190,14 +196,38 @@ export default function UserDropdown() {
 
       <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-            <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.avatar} alt={user?.name} />
-              <AvatarFallback className="bg-emerald-100 text-emerald-600 text-sm">
-                {user?.name?.[0]?.toUpperCase() || 'U'}
-              </AvatarFallback>
-            </Avatar>
-          </Button>
+          <div className="flex items-center space-x-1 cursor-pointer group">
+            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={user?.avatar} alt={user?.name} />
+                <AvatarFallback className="bg-emerald-100 text-emerald-600 text-sm">
+                  {user?.name?.[0]?.toUpperCase() || 'U'}
+                </AvatarFallback>
+              </Avatar>
+            </Button>
+            {/* OPTION 1: Simple chevron (my recommendation) */}
+            {isOpen ? (
+              <ChevronUpIcon className="h-4 w-4 text-gray-400 transition-transform duration-200" />
+            ) : (
+              <ChevronDownIcon className="h-4 w-4 text-gray-400 transition-transform duration-200 group-hover:text-gray-700" />
+            )}
+
+            {/* OPTION 2: Circle with chevron (more visible) */}
+            {/* <div className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center group-hover:bg-gray-200 transition-colors">
+              {isOpen ? (
+                <ChevronUp className="h-3 w-3 text-gray-600" />
+              ) : (
+                <ChevronDown className="h-3 w-3 text-gray-500" />
+              )}
+            </div> */}
+
+            {/* OPTION 3: Simple arrow without animation */}
+            {/* <ChevronDown className="h-4 w-4 text-gray-500" /> */}
+
+            {/* OPTION 4: Text indicator (good for accessibility) */}
+            {/* <span className="sr-only">User menu</span>
+            <ChevronDown className="h-4 w-4 text-gray-500" aria-hidden="true" /> */}
+          </div>
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-56" align="end" forceMount>
           <DropdownMenuLabel className="font-normal">
