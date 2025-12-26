@@ -1,4 +1,4 @@
-// app/auth/reset-password/page.tsx - Updated for custom token
+// app/(auth)/reset-password/page.tsx - Updated for custom token
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 'use client'

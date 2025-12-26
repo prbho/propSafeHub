@@ -1,4 +1,4 @@
-// app/api/auth/reset-password/route.ts - UPDATED (Using your existing admin API)
+// app/api/(auth)/reset-password/route.ts - UPDATED (Using your existing admin API)
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextRequest, NextResponse } from 'next/server'
