@@ -125,6 +125,7 @@ const mapDocumentToProperty = (doc: any): Property => ({
   lotSize: doc.lotSize,
   yearBuilt: doc.yearBuilt,
   features: doc.features || [],
+  titles: doc.titles || [],
   amenities: doc.amenities || [],
   images: doc.images || [],
   videos: doc.videos || [],

@@ -24,11 +24,12 @@ import { Card, CardContent } from '@/components/ui/card'
 export default function PostPropertyPage() {
   const { user, isLoading } = useAuth()
 
-  // Check if user is authenticated and is an agent
+  // Check if user is authenticated and is an agent or seller
   useEffect(() => {
     if (!isLoading && user) {
-      if (user.userType !== 'agent') {
-        toast.error('Only agents can post properties')
+      // Allow both agents and sellers
+      if (user.userType !== 'agent' && user.userType !== 'seller') {
+        toast.error('Only agents and property sellers can post properties')
         window.location.href = '/'
       }
     } else if (!isLoading && !user) {
@@ -61,9 +62,17 @@ export default function PostPropertyPage() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-sm">
+              <div
+                className={`hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${
+                  user?.userType === 'agent'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-blue-50 text-blue-700'
+                }`}
+              >
                 <Zap className="w-3 h-3" />
-                <span>Agent Tools</span>
+                <span>
+                  {user?.userType === 'agent' ? 'Agent Tools' : 'Seller Tools'}
+                </span>
               </div>
               <Button variant="ghost" size="sm" asChild>
                 <Link href="/agent/support">

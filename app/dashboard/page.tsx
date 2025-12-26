@@ -20,7 +20,6 @@ import {
   Users,
 } from 'lucide-react'
 
-import PropertyCard from '@/components/PropertyCard'
 import { databases } from '@/lib/appwrite'
 
 interface DashboardProperty extends Property {
@@ -68,7 +67,7 @@ export default function DashboardPage() {
     if (isAuthenticated && user) {
       // Redirect agents to agent dashboard
       if (user.userType === 'agent') {
-        router.push('/agent/dashboard')
+        router.push(`/dashboard/${user?.userType}/${user?.$id}/`)
         return
       }
       fetchDashboardData()
@@ -158,6 +157,7 @@ export default function DashboardPage() {
         lotSize: doc.lotSize,
         yearBuilt: doc.yearBuilt,
         features: doc.features || [],
+        titles: doc.titles || [],
         amenities: doc.amenities || [],
         images: doc.images || [],
         videos: doc.videos || [],

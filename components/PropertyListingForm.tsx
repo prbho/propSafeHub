@@ -577,8 +577,8 @@ export default function PropertyListingForm({
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="sqft">Sq Ft</SelectItem>
-                    <SelectItem value="sqm">Sq M</SelectItem>
+                    <SelectItem value="sqft">m²</SelectItem>
+                    <SelectItem value="sqm">m²</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

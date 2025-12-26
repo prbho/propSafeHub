@@ -1,4 +1,6 @@
-// app/api/properties/create/route.ts - UPDATED VERSION
+// app/api/properties/create/route.ts - UPDATED FOR YOUR SCHEMA
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { NextRequest, NextResponse } from 'next/server'
 
 import {
@@ -18,76 +20,120 @@ export async function POST(request: NextRequest) {
     const { $permissions, ...cleanPropertyData } = propertyData
 
     console.log('🔍 Received property data:', {
+      userType: cleanPropertyData.userType,
       agentId: cleanPropertyData.agentId,
-      agentName: cleanPropertyData.agentName,
+      sellerId: cleanPropertyData.sellerId,
       listedBy: cleanPropertyData.listedBy,
     })
 
-    // FIRST: VALIDATE AND FIND THE CORRECT AGENT
+    // VALIDATE USER TYPE
+    if (!['agent', 'seller'].includes(cleanPropertyData.userType)) {
+      return NextResponse.json(
+        {
+          error: 'Invalid user type',
+          details: 'Only agents and sellers can post properties',
+        },
+        { status: 400 }
+      )
+    }
+
+    // HANDLE AGENT PROPERTIES
     let correctAgentId = cleanPropertyData.agentId
     let correctAgentName = cleanPropertyData.agentName
 
-    // Try to get the agent by the provided ID
-    try {
-      const agent = await databases.getDocument(
-        DATABASE_ID,
-        AGENTS_COLLECTION_ID,
-        cleanPropertyData.agentId
-      )
-
-      console.log('✅ Agent found by provided ID:', {
-        providedId: cleanPropertyData.agentId,
-        foundId: agent.$id,
-        name: agent.name,
-        matches: agent.$id === cleanPropertyData.agentId,
-      })
-
-      // Verify the agent name matches
-      if (agent.name !== cleanPropertyData.agentName) {
-        console.warn('⚠️ Agent name mismatch:', {
-          providedName: cleanPropertyData.agentName,
-          actualName: agent.name,
-        })
-        correctAgentName = agent.name
-      }
-    } catch {
-      // Try to find agent by name
-      try {
-        const agents = await databases.listDocuments(
-          DATABASE_ID,
-          AGENTS_COLLECTION_ID,
-          [Query.equal('name', cleanPropertyData.agentName), Query.limit(1)]
-        )
-
-        if (agents.documents.length > 0) {
-          const foundAgent = agents.documents[0]
-          correctAgentId = foundAgent.$id
-        } else {
-          console.error(
-            '❌ No agent found with name:',
-            cleanPropertyData.agentName
-          )
-          return NextResponse.json(
-            {
-              error: 'Agent not found',
-              details: 'No agent found with the provided name',
-            },
-            { status: 404 }
-          )
-        }
-      } catch (searchError) {
-        console.error('❌ Error searching for agent:', searchError)
+    if (cleanPropertyData.userType === 'agent') {
+      // Validate agent data is provided
+      if (!cleanPropertyData.agentId && !cleanPropertyData.agentName) {
         return NextResponse.json(
           {
-            error: 'Agent validation failed',
-            details: 'Could not verify agent information',
+            error: 'Agent information required',
+            details: 'Agent ID or Agent Name is required for agent listings',
           },
           { status: 400 }
         )
       }
+
+      // Try to find the agent
+      try {
+        // Try by agentId first
+        if (cleanPropertyData.agentId) {
+          const agent = await databases.getDocument(
+            DATABASE_ID,
+            AGENTS_COLLECTION_ID,
+            cleanPropertyData.agentId
+          )
+          console.log('✅ Agent found by ID:', agent.$id)
+          correctAgentId = agent.$id
+          correctAgentName = agent.name || cleanPropertyData.agentName
+        }
+        // Try by agentName if agentId not found
+        else if (cleanPropertyData.agentName) {
+          const agents = await databases.listDocuments(
+            DATABASE_ID,
+            AGENTS_COLLECTION_ID,
+            [Query.equal('name', cleanPropertyData.agentName), Query.limit(1)]
+          )
+
+          if (agents.documents.length > 0) {
+            const foundAgent = agents.documents[0]
+            correctAgentId = foundAgent.$id
+            correctAgentName = foundAgent.name
+            console.log('✅ Agent found by name:', foundAgent.$id)
+          } else {
+            console.warn(
+              '⚠️ No agent found with name:',
+              cleanPropertyData.agentName
+            )
+            // Create a placeholder agent for now
+            correctAgentName = cleanPropertyData.agentName
+          }
+        }
+      } catch (agentError) {
+        console.error('❌ Error finding agent:', agentError)
+        return NextResponse.json(
+          {
+            error: 'Agent not found',
+            details: 'Could not verify agent information',
+          },
+          { status: 404 }
+        )
+      }
     }
 
-    // Validate required fields (update with correct agent info)
+    // HANDLE SELLER/OWNER PROPERTIES
+    let ownerId = cleanPropertyData.sellerId
+    let ownerName = cleanPropertyData.sellerName
+
+    if (cleanPropertyData.userType === 'seller') {
+      // Validate seller data
+      if (!cleanPropertyData.sellerId && !cleanPropertyData.userId) {
+        return NextResponse.json(
+          {
+            error: 'Seller information required',
+            details: 'Seller ID or User ID is required for seller listings',
+          },
+          { status: 400 }
+        )
+      }
+
+      // Use userId as ownerId if sellerId not provided
+      ownerId = cleanPropertyData.sellerId || cleanPropertyData.userId
+      ownerName =
+        cleanPropertyData.sellerName ||
+        cleanPropertyData.listedBy ||
+        'Property Owner'
+
+      // Force listedBy to 'owner' for sellers
+      cleanPropertyData.listedBy = 'owner'
+
+      console.log('✅ Seller property detected:', {
+        ownerId,
+        ownerName,
+        listedBy: cleanPropertyData.listedBy,
+      })
+    }
+
+    // Validate required fields
     const requiredFields = [
       'title',
       'description',
@@ -117,16 +163,31 @@ export async function POST(request: NextRequest) {
     // Generate propertyId if not provided
     const propertyId = cleanPropertyData.propertyId || ID.unique()
 
-    // Prepare the document data with CORRECT agent information
-    const documentData = {
-      ...cleanPropertyData,
-      // OVERRIDE with correct agent information
-      agentId: correctAgentId,
-      agentName: correctAgentName,
-      listedBy: cleanPropertyData.listedBy || correctAgentName,
-
-      // Ensure proper data types
+    // Prepare the document data based on user type
+    const documentData: any = {
+      // Common fields
+      title: cleanPropertyData.title,
+      description: cleanPropertyData.description,
+      propertyType: cleanPropertyData.propertyType,
+      status: cleanPropertyData.status,
       price: Number(cleanPropertyData.price),
+      priceUnit: cleanPropertyData.priceUnit || 'total',
+
+      // Location
+      address: cleanPropertyData.address,
+      city: cleanPropertyData.city,
+      state: cleanPropertyData.state,
+      zipCode: cleanPropertyData.zipCode,
+      country: cleanPropertyData.country || 'Nigeria',
+      neighborhood: cleanPropertyData.neighborhood,
+      latitude: cleanPropertyData.latitude
+        ? Number(cleanPropertyData.latitude)
+        : undefined,
+      longitude: cleanPropertyData.longitude
+        ? Number(cleanPropertyData.longitude)
+        : undefined,
+
+      // Property details
       bedrooms: Number(cleanPropertyData.bedrooms || 0),
       bathrooms: Number(cleanPropertyData.bathrooms || 0),
       squareFeet: Number(cleanPropertyData.squareFeet || 0),
@@ -140,24 +201,7 @@ export async function POST(request: NextRequest) {
         ? Number(cleanPropertyData.originalPrice)
         : undefined,
 
-      // Ensure latitude and longitude are numbers
-      latitude: cleanPropertyData.latitude
-        ? Number(cleanPropertyData.latitude)
-        : undefined,
-      longitude: cleanPropertyData.longitude
-        ? Number(cleanPropertyData.longitude)
-        : undefined,
-
-      // System fields
-      propertyId,
-      isActive: true,
-      isVerified: false,
-      listDate: new Date().toISOString(),
-      lastUpdated: new Date().toISOString(),
-      views: 0,
-      favorites: 0,
-
-      // Ensure arrays are properly formatted
+      // Features and amenities
       features: Array.isArray(cleanPropertyData.features)
         ? cleanPropertyData.features
         : [],
@@ -172,15 +216,82 @@ export async function POST(request: NextRequest) {
         ? cleanPropertyData.videos
         : [],
 
-      // Payment options - use the values from the form
-      outright: cleanPropertyData.paymentOutright || true,
+      // ADD THIS LINE: Include titles field
+      titles: Array.isArray(cleanPropertyData.titles)
+        ? cleanPropertyData.titles
+        : [],
+
+      // Payment options
+      paymentOutright:
+        cleanPropertyData.paymentOutright !== undefined
+          ? cleanPropertyData.paymentOutright
+          : true,
       paymentPlan: cleanPropertyData.paymentPlan || false,
       mortgageEligible: cleanPropertyData.mortgageEligible || false,
       customPlanAvailable: cleanPropertyData.customPlanAvailable || false,
       customPlanDepositPercent:
         cleanPropertyData.customPlanDepositPercent || 30,
       customPlanMonths: cleanPropertyData.customPlanMonths || 12,
+
+      // Short-let fields (if applicable)
+      ...(cleanPropertyData.status === 'short-let' && {
+        minimumStay: cleanPropertyData.minimumStay || 1,
+        maximumStay: cleanPropertyData.maximumStay || 30,
+        instantBooking: cleanPropertyData.instantBooking || false,
+        checkInTime: cleanPropertyData.checkInTime || '14:00',
+        checkOutTime: cleanPropertyData.checkOutTime || '11:00',
+        cancellationPolicy: cleanPropertyData.cancellationPolicy || 'moderate',
+        houseRules: Array.isArray(cleanPropertyData.houseRules)
+          ? cleanPropertyData.houseRules
+          : [],
+        availabilityStart: cleanPropertyData.availabilityStart,
+        availabilityEnd: cleanPropertyData.availabilityEnd,
+      }),
+
+      // Listing info
+      listedBy:
+        cleanPropertyData.listedBy ||
+        (cleanPropertyData.userType === 'seller' ? 'owner' : 'agent'),
+      isFeatured: cleanPropertyData.isFeatured || false,
+
+      // System fields
+      propertyId,
+      isActive: true,
+      isVerified: false,
+      listDate: new Date().toISOString(),
+      lastUpdated: new Date().toISOString(),
+      views: 0,
+      favorites: 0,
     }
+
+    // Add user-type specific fields - USE YOUR ACTUAL SCHEMA FIELDS
+    if (cleanPropertyData.userType === 'agent') {
+      // For agents: use agentId (your actual schema field)
+      if (correctAgentId) {
+        documentData.agentId = correctAgentId
+      }
+      if (correctAgentName) {
+        documentData.agentName = correctAgentName
+      }
+      documentData.listedBy =
+        cleanPropertyData.listedBy || correctAgentName || 'Agent'
+    } else if (cleanPropertyData.userType === 'seller') {
+      // For sellers: use ownerId (your actual schema field)
+      if (ownerId) {
+        documentData.ownerId = ownerId
+      }
+      if (ownerName) {
+        documentData.ownerName = ownerName
+      }
+      documentData.listedBy = 'owner' // Always 'owner' for sellers
+    }
+
+    console.log('📝 Creating property with:', {
+      userType: cleanPropertyData.userType,
+      agentId: documentData.agentId || 'N/A',
+      ownerId: documentData.ownerId || 'N/A',
+      listedBy: documentData.listedBy,
+    })
 
     // Create the property in Appwrite
     const property = await databases.createDocument(
@@ -190,30 +301,32 @@ export async function POST(request: NextRequest) {
       documentData
     )
 
-    // Increment totalListings count for the CORRECT agent
-    try {
-      const agent = await databases.getDocument(
-        DATABASE_ID,
-        AGENTS_COLLECTION_ID,
-        correctAgentId
-      )
+    // Update agent statistics only for agents
+    if (cleanPropertyData.userType === 'agent' && correctAgentId) {
+      try {
+        const agent = await databases.getDocument(
+          DATABASE_ID,
+          AGENTS_COLLECTION_ID,
+          correctAgentId
+        )
 
-      await databases.updateDocument(
-        DATABASE_ID,
-        AGENTS_COLLECTION_ID,
-        correctAgentId,
-        {
-          totalListings: (agent.totalListings || 0) + 1,
-          lastUpdated: new Date().toISOString(),
-        }
-      )
-      console.log('✅ Updated agent properties count for:', correctAgentId)
-    } catch (agentUpdateError) {
-      console.error(
-        '❌ Failed to update agent properties count:',
-        agentUpdateError
-      )
-      // Continue even if agent update fails
+        await databases.updateDocument(
+          DATABASE_ID,
+          AGENTS_COLLECTION_ID,
+          correctAgentId,
+          {
+            totalListings: (agent.totalListings || 0) + 1,
+            lastUpdated: new Date().toISOString(),
+          }
+        )
+        console.log('✅ Updated agent properties count for:', correctAgentId)
+      } catch (agentUpdateError) {
+        console.error(
+          '❌ Failed to update agent properties count:',
+          agentUpdateError
+        )
+        // Continue even if agent update fails
+      }
     }
 
     return NextResponse.json({
@@ -227,9 +340,17 @@ export async function POST(request: NextRequest) {
         price: property.price,
         city: property.city,
         state: property.state,
-        agentId: correctAgentId, // Return the correct agent ID
-        agentName: correctAgentName,
-        listedBy: correctAgentName,
+        titles: property.titles,
+        userType: cleanPropertyData.userType,
+        ...(cleanPropertyData.userType === 'agent' && {
+          agentId: documentData.agentId,
+          agentName: documentData.agentName,
+        }),
+        ...(cleanPropertyData.userType === 'seller' && {
+          ownerId: documentData.ownerId,
+          ownerName: documentData.ownerName,
+        }),
+        listedBy: documentData.listedBy,
         listDate: property.listDate,
       },
     })

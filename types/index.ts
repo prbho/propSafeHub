@@ -13,8 +13,11 @@ export interface Property {
   $createdAt: string
   $updatedAt: string
   $permissions: string[]
+
   // Properties attributes
+  ownerName?: string
   agentId: string
+  titles: string[]
   userId: string
   name: string
   propertyId: string
@@ -143,6 +146,9 @@ export interface PropertyFormData {
   features: string[]
   amenities: string[]
 
+  // titles
+  titles: string[]
+
   // Media
   images: File[]
   videos: string[]
@@ -190,6 +196,15 @@ export const PROPERTY_FEATURES = [
   'Pet Friendly',
   'Furnished',
   'Waterfront',
+] as const
+
+export const TITLE_DOCUMENTS = [
+  'C of O',
+  'Government Allocation ',
+  'Governors Consent',
+  'Registered Survey',
+  'Deed of Assignment ',
+  'FreeHold',
 ] as const
 
 export const PROPERTY_AMENITIES = [

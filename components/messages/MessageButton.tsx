@@ -196,9 +196,9 @@ export default function MessageButton({
             className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             onClick={() => {
               if (propertyId) {
-                window.location.href = `/agent/dashboard?edit=${propertyId}`
+                window.location.href = `/dashboard/${user?.userType}/${user?.$id}/properties/edit/${propertyId}`
               } else {
-                window.location.href = '/agent/dashboard'
+                window.location.href = `/dashboard/${user?.userType}/${user?.$id}/properties`
               }
             }}
           >
@@ -210,7 +210,7 @@ export default function MessageButton({
             variant="outline"
             className="w-full border-blue-300 text-blue-700 hover:bg-blue-50"
             onClick={() => {
-              window.location.href = '/agent/dashboard'
+              window.location.href = `/dashboard/${user?.userType}/${user?.$id}/properties`
             }}
           >
             View Dashboard

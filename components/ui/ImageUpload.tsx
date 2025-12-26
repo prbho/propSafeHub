@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import Image from 'next/image'
 import { Image as ImageIcon, Upload, X } from 'lucide-react'
 
 interface ImageUploadProps {
@@ -25,11 +24,24 @@ export default function ImageUpload({
 
   // Use a ref to track imageFiles for callbacks
   const imageFilesRef = useRef<ImageFile[]>([])
+  // Ref to track mounted state
+  const isMounted = useRef(true)
 
   // Keep the ref in sync with state
   useEffect(() => {
     imageFilesRef.current = imageFiles
   }, [imageFiles])
+
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      isMounted.current = false
+      // Clean up all preview URLs
+      imageFilesRef.current.forEach((imageFile) => {
+        URL.revokeObjectURL(imageFile.previewUrl)
+      })
+    }
+  }, [])
 
   const processFiles = useCallback(
     (files: FileList) => {
@@ -190,9 +202,25 @@ export default function ImageUpload({
                     className="w-full h-full object-cover"
                     onError={(e) => {
                       // If blob URL fails, convert to data URL on the fly
+                      const imgElement = e.currentTarget
+                      if (!imgElement || !isMounted.current) return
+
                       const reader = new FileReader()
                       reader.onload = (event) => {
-                        e.currentTarget.src = event.target?.result as string
+                        if (
+                          imgElement &&
+                          event.target?.result &&
+                          isMounted.current
+                        ) {
+                          imgElement.src = event.target.result as string
+                        }
+                      }
+                      reader.onerror = () => {
+                        // If we still can't load the image, use a fallback
+                        if (imgElement && isMounted.current) {
+                          imgElement.src =
+                            'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2YzZjNmMyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBkeT0iLjNlbSI+SW1hZ2UgRXJyb3I8L3RleHQ+PC9zdmc+'
+                        }
                       }
                       reader.readAsDataURL(imageFile.file)
                     }}

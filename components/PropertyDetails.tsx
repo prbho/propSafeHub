@@ -10,6 +10,7 @@ import {
   Bed,
   Calendar,
   Check,
+  CheckCircle2Icon,
   ChevronLeft,
   Clock,
   Home,
@@ -29,6 +30,7 @@ import { Button } from '@/components/ui/button'
 import MoreDetails from './properties/MoreDetails'
 import PropertySidebar from './properties/PropertySidebar'
 import PropertyFavoriteButton from './PropertyFavoriteButton'
+import { SimpleHtmlDisplay } from './ui/SimpleHtmlDisplay'
 
 interface PropertyDetailsProps {
   property: Property
@@ -426,7 +428,9 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                 <div className="text-2xl font-bold text-gray-900">
                   {property.squareFeet.toLocaleString()}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">Sq Ft</div>
+                <div className="text-sm text-gray-600 mt-1">
+                  Square meter (m²)
+                </div>
               </div>
               <div className="bg-white rounded-xl border border-gray-100 p-5 text-center">
                 <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center mx-auto mb-3">
@@ -436,7 +440,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                     <Home className="h-5 w-5 text-orange-600" />
                   )}
                 </div>
-                <div className="text-lg font-bold text-gray-900 capitalize">
+                <div className="text-lg font-semibold text-gray-900 capitalize">
                   {isShortLet ? 'Short-Let' : property.propertyType}
                 </div>
                 <div className="text-sm text-gray-600 mt-1">Type</div>
@@ -445,13 +449,37 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
 
             {/* Description */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 About This {isShortLet ? 'Short-Let' : 'Property'}
-              </h2>
-              <p className="text-gray-700 leading-relaxed">
-                {property.description}
-              </p>
+              </h3>
+              <SimpleHtmlDisplay
+                html={property.description}
+                emptyMessage={`No description available for this ${isShortLet ? 'short-let' : 'property'}.`}
+              />
             </div>
+
+            {/* Title Document */}
+            {/* Title Documents - Only show for non-short-let properties and if titles exist */}
+            {property.status !== 'short-let' &&
+              property.titles &&
+              property.titles.length > 0 && (
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Title Documents
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {property.titles.map((title, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-emerald-100 text-emerald-800 border border-emerald-200"
+                      >
+                        <CheckCircle2Icon className="w-4 h-4 mr-1" />
+                        {title}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
             <MoreDetails property={property} />
 
@@ -527,9 +555,9 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
 
             {/* Location */}
             <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Location Details
-              </h2>
+              </h3>
               <div className="space-y-3 text-gray-700 mb-5">
                 <div className="flex items-start">
                   <MapPin className="h-4 w-4 mr-3 mt-1 shrink-0 text-emerald-600" />

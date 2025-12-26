@@ -181,7 +181,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                 <div className="text-2xl font-bold text-gray-900">
                   {property.squareFeet.toLocaleString()}
                 </div>
-                <div className="text-sm text-gray-600 mt-1">Sq Ft</div>
+                <div className="text-sm text-gray-600 mt-1">m²</div>
               </div>
               <div className="bg-white rounded-xl border border-gray-200 p-5 text-center">
                 <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center mx-auto mb-3">

@@ -19,13 +19,17 @@ import {
   CheckCircle2,
   DollarSign,
   Home,
+  Key,
   Loader2,
   MapPin,
+  Moon,
   Settings,
+  Shield,
   ShieldAlert,
   Square,
   Tag,
   Upload,
+  Wifi,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -47,11 +51,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
 import { databases } from '@/lib/appwrite'
 import { Location } from '@/lib/locations/locationService'
 
 import ImageUpload from '../ui/ImageUpload'
+import { SafeRichTextEditor } from '../ui/SafeRichTextEditor'
+import { Switch } from '../ui/switch'
 import LocationSearch from './LocationSearch'
 
 interface PropertyEditFormProps {
@@ -106,6 +111,9 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     features: property.features || [],
     amenities: property.amenities || [],
 
+    // titles
+    titles: property.titles || [],
+
     // Media
     images: property.images || [],
     videos: property.videos || [],
@@ -123,31 +131,142 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     customPlanAvailable: property.customPlanAvailable || false,
     customPlanDepositPercent: property.customPlanDepositPercent || 30,
     customPlanMonths: property.customPlanMonths || 12,
+
+    // Short-Let Specific Fields (initialize with defaults)
+    minimumStay: property.minimumStay || 1,
+    maximumStay: property.maximumStay || 30,
+    instantBooking: property.instantBooking || false,
+    checkInTime: property.checkInTime || '14:00',
+    checkOutTime: property.checkOutTime || '11:00',
+    cancellationPolicy: property.cancellationPolicy || 'moderate',
+    houseRules: property.houseRules || [],
+    availabilityStart: property.availabilityStart || '',
+    availabilityEnd: property.availabilityEnd || '',
   })
 
-  // Check authentication and ownership
+  // House rules for short-let
+  const houseRulesList = [
+    'No smoking',
+    'No parties or events',
+    'No pets',
+    'No loud noise after 10 PM',
+    'No extra guests without approval',
+    'Shoes off inside',
+    'Keep the property clean',
+    'Report any damages immediately',
+    'Check-in after 2 PM',
+    'Check-out before 11 AM',
+  ]
+
+  // Additional short-let features
+  const shortLetFeaturesList = [
+    'Free WiFi',
+    'Coffee Maker',
+    'Smart TV',
+    'Netflix',
+    'Kitchenette',
+    'Washing Machine',
+    'Dryer',
+    'Iron',
+    'Hair Dryer',
+    'Hot Water',
+    'BBQ Grill',
+    'Fireplace',
+    'Jacuzzi',
+    'Beach Access',
+    'Mountain View',
+    'City View',
+    'Private Entrance',
+    'Self Check-in',
+    '24/7 Support',
+    'Breakfast Included',
+  ]
+
+  // Check authentication and ownership - UPDATED FIX
   useEffect(() => {
     if (!authLoading && user) {
-      if (user.userType !== 'agent') {
+      // Allow both agents and sellers
+      if (user.userType !== 'agent' && user.userType !== 'seller') {
         router.push('/dashboard')
         return
       }
-      if (property.agentId !== user.$id) {
-        router.push('/agent/properties')
-        return
-      }
-      setIsLoading(false)
 
-      // Set selected location from existing property data
-      if (property.city && property.state) {
-        setSelectedLocation({
-          name: property.city,
-          state: property.state,
-          lga: property.neighborhood,
-          latitude: property.latitude,
-          longitude: property.longitude,
-        } as Location)
+      // Fetch agent profile ID for agents
+      const checkOwnership = async () => {
+        let agentProfileIdForCheck = ''
+
+        if (user.userType === 'agent') {
+          try {
+            const response = await fetch(
+              `/api/agents/get-by-user?userId=${user.$id}`
+            )
+            if (response.ok) {
+              const agentProfile = await response.json()
+              agentProfileIdForCheck = agentProfile.$id
+            }
+          } catch (error) {
+            console.error('Error fetching agent profile:', error)
+          }
+        }
+
+        // Check ownership with correct IDs
+        let canEdit = false
+
+        // Always check userId first
+        if (property.userId === user.$id) {
+          canEdit = true
+          console.log('✅ Can edit: userId matches')
+        }
+
+        // For agents: check if agentId matches agentProfileId
+        if (
+          user.userType === 'agent' &&
+          property.agentId === agentProfileIdForCheck
+        ) {
+          canEdit = true
+          console.log('✅ Can edit: agentId matches agentProfileId')
+        }
+
+        // For sellers: check if ownerId matches
+        if (user.userType === 'seller' && property.ownerId === user.$id) {
+          canEdit = true
+          console.log('✅ Can edit: ownerId matches')
+        }
+
+        // Allow admins
+        if (user.userType === 'admin') {
+          canEdit = true
+          console.log('✅ Can edit: user is admin')
+        }
+
+        if (!canEdit) {
+          console.log('❌ Cannot edit:', {
+            userType: user.userType,
+            userId: user.$id,
+            propertyUserId: property.userId,
+            propertyAgentId: property.agentId,
+            agentProfileId: agentProfileIdForCheck,
+            propertyOwnerId: property.ownerId,
+          })
+          router.push('/dashboard')
+          return
+        }
+
+        setIsLoading(false)
+
+        // Set location
+        if (property.city && property.state) {
+          setSelectedLocation({
+            name: property.city,
+            state: property.state,
+            lga: property.neighborhood,
+            latitude: property.latitude,
+            longitude: property.longitude,
+          } as Location)
+        }
       }
+
+      checkOwnership()
     }
   }, [user, authLoading, router, property])
 
@@ -202,16 +321,15 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
   }
 
   const handleArrayToggle = (
-    field: 'features' | 'amenities' | 'tags',
+    field: 'features' | 'titles' | 'amenities' | 'tags' | 'houseRules',
     value: string
   ) => {
     setFormData((prev) => ({
       ...prev,
-      [field]: prev[field].includes(value)
-        ? prev[field].filter((item) => item !== value)
-        : [...prev[field], value],
+      [field]: prev[field]?.includes(value)
+        ? prev[field]?.filter((item) => item !== value)
+        : [...(prev[field] || []), value],
     }))
-    markChanges()
   }
 
   const handleImageChange = (files: File[]) => {
@@ -299,7 +417,9 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
       }
 
       toast.success('Property updated successfully!')
-      router.push('/agent/properties')
+      if (user) {
+        router.push(`/dashboard/${user.userType}/${user.$id}/properties`)
+      }
     } catch {
       toast.error('Failed to update property listing')
     } finally {
@@ -321,7 +441,11 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
       )
 
       toast.success('Property deleted successfully!')
-      router.push('/agent/properties')
+      if (user) {
+        router.push(`/dashboard/${user.userType}/${user.$id}/properties`)
+      } else {
+        router.push('/dashboard')
+      }
     } catch (error) {
       console.error('Error deleting property:', error)
       toast.error('Failed to delete property')
@@ -406,7 +530,11 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
       }
 
       toast.success('Property published successfully!')
-      router.push('/agent/properties')
+      if (user) {
+        router.push(`/dashboard/${user.userType}/${user.$id}/properties`)
+      } else {
+        router.push('/dashboard')
+      }
     } catch (error) {
       console.error('Error publishing property:', error)
       toast.error('Failed to publish property')
@@ -438,7 +566,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
         ok: formData.bathrooms > 0,
       },
       {
-        label: 'Square Feet',
+        label: 'Square Meter',
         value: formData.squareFeet,
         ok: formData.squareFeet > 0,
       },
@@ -581,9 +709,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="status" className="flex items-center gap-1">
-                      Status <span className="text-red-500">*</span>
-                    </Label>
+                    <Label htmlFor="status">Listing Type *</Label>
                     <Select
                       required
                       value={formData.status}
@@ -592,30 +718,40 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                       }
                     >
                       <SelectTrigger id="status">
-                        <SelectValue placeholder="Select status" />
+                        <SelectValue placeholder="Select listing type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="for-sale">For Sale</SelectItem>
-                        <SelectItem value="for-rent">For Rent</SelectItem>
-                        <SelectItem value="sold">Sold</SelectItem>
-                        <SelectItem value="rented">Rented</SelectItem>
+                        <SelectItem value="for-sale">
+                          <div className="flex items-center gap-2">
+                            <Home className="w-4 h-4" />
+                            For Sale
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="for-rent">
+                          <div className="flex items-center gap-2">
+                            <Key className="w-4 h-4" />
+                            For Rent
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="short-let">
+                          <div className="flex items-center gap-2">
+                            <Moon className="w-4 h-4" />
+                            Short-Let
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="listedBy"
-                      className="flex items-center gap-1"
-                    >
-                      Listed By <span className="text-red-500">*</span>
-                    </Label>
+                    <Label htmlFor="listedBy">Listed By *</Label>
                     <Select
                       required
                       value={formData.listedBy}
                       onValueChange={(value) =>
                         handleInputChange('listedBy', value)
                       }
+                      disabled={user?.userType === 'seller'}
                     >
                       <SelectTrigger id="listedBy">
                         <SelectValue placeholder="Select who listed it" />
@@ -625,39 +761,308 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                         <SelectItem value="owner">Owner</SelectItem>
                       </SelectContent>
                     </Select>
+                    {user?.userType === 'seller' && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        As a seller, you&apos;re listed as the property owner
+                      </p>
+                    )}
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="description"
-                    className="flex items-center gap-1"
-                  >
-                    Description <span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
-                    id="description"
-                    required
+                  <Label htmlFor="description">Description *</Label>
+                  <SafeRichTextEditor
                     value={formData.description}
-                    onChange={(e) =>
-                      handleInputChange('description', e.target.value)
+                    onChange={(value) =>
+                      handleInputChange('description', value)
                     }
-                    placeholder="Describe the property features, neighborhood, and unique selling points..."
-                    rows={4}
-                    className={
-                      !formData.description
-                        ? 'border-red-300 focus:border-red-500'
-                        : ''
+                    placeholder={
+                      formData.status === 'short-let'
+                        ? 'Describe your short-let property, nearby attractions, unique features...'
+                        : 'Describe the property features, neighborhood, and unique selling points...'
                     }
                   />
-                  {!formData.description && (
-                    <p className="text-xs text-red-500">
-                      This field is required
-                    </p>
-                  )}
+                  <p className="text-sm text-gray-500">
+                    Write an engaging description. Formatting will be preserved
+                    when displayed.
+                  </p>
                 </div>
               </CardContent>
             </Card>
+
+            {/* SHORT-LET SPECIFIC SECTION */}
+            {formData.status === 'short-let' && (
+              <>
+                {/* Stay Duration & Availability */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5" />
+                      Stay Duration & Availability
+                    </CardTitle>
+                    <CardDescription>
+                      Configure booking options for your short-let property
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="minimumStay">
+                          Minimum Stay (nights) *
+                        </Label>
+                        <Input
+                          id="minimumStay"
+                          type="number"
+                          placeholder="1"
+                          value={formData.minimumStay || 1}
+                          onChange={(e) =>
+                            handleInputChange(
+                              'minimumStay',
+                              parseInt(e.target.value) || 1
+                            )
+                          }
+                          min="1"
+                          required
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="maximumStay">
+                          Maximum Stay (nights)
+                        </Label>
+                        <Input
+                          id="maximumStay"
+                          type="number"
+                          placeholder="30"
+                          value={formData.maximumStay || 30}
+                          onChange={(e) =>
+                            handleInputChange(
+                              'maximumStay',
+                              parseInt(e.target.value) || 30
+                            )
+                          }
+                          min="1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="checkInTime">Check-in Time *</Label>
+                        <Select
+                          value={formData.checkInTime || '14:00'}
+                          onValueChange={(value) =>
+                            handleInputChange('checkInTime', value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="12:00">12:00 PM</SelectItem>
+                            <SelectItem value="13:00">1:00 PM</SelectItem>
+                            <SelectItem value="14:00">2:00 PM</SelectItem>
+                            <SelectItem value="15:00">3:00 PM</SelectItem>
+                            <SelectItem value="16:00">4:00 PM</SelectItem>
+                            <SelectItem value="flexible">Flexible</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="checkOutTime">Check-out Time *</Label>
+                        <Select
+                          value={formData.checkOutTime || '11:00'}
+                          onValueChange={(value) =>
+                            handleInputChange('checkOutTime', value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10:00">10:00 AM</SelectItem>
+                            <SelectItem value="11:00">11:00 AM</SelectItem>
+                            <SelectItem value="12:00">12:00 PM</SelectItem>
+                            <SelectItem value="flexible">Flexible</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="availabilityStart">
+                          Available From
+                        </Label>
+                        <Input
+                          id="availabilityStart"
+                          type="date"
+                          value={formData.availabilityStart || ''}
+                          onChange={(e) =>
+                            handleInputChange(
+                              'availabilityStart',
+                              e.target.value
+                            )
+                          }
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="availabilityEnd">Available Until</Label>
+                        <Input
+                          id="availabilityEnd"
+                          type="date"
+                          value={formData.availabilityEnd || ''}
+                          onChange={(e) =>
+                            handleInputChange('availabilityEnd', e.target.value)
+                          }
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="instantBooking"
+                        checked={formData.instantBooking || false}
+                        onCheckedChange={(checked) =>
+                          handleInputChange('instantBooking', checked)
+                        }
+                      />
+                      <Label
+                        htmlFor="instantBooking"
+                        className="cursor-pointer"
+                      >
+                        Enable Instant Booking (Guests can book immediately
+                        without approval)
+                      </Label>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Cancellation Policy */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Cancellation Policy
+                    </CardTitle>
+                    <CardDescription>
+                      Choose how flexible you want to be with cancellations
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Select
+                      value={formData.cancellationPolicy || 'moderate'}
+                      onValueChange={(value) =>
+                        handleInputChange('cancellationPolicy', value)
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select cancellation policy" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="flexible">
+                          <div className="flex flex-col">
+                            <span className="font-medium">Flexible</span>
+                            <span className="text-sm text-gray-500">
+                              Full refund up to 24 hours before check-in
+                            </span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="moderate">
+                          <div className="flex flex-col">
+                            <span className="font-medium">Moderate</span>
+                            <span className="text-sm text-gray-500">
+                              Full refund up to 5 days before check-in
+                            </span>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="strict">
+                          <div className="flex flex-col">
+                            <span className="font-medium">Strict</span>
+                            <span className="text-sm text-gray-500">
+                              50% refund up to 7 days before check-in
+                            </span>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </CardContent>
+                </Card>
+
+                {/* Short-Let Specific Features */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Wifi className="h-5 w-5" />
+                      Short-Let Features & Amenities
+                    </CardTitle>
+                    <CardDescription>
+                      Select amenities that are important for short-term stays
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {shortLetFeaturesList.map((feature) => (
+                        <div
+                          key={feature}
+                          className="flex items-center space-x-2"
+                        >
+                          <Checkbox
+                            id={`shortlet-feature-${feature}`}
+                            checked={formData.features.includes(feature)}
+                            onCheckedChange={() =>
+                              handleArrayToggle('features', feature)
+                            }
+                          />
+                          <Label
+                            htmlFor={`shortlet-feature-${feature}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {feature}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* House Rules */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Key className="h-5 w-5" />
+                      House Rules
+                    </CardTitle>
+                    <CardDescription>
+                      Set clear rules for your guests
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {houseRulesList.map((rule) => (
+                        <div key={rule} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`rule-${rule}`}
+                            checked={formData.houseRules?.includes(rule)}
+                            onCheckedChange={() =>
+                              handleArrayToggle('houseRules', rule)
+                            }
+                          />
+                          <Label
+                            htmlFor={`rule-${rule}`}
+                            className="text-sm cursor-pointer"
+                          >
+                            {rule}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            )}
 
             {/* Location Information */}
             <Card>
@@ -730,7 +1135,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                 </div>
 
                 {selectedLocation && (
-                  <Card className="bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+                  <Card className="bg-linear-to-r from-green-50 to-emerald-50 border-green-200">
                     <CardContent className="p-6">
                       <div className="flex items-center gap-3 mb-4">
                         <div className="p-2 bg-white rounded-lg shadow-sm">
@@ -863,7 +1268,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                   </div>
 
                   <div className="flex items-end">
-                    <Card className="w-full bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200">
+                    <Card className="w-full bg-linear-to-r from-purple-50 to-indigo-50 border-purple-200">
                       <CardContent className="p-4">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="p-1 bg-white rounded">
@@ -1019,7 +1424,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                         <Square className="w-4 h-4 text-purple-600" />
                       </div>
                       <Label htmlFor="squareFeet" className="font-medium">
-                        Square Feet <span className="text-red-500">*</span>
+                        Square Meter <span className="text-red-500">*</span>
                       </Label>
                     </div>
                     <Input
@@ -1073,7 +1478,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="lotSize">Lot Size (sq ft)</Label>
+                  <Label htmlFor="lotSize">Lot Size (m²)</Label>
                   <Input
                     id="lotSize"
                     type="number"
@@ -1247,7 +1652,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                             fill
                             sizes="(max-width: 768px) 50vw, 25vw"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
+                          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/0 to-black/0" />
                           <div className="absolute bottom-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
                             New
                           </div>
@@ -1375,7 +1780,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                 </div>
 
                 {formData.paymentPlan && (
-                  <Card className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+                  <Card className="mt-6 bg-linear-to-r from-blue-50 to-indigo-50 border-blue-200">
                     <CardContent className="p-6 space-y-6">
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-white rounded-lg shadow-sm">
@@ -1513,7 +1918,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full"
+                      className="bg-linear-to-r from-blue-500 to-blue-600 h-2 rounded-full"
                       style={{ width: `${getCompletionPercentage()}%` }}
                     />
                   </div>
@@ -1557,7 +1962,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                     type="button"
                     onClick={handleSaveDraft}
                     disabled={isSubmitting || getCompletionPercentage() === 0}
-                    className="w-full bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
+                    className="w-full bg-linear-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white"
                     size="lg"
                   >
                     {isSubmitting ? (
@@ -1574,7 +1979,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                     type="button"
                     onClick={handlePublish}
                     disabled={isSubmitting || getCompletionPercentage() < 100}
-                    className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
+                    className="w-full bg-linear-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white"
                     size="lg"
                   >
                     {isSubmitting ? (

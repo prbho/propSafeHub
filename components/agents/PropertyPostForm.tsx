@@ -12,6 +12,7 @@ import {
   PROPERTY_FEATURES,
   PROPERTY_TYPES,
   PropertyFormData,
+  TITLE_DOCUMENTS,
 } from '@/types'
 import {
   Bath,
@@ -19,7 +20,6 @@ import {
   Building2,
   Calendar,
   CheckCircle2,
-  Clock,
   DollarSign,
   Globe,
   Home,
@@ -56,11 +56,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 import { Location } from '@/lib/locations/locationService'
 import { clientPropertyService } from '@/lib/properties/clientPropertyService'
 
 import ImageUpload from '../ui/ImageUpload'
+import { SafeRichTextEditor } from '../ui/SafeRichTextEditor'
 import LocationSearch from './LocationSearch'
 
 interface PropertyPostFormProps {
@@ -81,7 +81,7 @@ export default function PropertyPostForm({
     null
   )
   const userType = params.userType as string
-  const userId = params.id as string
+  // const userId = params.id as string
 
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
@@ -117,6 +117,9 @@ export default function PropertyPostForm({
     // Features & Amenities
     features: [],
     amenities: [],
+
+    // titles
+    titles: [],
 
     // Media
     images: [],
@@ -229,7 +232,7 @@ export default function PropertyPostForm({
                   }),
                 })
                 console.log('✅ Linked user ID to agent profile')
-              } catch (updateError) {
+              } catch {
                 console.log('⚠️ Could not update agent profile with userId')
               }
             } else {
@@ -242,6 +245,7 @@ export default function PropertyPostForm({
           toast.error('Failed to load agent profile. Please refresh the page.')
         } finally {
           setFetchingAgentProfile(false)
+          setPageLoading(false) // ⭐ ADD THIS LINE
         }
       }
     }
@@ -249,11 +253,23 @@ export default function PropertyPostForm({
     if (!authLoading) {
       if (!user) {
         router.push('/login?redirect=/agent/properties/new')
-      } else if (user.userType !== 'agent') {
+      } else if (user.userType !== 'agent' && user.userType !== 'seller') {
+        // Allow both agents and sellers
         router.push('/dashboard')
       } else {
-        fetchAgentProfile()
-        setPageLoading(false)
+        // For sellers, set default listedBy to 'owner'
+        if (user.userType === 'seller') {
+          setFormData((prev) => ({
+            ...prev,
+            listedBy: 'owner',
+          }))
+          setPageLoading(false) // ⭐ SET LOADING TO FALSE IMMEDIATELY FOR SELLERS
+        }
+
+        // Only fetch agent profile for agents
+        if (user.userType === 'agent') {
+          fetchAgentProfile()
+        }
       }
     }
   }, [user, authLoading, router])
@@ -319,7 +335,7 @@ export default function PropertyPostForm({
   }, [])
 
   const handleArrayToggle = (
-    field: 'features' | 'amenities' | 'tags' | 'houseRules',
+    field: 'features' | 'titles' | 'amenities' | 'tags' | 'houseRules',
     value: string
   ) => {
     setFormData((prev) => ({
@@ -411,8 +427,8 @@ export default function PropertyPostForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate agent profile is loaded
-    if (!agentProfileId) {
+    // Validate agent profile is loaded only for agents
+    if (user?.userType === 'agent' && !agentProfileId) {
       toast.error(
         'Agent profile not loaded. Please refresh the page and try again.'
       )
@@ -434,24 +450,22 @@ export default function PropertyPostForm({
     try {
       const imageUrls = await uploadImagesToStorage(uploadedFiles)
 
-      // Add short-let specific data to form
+      // Prepare property data based on user type
       const propertyData = {
         ...formData,
-        // Short-let specific fields (only if status is short-let)
-        ...(formData.status === 'short-let' && {
-          minimumStay: formData.minimumStay || 1,
-          maximumStay: formData.maximumStay || 30,
-          instantBooking: formData.instantBooking || false,
-          checkInTime: formData.checkInTime || '14:00',
-          checkOutTime: formData.checkOutTime || '11:00',
-          cancellationPolicy: formData.cancellationPolicy || 'moderate',
-          houseRules: formData.houseRules || [],
-          availabilityStart: formData.availabilityStart || '',
-          availabilityEnd: formData.availabilityEnd || '',
+        // Add user-specific data
+        userId: user?.$id,
+        userType: user?.userType,
+        // For agents, use agentProfileId; for sellers, use seller ID
+        ...(user?.userType === 'agent' && {
+          agentId: agentProfileId,
+          agentName: user?.name,
         }),
-        agentId: agentProfileId,
-        agentName: user?.name,
-        listedBy: user?.name,
+        ...(user?.userType === 'seller' && {
+          sellerId: user?.$id,
+          sellerName: user?.name,
+        }),
+        listedBy: formData.listedBy,
         phone: user?.phone || '',
         images: imageUrls,
         propertyId: `property_${Date.now()}`,
@@ -459,7 +473,8 @@ export default function PropertyPostForm({
 
       console.log('📤 Creating property with:', {
         status: formData.status,
-        agentId: agentProfileId,
+        userType: user?.userType,
+        agentId: user?.userType === 'agent' ? agentProfileId : 'seller',
         priceUnit: formData.priceUnit,
       })
 
@@ -475,12 +490,18 @@ export default function PropertyPostForm({
     }
   }
 
-  if (authLoading || pageLoading || fetchingAgentProfile) {
+  if (
+    authLoading ||
+    pageLoading ||
+    (user?.userType === 'agent' && fetchingAgentProfile)
+  ) {
     return (
       <div className="flex flex-col items-center justify-center space-y-4 py-12">
         <Loader2 className="w-12 h-12 text-emerald-600 animate-spin" />
         <h2 className="text-xl font-semibold text-gray-900">
-          {fetchingAgentProfile ? 'Loading agent profile...' : 'Loading...'}
+          {user?.userType === 'agent' && fetchingAgentProfile
+            ? 'Loading agent profile...'
+            : 'Loading...'}
         </h2>
       </div>
     )
@@ -488,11 +509,21 @@ export default function PropertyPostForm({
 
   return (
     <div className="space-y-6">
-      {!agentProfileId && (
+      {/* Show agent profile warning only for agents */}
+      {user?.userType === 'agent' && !agentProfileId && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
           <p className="text-yellow-800">
             ⚠️ Agent profile not found. Properties cannot be created without an
             agent profile. Please contact support or try refreshing the page.
+          </p>
+        </div>
+      )}
+
+      {/* Show seller confirmation message */}
+      {user?.userType === 'seller' && (
+        <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-4 mb-4">
+          <p className="text-emerald-800">
+            Seller/owner. You&apos;ll be listed as the property owner.
           </p>
         </div>
       )}
@@ -641,6 +672,7 @@ export default function PropertyPostForm({
                   onValueChange={(value) =>
                     handleInputChange('listedBy', value)
                   }
+                  disabled={user?.userType === 'seller'}
                 >
                   <SelectTrigger id="listedBy">
                     <SelectValue placeholder="Select who listed it" />
@@ -650,26 +682,29 @@ export default function PropertyPostForm({
                     <SelectItem value="owner">Owner</SelectItem>
                   </SelectContent>
                 </Select>
+                {user?.userType === 'seller' && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    As a seller, you&apos;re listed as the property owner
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="description">Description *</Label>
-              <Textarea
-                id="description"
-                required
+              <SafeRichTextEditor
                 value={formData.description}
-                className="max-w-3xl"
-                onChange={(e) =>
-                  handleInputChange('description', e.target.value)
-                }
+                onChange={(value) => handleInputChange('description', value)}
                 placeholder={
                   formData.status === 'short-let'
-                    ? 'Describe your short-let property, nearby attractions, unique features, and what makes it perfect for guests...'
+                    ? 'Describe your short-let property, nearby attractions, unique features...'
                     : 'Describe the property features, neighborhood, and unique selling points...'
                 }
-                rows={6}
               />
+              <p className="text-sm text-gray-500">
+                Write an engaging description. Formatting will be preserved when
+                displayed.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -1178,7 +1213,7 @@ export default function PropertyPostForm({
               <div className="space-y-2">
                 <Label htmlFor="squareFeet" className="flex items-center gap-2">
                   <Square className="w-4 h-4" />
-                  Square Feet *
+                  Square Meter *
                 </Label>
                 <Input
                   id="squareFeet"
@@ -1217,7 +1252,7 @@ export default function PropertyPostForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="lotSize">Lot Size (sq ft)</Label>
+              <Label htmlFor="lotSize">Lot Size (m²)</Label>
               <Input
                 id="lotSize"
                 type="number"
@@ -1300,6 +1335,44 @@ export default function PropertyPostForm({
             </div>
           </CardContent>
         </Card>
+
+        {/* Title Documents - Only show for non-short-let properties */}
+        {formData.status !== 'short-let' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Title Documents</CardTitle>
+              <CardDescription>
+                Select the applicable Title Documents for the property
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
+                {/* Features */}
+                <div>
+                  <div className="grid grid-cols-1 gap-3 max-h-64 overflow-y-auto">
+                    {TITLE_DOCUMENTS.map((title) => (
+                      <div key={title} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`title-${title}`}
+                          checked={formData.titles.includes(title)}
+                          onCheckedChange={() =>
+                            handleArrayToggle('titles', title)
+                          }
+                        />
+                        <Label
+                          htmlFor={`title-${title}`}
+                          className="text-sm font-normal cursor-pointer"
+                        >
+                          {title}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Payment Options */}
         <Card>
@@ -1472,7 +1545,10 @@ export default function PropertyPostForm({
             <div className="flex gap-4">
               <Button
                 type="submit"
-                disabled={isSubmitting || !agentProfileId}
+                disabled={
+                  isSubmitting ||
+                  (user?.userType === 'agent' && !agentProfileId)
+                }
                 className="flex-1 bg-linear-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
                 size="lg"
               >
@@ -1481,7 +1557,7 @@ export default function PropertyPostForm({
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Publishing...
                   </div>
-                ) : !agentProfileId ? (
+                ) : user?.userType === 'agent' && !agentProfileId ? (
                   'Agent Profile Required'
                 ) : formData.status === 'short-let' ? (
                   'Publish Short-Let'

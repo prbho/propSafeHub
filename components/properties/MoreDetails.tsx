@@ -50,7 +50,7 @@ export default function MoreDetails({ property }: MoreDetailsProps) {
           {
             icon: Car,
             label: 'Lot Size',
-            value: `${property.lotSize.toLocaleString()} sq ft`,
+            value: `${property.lotSize.toLocaleString()} m²`,
           },
         ]
       : []),

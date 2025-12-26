@@ -390,7 +390,11 @@ export default function ServicesSection() {
                         asChild
                         className="bg-white text-emerald-700 hover:bg-gray-100 px-8 py-6 text-lg font-semibold rounded-lg"
                       >
-                        <Link href="/agent/dashboard">Agent Dashboard</Link>
+                        <Link
+                          href={`/dashboard/${user?.userType}/${user?.$id}`}
+                        >
+                          Agent Dashboard
+                        </Link>
                       </Button>
                     )}
                     {user?.userType === 'admin' && (

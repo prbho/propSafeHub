@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import { Property } from '@/types'
-import { Query } from 'appwrite'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -24,38 +23,43 @@ export default function DashboardPropertyEditPage() {
 
   const [property, setProperty] = useState<Property | null>(null)
   const [loading, setLoading] = useState(true)
-  const [isAuthorized, setIsAuthorized] = useState(false)
+  const [agentProfileId, setAgentProfileId] = useState<string>('')
 
-  // Validate authorization and fetch property
+  // First, get the agent profile ID for agents
   useEffect(() => {
-    const validateAndFetch = async () => {
+    const getAgentProfile = async () => {
+      if (user?.userType === 'agent') {
+        try {
+          const response = await fetch(
+            `/api/agents/get-by-user?userId=${user.$id}`
+          )
+          if (response.ok) {
+            const agentProfile = await response.json()
+            setAgentProfileId(agentProfile.$id)
+          }
+        } catch (error) {
+          console.error('Error fetching agent profile:', error)
+        }
+      }
+    }
+
+    if (user) {
+      getAgentProfile()
+    }
+  }, [user])
+
+  // Fetch property and check authorization
+  useEffect(() => {
+    const fetchProperty = async () => {
       if (authLoading) return
-
-      // Check if user is authenticated
       if (!isAuthenticated || !user) {
-        toast.error('Please log in to edit properties')
         router.push('/login')
-        return
-      }
-
-      // Check if user is viewing their own dashboard
-      if (user.$id !== userId) {
-        toast.error('You can only edit your own properties')
-        router.push(`/dashboard/${user.userType}/${user.$id}`)
-        return
-      }
-
-      // Check if user type matches
-      if (user.userType !== userType) {
-        toast.error('Invalid user type')
-        router.push(`/dashboard/${user.userType}/${user.$id}`)
         return
       }
 
       try {
         setLoading(true)
 
-        // Fetch the property
         const databaseId =
           process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'propertyDB'
         const propertiesCollectionId =
@@ -97,6 +101,7 @@ export default function DashboardPropertyEditPage() {
           squareFeet: propertyDoc.squareFeet || 0,
           lotSize: propertyDoc.lotSize,
           yearBuilt: propertyDoc.yearBuilt,
+          titles: propertyDoc.titles || [],
           features: propertyDoc.features || [],
           amenities: propertyDoc.amenities || [],
           images: propertyDoc.images || [],
@@ -124,41 +129,84 @@ export default function DashboardPropertyEditPage() {
           outright: propertyDoc.outright,
         }
 
-        setProperty(fetchedProperty)
+        console.log('Property data:', {
+          agentId: fetchedProperty.agentId,
+          userId: fetchedProperty.userId,
+          ownerId: fetchedProperty.ownerId,
+          currentUser: user.$id,
+          agentProfileId: agentProfileId,
+        })
 
-        // Check if user owns this property
-        const isOwner =
-          fetchedProperty.agentId === user.$id ||
+        // SIMPLE AUTHORIZATION CHECK
+        let canEdit = false
+
+        // Always check userId first
+        if (fetchedProperty.userId === user.$id) {
+          canEdit = true
+          console.log('✅ Can edit: userId matches')
+        }
+
+        // For agents: check if agentId matches agentProfileId
+        if (
+          user.userType === 'agent' &&
+          fetchedProperty.agentId === agentProfileId
+        ) {
+          canEdit = true
+          console.log('✅ Can edit: agentId matches agentProfileId')
+        }
+
+        // For sellers: check if ownerId matches
+        if (
+          user.userType === 'seller' &&
           fetchedProperty.ownerId === user.$id
+        ) {
+          canEdit = true
+          console.log('✅ Can edit: ownerId matches')
+        }
 
-        if (!isOwner && user.userType !== 'admin') {
-          toast.error('You are not authorized to edit this property')
+        // Allow admins
+        if (user.userType === 'admin') {
+          canEdit = true
+          console.log('✅ Can edit: user is admin')
+        }
+
+        if (!canEdit) {
+          toast.error('You cannot edit this property')
           router.push(`/dashboard/${user.userType}/${user.$id}`)
           return
         }
 
-        setIsAuthorized(true)
+        setProperty(fetchedProperty)
       } catch (error: any) {
-        console.error('Error fetching property:', error)
-
-        if (error.code === 404) {
-          toast.error('Property not found')
-          router.push(`/dashboard/${user.userType}/${user.$id}`)
-        } else {
-          toast.error('Failed to load property')
-          router.push(`/dashboard/${user.userType}/${user.$id}`)
-        }
+        console.error('Error:', error)
+        toast.error('Failed to load property')
+        router.push(`/dashboard/${user.userType}/${user.$id}`)
       } finally {
         setLoading(false)
       }
     }
 
-    validateAndFetch()
-  }, [user, authLoading, isAuthenticated, userId, userType, propertyId, router])
+    // Wait for agentProfileId to load for agents
+    if (user?.userType === 'agent' && !agentProfileId) {
+      // Still loading agent profile
+      return
+    }
+
+    fetchProperty()
+  }, [
+    user,
+    authLoading,
+    isAuthenticated,
+    userId,
+    userType,
+    propertyId,
+    router,
+    agentProfileId,
+  ])
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
           <p className="text-gray-600">Loading property...</p>
@@ -167,25 +215,18 @@ export default function DashboardPropertyEditPage() {
     )
   }
 
-  if (!isAuthenticated || !user || !isAuthorized) {
-    return null // Will redirect in useEffect
-  }
-
   if (!property) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-2">
             Property Not Found
           </h2>
-          <p className="text-gray-600 mb-4">
-            The property you&apos;re trying to edit doesn&apos;t exist.
-          </p>
           <button
             onClick={() =>
-              router.push(`/dashboard/${user.userType}/${user.$id}`)
+              router.push(`/dashboard/${user?.userType}/${user?.$id}`)
             }
-            className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors"
+            className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700"
           >
             Return to Dashboard
           </button>
@@ -195,22 +236,17 @@ export default function DashboardPropertyEditPage() {
   }
 
   return (
-    <div className="min-h-screen py-8">
-      <div className="container mx-auto px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">
-                  Edit Property
-                </h1>
-              </div>
-            </div>
+    <div className="min-h-screen py-8 p-8 bg-white">
+      <div className="p-6">
+        <div>
+          <div className="max-w-7xl mx-autoe">
+            <h1 className="text-3xl font-bold text-gray-900">Edit Property</h1>
+            {/* <p className="text-gray-600 mt-2">
+              Editing: <span className="font-medium">{property.title}</span>
+            </p> */}
           </div>
 
-          {/* Edit Form */}
-          <div>
+          <div className="bg-white">
             <PropertyEditForm property={property} />
           </div>
         </div>

@@ -17,8 +17,6 @@ import {
   Key,
   Moon,
   Ruler,
-  Shield,
-  Star,
 } from 'lucide-react'
 
 import { useFavorites } from '@/hooks/useFavorites'
@@ -185,8 +183,13 @@ function PropertyCard({
 
   const isOwner =
     user &&
+    // For agents: check if they listed the property
     (property.agentId === user.$id ||
-      (agentProfileId && property.agentId === agentProfileId))
+      (agentProfileId && property.agentId === agentProfileId) ||
+      // For sellers: check if they own the property
+      (user.userType === 'seller' && property.ownerId === user.$id) ||
+      // Also check userId field (fallback check)
+      property.userId === user.$id)
   const isFavoritedByUser = isFavorited(property)
 
   return (
@@ -347,7 +350,7 @@ function PropertyCard({
               </span>
               <span className="flex items-center gap-x-1">
                 <Ruler className="w-4 h-4" />
-                {property.squareFeet?.toLocaleString() || '0'} sq ft
+                {property.squareFeet?.toLocaleString() || '0'} m²
               </span>
             </div>
 

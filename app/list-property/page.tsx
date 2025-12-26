@@ -292,7 +292,7 @@ export default function ListPropertyPage() {
                     href={
                       user?.userType === 'agent'
                         ? '/properties/post'
-                        : '/list-property/sale'
+                        : '/properties/post'
                     }
                     className="flex items-center justify-center gap-2 hover:text-white"
                   >
@@ -385,7 +385,7 @@ export default function ListPropertyPage() {
                   size="lg"
                 >
                   <Link
-                    href="properties/postt"
+                    href="properties/post"
                     className="flex items-center justify-center gap-2"
                   >
                     <Key className="h-5 w-5 text-gray-600 group-hover:text-blue-600" />

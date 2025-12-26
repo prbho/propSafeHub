@@ -3,6 +3,37 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Add to globals.css */
+.prose h2 {
+  @apply mt-4 mb-2 text-xl font-bold text-gray-900;
+}
+
+.prose h3 {
+  @apply mt-3 mb-2 text-lg font-semibold text-gray-800;
+}
+
+.prose ul {
+  @apply my-2 list-disc pl-5;
+}
+
+.prose ol {
+  @apply my-2 list-decimal pl-5;
+}
+
+.prose blockquote {
+  @apply my-2 border-l-4 border-gray-300 pl-4 text-gray-700 italic;
+}
+
+.prose a {
+  @apply text-blue-600 underline hover:text-blue-800;
+}
+
+[contenteditable][data-placeholder]:empty:before {
+  content: attr(data-placeholder);
+  color: #9ca3af;
+  pointer-events: none;
+}
+
 @layer components {
   .bg-brand {
     @apply text-white; /* Tailwind utility inside your class */

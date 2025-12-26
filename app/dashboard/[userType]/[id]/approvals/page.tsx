@@ -30,14 +30,17 @@ import { toast } from 'sonner'
 
 import { databases } from '@/lib/appwrite'
 
-interface AgentInfo {
+interface SubmittedByInfo {
   name: string
   email: string
   phone: string
+  userType: 'agent' | 'seller'
 }
 
 interface ApprovalProperty extends Property {
-  agent: AgentInfo
+  submittedBy?: SubmittedByInfo
+  agentName: string
+  ownerName?: string
 }
 
 export default function AdminApprovalsPage() {
@@ -80,13 +83,47 @@ export default function AdminApprovalsPage() {
 
       console.log('Fetched properties for approval:', response.documents.length)
 
-      // Transform properties - without fetching agent details to avoid errors
+      // Transform properties - with proper submittedBy info for both agents and sellers
       const transformedProperties: ApprovalProperty[] = response.documents.map(
         (doc: any): ApprovalProperty => {
-          const agentInfo: AgentInfo = {
-            name: doc.agentName || 'Unknown Agent',
-            email: doc.agentEmail || '',
-            phone: doc.agentPhone || '',
+          // Determine if property was posted by agent or seller
+          const isSellerProperty = doc.ownerId && doc.listedBy === 'owner'
+          const isAgentProperty = doc.agentId && doc.listedBy === 'agent'
+
+          // Create submittedBy info based on property type
+          let submittedByInfo: SubmittedByInfo | undefined = undefined
+
+          if (isSellerProperty) {
+            submittedByInfo = {
+              name: doc.ownerName || 'Property Owner',
+              email: '',
+              phone: doc.phone || '',
+              userType: 'seller',
+            }
+          } else if (isAgentProperty) {
+            submittedByInfo = {
+              name: doc.agentName || 'Unknown Agent',
+              email: doc.agentEmail || '',
+              phone: doc.agentPhone || '',
+              userType: 'agent',
+            }
+          } else {
+            // Fallback: try to determine based on available fields
+            if (doc.ownerId) {
+              submittedByInfo = {
+                name: doc.ownerName || 'Property Owner',
+                email: '',
+                phone: doc.phone || '',
+                userType: 'seller',
+              }
+            } else {
+              submittedByInfo = {
+                name: doc.agentName || 'Unknown Agent',
+                email: doc.agentEmail || '',
+                phone: doc.agentPhone || '',
+                userType: 'agent',
+              }
+            }
           }
 
           return {
@@ -127,7 +164,9 @@ export default function AdminApprovalsPage() {
             amenities: doc.amenities || [],
             images: doc.images || [],
             videos: doc.videos || [],
+            titles: doc.titles || [],
             ownerId: doc.ownerId || '',
+            ownerName: doc.ownerName || '',
             listedBy: doc.listedBy || 'agent',
             listDate: doc.listDate || doc.$createdAt,
             lastUpdated: doc.lastUpdated || doc.$updatedAt,
@@ -144,7 +183,7 @@ export default function AdminApprovalsPage() {
             customPlanAvailable: doc.customPlanAvailable || false,
             customPlanDepositPercent: doc.customPlanDepositPercent || 0,
             customPlanMonths: doc.customPlanMonths || 0,
-            agent: agentInfo,
+            submittedBy: submittedByInfo,
           }
         }
       )
@@ -166,12 +205,18 @@ export default function AdminApprovalsPage() {
       (activeTab === 'approved' && property.isVerified) ||
       (activeTab === 'rejected' && !property.isActive)
 
-    // Search filtering
+    // Search filtering - include both agentName and ownerName
+    const submittedByName =
+      property.submittedBy?.name || property.agentName || ''
+    const searchName = property.ownerId
+      ? property.ownerName || 'Property Owner'
+      : submittedByName
+
     const matchesSearch =
       property.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       property.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
       property.city.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      property.agentName.toLowerCase().includes(searchTerm.toLowerCase())
+      searchName.toLowerCase().includes(searchTerm.toLowerCase())
 
     // Type filtering
     const matchesType =
@@ -184,7 +229,7 @@ export default function AdminApprovalsPage() {
     return matchesTab && matchesSearch && matchesType && matchesStatus
   })
 
-  // Stats calculations
+  // Stats calculations - FIXED: Use optional chaining
   const pendingApprovals = properties.filter(
     (p) => !p.isVerified && p.isActive
   ).length
@@ -346,6 +391,24 @@ export default function AdminApprovalsPage() {
     )
   }
 
+  const getUserTypeBadge = (property: ApprovalProperty) => {
+    const userType =
+      property.submittedBy?.userType || (property.ownerId ? 'seller' : 'agent')
+
+    if (userType === 'agent') {
+      return (
+        <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+          Agent
+        </span>
+      )
+    }
+    return (
+      <span className="bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full">
+        Seller/Owner
+      </span>
+    )
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
@@ -488,7 +551,7 @@ export default function AdminApprovalsPage() {
                   <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
                   <input
                     type="text"
-                    placeholder="Search properties by title, address, city, or agent..."
+                    placeholder="Search properties by title, address, city, or submitter..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
@@ -587,6 +650,7 @@ export default function AdminApprovalsPage() {
                             </Link>
                             <div className="flex items-center gap-4 mb-3">
                               {getStatusBadge(property)}
+                              {getUserTypeBadge(property)}
                               <span
                                 className={`text-sm px-2 py-1 rounded-full ${
                                   property.status === 'for-sale'
@@ -680,7 +744,7 @@ export default function AdminApprovalsPage() {
                           </div>
                         </div>
 
-                        {/* Agent Information */}
+                        {/* Submitted By Information - UPDATED */}
                         <div className="bg-white rounded-lg p-4 border border-gray-200">
                           <h4 className="font-medium text-gray-900 mb-2">
                             Submitted By
@@ -688,18 +752,23 @@ export default function AdminApprovalsPage() {
                           <div className="flex items-center gap-4 text-sm">
                             <div className="flex items-center gap-2">
                               <User className="w-4 h-4 text-gray-400" />
-                              <span>{property.agent.name}</span>
+                              <span>
+                                {property.submittedBy?.name ||
+                                  (property.ownerId
+                                    ? property.ownerName || 'Property Owner'
+                                    : property.agentName || 'Unknown Agent')}
+                              </span>
                             </div>
-                            {property.agent.email && (
+                            {property.submittedBy?.email && (
                               <div className="flex items-center gap-2">
                                 <Mail className="w-4 h-4 text-gray-400" />
-                                <span>{property.agent.email}</span>
+                                <span>{property.submittedBy.email}</span>
                               </div>
                             )}
-                            {property.agent.phone && (
+                            {property.submittedBy?.phone && (
                               <div className="flex items-center gap-2">
                                 <Phone className="w-4 h-4 text-gray-400" />
-                                <span>{property.agent.phone}</span>
+                                <span>{property.submittedBy.phone}</span>
                               </div>
                             )}
                           </div>

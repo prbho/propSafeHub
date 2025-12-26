@@ -162,7 +162,7 @@ export default function PropertyRecommendations({
                 </div>
                 <div className="flex items-center gap-1">
                   <Square className="w-4 h-4" />
-                  <span>{property.area} sq ft</span>
+                  <span>{property.area} m²</span>
                 </div>
               </div>
 

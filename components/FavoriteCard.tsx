@@ -281,7 +281,7 @@ export default function FavoriteCard({
             <div className="flex items-center justify-between text-sm text-gray-700 border-t pt-3">
               <span>{property.bedrooms || 0} beds</span>
               <span>{property.bathrooms || 0} baths</span>
-              <span>{(property.squareFeet || 0).toLocaleString()} sq ft</span>
+              <span>{(property.squareFeet || 0).toLocaleString()} m²</span>
             </div>
 
             <div className="flex items-center">

@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
 import { useAuth } from '@/contexts/AuthContext'
-import { Conversation, Message } from '@/types'
+import { Message } from '@/types'
 import {
   ArrowLeft,
   Calendar,
