@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
       )
 
       // Create reset URL with our token
-      const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/(auth)/reset-password?token=${token}&email=${encodeURIComponent(email)}`
+      const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}&email=${encodeURIComponent(email)}`
 
       console.log('✅ Custom password token created for:', email)
 
