@@ -150,90 +150,94 @@ function ResetPasswordContent() {
           </p>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-start">
-            <AlertCircle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+        <div className="bg-white p-8 shadow-md rounded-2xl">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-start">
+              <AlertCircle className="h-4 w-4 mr-2 mt-0.5 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label
-              htmlFor="password"
-              className="text-sm font-medium text-gray-700"
-            >
-              New Password
-            </Label>
-            <div className="relative mt-1">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label
+                htmlFor="password"
+                className="text-sm font-medium text-gray-700"
+              >
+                New Password
+              </Label>
+              <div className="relative mt-1">
+                <Input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter new password (min. 8 characters)"
+                  className="h-12 pr-10"
+                  required
+                  minLength={8}
+                  disabled={isLoading}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Password must be at least 8 characters long with uppercase,
+                lowercase, and numbers
+              </p>
+            </div>
+
+            <div>
+              <Label
+                htmlFor="confirmPassword"
+                className="text-sm font-medium text-gray-700"
+              >
+                Confirm Password
+              </Label>
               <Input
-                id="password"
+                id="confirmPassword"
                 type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter new password (min. 8 characters)"
-                className="h-12 pr-10"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm your new password"
+                className="h-12"
                 required
-                minLength={8}
                 disabled={isLoading}
               />
-              <button
-                type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                onClick={() => setShowPassword(!showPassword)}
-                disabled={isLoading}
-              >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Password must be at least 8 characters long with uppercase,
-              lowercase, and numbers
-            </p>
-          </div>
 
-          <div>
-            <Label
-              htmlFor="confirmPassword"
-              className="text-sm font-medium text-gray-700"
+            <Button
+              type="submit"
+              className="w-full h-12 bg-emerald-600 hover:bg-emerald-700"
+              disabled={
+                isLoading ||
+                !password ||
+                !confirmPassword ||
+                password.length < 8
+              }
             >
-              Confirm Password
-            </Label>
-            <Input
-              id="confirmPassword"
-              type={showPassword ? 'text' : 'password'}
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Confirm your new password"
-              className="h-12"
-              required
-              disabled={isLoading}
-            />
-          </div>
-
-          <Button
-            type="submit"
-            className="w-full h-12 bg-emerald-600 hover:bg-emerald-700"
-            disabled={
-              isLoading || !password || !confirmPassword || password.length < 8
-            }
+              {isLoading ? 'Resetting...' : 'Reset Password'}
+            </Button>
+          </form>
+        </div>
+        <div className="text-center pt-4">
+          <Link
+            href="/"
+            className="text-emerald-600 hover:text-emerald-700 text-sm"
           >
-            {isLoading ? 'Resetting...' : 'Reset Password'}
-          </Button>
-
-          <div className="text-center pt-4">
-            <Link
-              href="/"
-              className="text-emerald-600 hover:text-emerald-700 text-sm"
-            >
-              ← Back to Sign In
-            </Link>
-          </div>
-        </form>
+            ← Back to Sign In
+          </Link>
+        </div>
       </div>
     </div>
   )
