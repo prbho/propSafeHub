@@ -4,7 +4,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -59,6 +58,7 @@ import { Switch } from '@/components/ui/switch'
 import { Location } from '@/lib/locations/locationService'
 import { clientPropertyService } from '@/lib/properties/clientPropertyService'
 
+import ImageManager from '../properties/ImageManager'
 import ImageUpload from '../ui/ImageUpload'
 import { SafeRichTextEditor } from '../ui/SafeRichTextEditor'
 import LocationSearch from './LocationSearch'
@@ -81,10 +81,13 @@ export default function PropertyPostForm({
     null
   )
   const userType = params.userType as string
-  // const userId = params.id as string
 
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
-  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  // Image states - SIMPLIFIED VERSION
+  const [newImages, setNewImages] = useState<
+    Array<{ file: File; previewUrl: string }>
+  >([])
+  const [uploadingImages, setUploadingImages] = useState<string[]>([])
+
   const [pageLoading, setPageLoading] = useState(true)
   const [agentProfileId, setAgentProfileId] = useState<string>('')
   const [fetchingAgentProfile, setFetchingAgentProfile] = useState(false)
@@ -245,7 +248,7 @@ export default function PropertyPostForm({
           toast.error('Failed to load agent profile. Please refresh the page.')
         } finally {
           setFetchingAgentProfile(false)
-          setPageLoading(false) // ⭐ ADD THIS LINE
+          setPageLoading(false)
         }
       }
     }
@@ -263,7 +266,7 @@ export default function PropertyPostForm({
             ...prev,
             listedBy: 'owner',
           }))
-          setPageLoading(false) // ⭐ SET LOADING TO FALSE IMMEDIATELY FOR SELLERS
+          setPageLoading(false)
         }
 
         // Only fetch agent profile for agents
@@ -277,9 +280,9 @@ export default function PropertyPostForm({
   // Clean up function to revoke object URLs
   useEffect(() => {
     return () => {
-      imagePreviews.forEach((url) => URL.revokeObjectURL(url))
+      newImages.forEach((img) => URL.revokeObjectURL(img.previewUrl))
     }
-  }, [imagePreviews])
+  }, [newImages])
 
   // Update price unit based on status
   useEffect(() => {
@@ -318,8 +321,7 @@ export default function PropertyPostForm({
   }
 
   const handleTagsInputChange = (value: string) => {
-    setTagsInput(value) // Store raw input
-    // Only update formData.tags when we're done typing
+    setTagsInput(value)
     const tagsArray = value
       .split(',')
       .map((tag) => tag.trim())
@@ -346,31 +348,110 @@ export default function PropertyPostForm({
     }))
   }
 
-  const handleImageChange = async (files: File[]) => {
-    setUploadedFiles(files)
-
-    // Clean up old URLs
-    imagePreviews.forEach((url) => URL.revokeObjectURL(url))
-
-    // Convert files to base64 data URLs
-    const previewPromises = files.map((file) => {
-      return new Promise<string>((resolve) => {
-        const reader = new FileReader()
-        reader.onloadend = () => {
-          resolve(reader.result as string)
-        }
+  // HandleImageChange function - SIMPLIFIED
+  // In your PropertyPostForm.tsx - Update the handleImageChange function:
+  const handleImageChange = (files: File[]) => {
+    // This function is called by ImageUpload when files are selected
+    // We'll create preview URLs as data URLs
+    const newImageFiles = files.map((file) => {
+      // Create a data URL for preview
+      const reader = new FileReader()
+      const previewUrlPromise = new Promise<string>((resolve) => {
+        reader.onloadend = () => resolve(reader.result as string)
         reader.readAsDataURL(file)
       })
+
+      // For now, we'll store the promise, but in practice you'd need to handle this async
+      // Let's create a placeholder and update it when the data URL is ready
+      const placeholderUrl =
+        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCI+PHJlY3Qgd2lkdGg9IjEwMCIgaGVpZ2h0PSIxMDAiIGZpbGw9IiNmMGYwZjAiLz48dGV4dCB4PSI1MCIgeT0iNTUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZmlsbD0iIzY2NiI+TG9hZGluZy4uLjwvdGV4dD48L3N2Zz4='
+
+      return {
+        file,
+        previewUrl: placeholderUrl,
+      }
     })
 
-    const previewUrls = await Promise.all(previewPromises)
-    setImagePreviews(previewUrls)
+    setNewImages((prev) => {
+      const combined = [...prev, ...newImageFiles]
+      // Remove duplicates based on file name and size
+      const uniqueFiles = combined.reduce(
+        (acc, current) => {
+          const exists = acc.find(
+            (item) =>
+              item.file.name === current.file.name &&
+              item.file.size === current.file.size
+          )
+          if (!exists) {
+            acc.push(current)
+          }
+          return acc
+        },
+        [] as Array<{ file: File; previewUrl: string }>
+      )
+
+      return uniqueFiles.slice(0, 10) // Max 10 images
+    })
+
+    // Convert files to data URLs for preview
+    files.forEach((file, index) => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setNewImages((prev) => {
+          const newImages = [...prev]
+          const fileIndex = newImages.findIndex(
+            (img) => img.file.name === file.name && img.file.size === file.size
+          )
+          if (fileIndex !== -1) {
+            newImages[fileIndex] = {
+              ...newImages[fileIndex],
+              previewUrl: reader.result as string,
+            }
+          }
+          return newImages
+        })
+      }
+      reader.readAsDataURL(file)
+    })
   }
 
+  // Handler for deleting new images
+  const handleDeleteNewImage = (index: number) => {
+    setNewImages((prev) => {
+      const newImages = [...prev]
+      // Revoke the object URL to prevent memory leaks
+      URL.revokeObjectURL(newImages[index].previewUrl)
+      newImages.splice(index, 1)
+      return newImages
+    })
+  }
+
+  // Handler for setting new image as main
+  const handleSetNewAsMain = (index: number) => {
+    setNewImages((prev) => {
+      if (prev.length === 0) return prev
+
+      const newArray = [...prev]
+      const [selected] = newArray.splice(index, 1)
+      return [selected, ...newArray]
+    })
+  }
+
+  // Handler for reordering new images
+  const handleReorderNewImages = (
+    newOrder: Array<{ file: File; previewUrl: string }>
+  ) => {
+    setNewImages(newOrder)
+  }
+
+  // Update your uploadImagesToStorage function
   const uploadImagesToStorage = async (files: File[]): Promise<string[]> => {
     const uploadedImageUrls: string[] = []
 
-    for (const file of files) {
+    // Show uploading state
+    setUploadingImages(newImages.map((img) => img.previewUrl))
+
+    for (const [index, file] of files.entries()) {
       try {
         const formData = new FormData()
         formData.append('image', file)
@@ -389,12 +470,17 @@ export default function PropertyPostForm({
 
         const result = await response.json()
         uploadedImageUrls.push(result.fileUrl || result.fileId)
+
+        // Update uploading state
+        setUploadingImages((prev) => prev.slice(1)) // Remove one from the front
       } catch (error) {
         console.error('Error uploading image:', error)
-        throw new Error(`Failed to upload image: ${file.name}`)
+        throw error
       }
     }
 
+    // Clear uploading state
+    setUploadingImages([])
     return uploadedImageUrls
   }
 
@@ -424,6 +510,7 @@ export default function PropertyPostForm({
     }
   }
 
+  // HandleSubmit function
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -435,7 +522,8 @@ export default function PropertyPostForm({
       return
     }
 
-    if (uploadedFiles.length === 0) {
+    // FIXED: Check newImages instead of uploadedFiles
+    if (newImages.length === 0) {
       toast.error('Please upload at least one property image')
       return
     }
@@ -448,7 +536,10 @@ export default function PropertyPostForm({
     setIsSubmitting(true)
 
     try {
-      const imageUrls = await uploadImagesToStorage(uploadedFiles)
+      // IMPORTANT: Upload images in the correct order from newImages
+      const imageUrls = await uploadImagesToStorage(
+        newImages.map((img) => img.file)
+      )
 
       // Prepare property data based on user type
       const propertyData = {
@@ -467,7 +558,7 @@ export default function PropertyPostForm({
         }),
         listedBy: formData.listedBy,
         phone: user?.phone || '',
-        images: imageUrls,
+        images: imageUrls, // Use the uploaded image URLs
         propertyId: `property_${Date.now()}`,
       }
 
@@ -476,6 +567,7 @@ export default function PropertyPostForm({
         userType: user?.userType,
         agentId: user?.userType === 'agent' ? agentProfileId : 'seller',
         priceUnit: formData.priceUnit,
+        imagesCount: imageUrls.length,
       })
 
       const result = await clientPropertyService.createProperty(propertyData)
@@ -529,7 +621,7 @@ export default function PropertyPostForm({
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* IMAGES FIRST - Better UX */}
+        {/* IMAGES SECTION */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -537,41 +629,92 @@ export default function PropertyPostForm({
               Property Images *
             </CardTitle>
             <CardDescription>
-              Upload high-quality photos to showcase your property (First
-              impression matters!)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ImageUpload
-              onImagesChange={handleImageChange}
-              maxImages={10}
-              accept="image/*"
-            />
-            <p className="text-sm text-gray-500">
               Upload at least one image. Maximum 10 images allowed. Recommended:
               5+ images for best results.
-            </p>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Image Upload for adding new images */}
+            <div className="space-y-4">
+              <h4 className="text-sm font-medium text-gray-900">Add Images</h4>
+              <ImageUpload
+                value={newImages}
+                onChange={setNewImages}
+                onImagesChange={handleImageChange}
+                maxImages={10}
+                accept="image/*"
+              />
+            </div>
 
-            {imagePreviews.length > 0 && (
-              <div className="mt-4">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  Image Previews ({imagePreviews.length} images)
+            {/* ImageManager for managing uploaded images */}
+            {newImages.length > 0 && (
+              <div className="space-y-4">
+                {/* <h4 className="text-sm font-medium text-gray-900">
+                  Image Preview ({newImages.length}/10)
                 </h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {imagePreviews.map((previewUrl, index) => (
-                    <div
-                      key={index}
-                      className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden"
-                    >
-                      <Image
-                        src={previewUrl}
-                        alt={`Property image ${index + 1}`}
-                        className="w-full h-full object-cover"
-                        fill
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      />
+                <ImageManager
+                  existingImages={[]}
+                  imagesToDelete={[]}
+                  newImages={newImages}
+                  uploadingImages={uploadingImages}
+                  onDeleteImage={() => {}}
+                  onDeleteNewImage={handleDeleteNewImage}
+                  onSetAsMain={() => {}}
+                  onSetNewAsMain={handleSetNewAsMain}
+                  onReorder={() => {}}
+                  onReorderNewImages={handleReorderNewImages}
+                /> */}
+
+                {/* Instructions */}
+                <div className="flex items-start gap-3">
+                  <div>
+                    <div className="flex">
+                      <h5 className="font-medium text-sm mb-1">
+                        How to manage images
+                      </h5>
                     </div>
-                  ))}
+                    <ul className="text-xs text-gray-500 space-y-1">
+                      {/* <li>
+                        • <strong>Drag</strong> images to reorder them
+                      </li> */}
+                      <li>
+                        • <strong>First image</strong> is the main property
+                        photo
+                      </li>
+                      <li>
+                        • <strong>Hover</strong> over images to see remove
+                        action button
+                      </li>
+                      <li>
+                        • <strong>Remove</strong> images before uploading if
+                        needed
+                      </li>
+                      <li>
+                        • Images will be uploaded when you click &quot;
+                        <strong>Publish Property</strong>&quot;
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Image requirement reminder */}
+            {newImages.length === 0 && (
+              <div className="rounded-lg bg-amber-50 p-4 border border-amber-200">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-white rounded-lg">
+                    <Upload className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h5 className="font-semibold text-base text-amber-900">
+                      Image Requirement
+                    </h5>
+                    <p className="text-xs text-amber-700">
+                      You need to upload at least one property image. Properties
+                      with high-quality photos get 10x more views!
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -1519,7 +1662,7 @@ export default function PropertyPostForm({
               <Label htmlFor="tags">Tags (comma separated)</Label>
               <Input
                 id="tags"
-                value={tagsInput} // Use the raw input state
+                value={tagsInput}
                 onChange={(e) => handleTagsInputChange(e.target.value)}
                 placeholder="e.g., luxury, waterfront, new, renovated"
               />
@@ -1540,45 +1683,47 @@ export default function PropertyPostForm({
         </Card>
 
         {/* Submit Buttons */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex gap-4">
+
+        <div className="pt-6">
+          <div className="flex gap-4">
+            <Button
+              type="submit"
+              disabled={
+                isSubmitting ||
+                (user?.userType === 'agent' && !agentProfileId) ||
+                newImages.length === 0 // Added: disable if no images
+              }
+              className="flex-1 h-12 bg-linear-to-br from-gray-900 to-gray-600 hover:from-gray-600 hover:to-gray-700"
+              size="lg"
+            >
+              {isSubmitting ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Publishing...
+                </div>
+              ) : user?.userType === 'agent' && !agentProfileId ? (
+                'Agent Profile Required'
+              ) : newImages.length === 0 ? (
+                'Upload Images First'
+              ) : formData.status === 'short-let' ? (
+                'Publish Short-Let'
+              ) : (
+                'Publish Property'
+              )}
+            </Button>
+
+            {onCancel && (
               <Button
-                type="submit"
-                disabled={
-                  isSubmitting ||
-                  (user?.userType === 'agent' && !agentProfileId)
-                }
-                className="flex-1 bg-linear-to-br from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700"
+                type="button"
+                onClick={onCancel}
+                variant="outline"
                 size="lg"
               >
-                {isSubmitting ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Publishing...
-                  </div>
-                ) : user?.userType === 'agent' && !agentProfileId ? (
-                  'Agent Profile Required'
-                ) : formData.status === 'short-let' ? (
-                  'Publish Short-Let'
-                ) : (
-                  'Publish Property'
-                )}
+                Cancel
               </Button>
-
-              {onCancel && (
-                <Button
-                  type="button"
-                  onClick={onCancel}
-                  variant="outline"
-                  size="lg"
-                >
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            )}
+          </div>
+        </div>
       </form>
     </div>
   )

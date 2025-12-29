@@ -14,17 +14,16 @@ interface ImageUploadProps {
 
 interface ImageFile {
   file: File
-  previewUrl: string // This will be a data URL for preview
-  blobUrl?: string // Optional: keep blob URL for Appwrite if needed
+  previewUrl: string
+  blobUrl?: string
 }
 
-export default function ImageUpload({
+export default function EditImageUpload({
   value,
   onChange,
   onImagesChange,
   maxImages = 10,
   accept = 'image/*',
-  currentCount = 0,
 }: ImageUploadProps) {
   // Use internal state if no value prop (uncontrolled), otherwise use controlled value
   const [internalImageFiles, setInternalImageFiles] = useState<ImageFile[]>([])
@@ -135,26 +134,6 @@ export default function ImageUpload({
     [processFiles]
   )
 
-  const removeImage = useCallback(
-    (index: number) => {
-      // Calculate new files
-      const currentFiles = imageFilesRef.current
-      const newImageFiles = currentFiles.filter((_, i) => i !== index)
-
-      // Update the files
-      setImageFiles(newImageFiles)
-
-      // Schedule parent updates
-      requestAnimationFrame(() => {
-        // Call onImagesChange with just the files
-        if (onImagesChange) {
-          onImagesChange(newImageFiles.map((img) => img.file))
-        }
-      })
-    },
-    [onImagesChange, setImageFiles]
-  )
-
   const openFileDialog = useCallback(() => {
     const input = document.createElement('input')
     input.type = 'file'
@@ -222,42 +201,9 @@ export default function ImageUpload({
       </div>
 
       {/* Image Previews */}
-      {imageFiles.length > 0 && (
+      {/* {imageFiles.length > 0 && (
         <div>
-          <h4 className="text-sm font-medium text-gray-700 mb-3">
-            Selected Images ({imageFiles.length}/{maxImages})
-          </h4>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            {imageFiles.map((imageFile, index) => (
-              <div key={index} className="relative group">
-                <div className="aspect-square rounded-lg border border-gray-200 overflow-hidden bg-gray-100">
-                  <img
-                    src={imageFile.previewUrl}
-                    alt={`Property image ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      // If data URL fails, use a fallback
-                      const imgElement = e.currentTarget
-                      if (!imgElement || !isMounted.current) return
-
-                      imgElement.src =
-                        'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2YzZjNmMyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjOTk5IiBkeT0iLjNlbSI+SW1hZ2UgRXJyb3I8L3RleHQ+PC9zdmc+'
-                    }}
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeImage(index)}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-                <div className="absolute bottom-0 left-0 right-0 bg-black bg-opacity-50 text-white text-xs p-1 text-center">
-                  {index === 0 && 'Main Image'}
-                </div>
-              </div>
-            ))}
-
             {!hasReachedMax && (
               <button
                 type="button"
@@ -270,7 +216,7 @@ export default function ImageUpload({
             )}
           </div>
         </div>
-      )}
+      )} */}
     </div>
   )
 }

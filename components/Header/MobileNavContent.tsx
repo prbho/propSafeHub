@@ -7,12 +7,14 @@ import { useAuth } from '@/contexts/AuthContext'
 import {
   BadgeQuestionMark,
   Building,
+  Building2,
   Calculator,
   ChevronRight,
   FileCheck,
   Globe,
   Handshake,
   Heart,
+  HomeIcon,
   Plane,
   Shield,
   TrendingUp,
@@ -44,6 +46,67 @@ export default function MobileNavContent({
   const [openServices, setOpenServices] = useState(false)
   const [openAgents, setOpenAgents] = useState(false)
   const [openResources, setOpenResources] = useState(false)
+  // Determine dashboard link based on user type - UPDATED for dynamic URLs
+  const getDashboardLink = () => {
+    if (!user?.$id || !user?.userType) return '/dashboard'
+
+    // Use the dynamic URL pattern: /dashboard/[userType]/[id]
+    return `/dashboard/${user.userType}/${user.$id}`
+  }
+
+  // Get dashboard icon based on user type
+  const getDashboardIcon = () => {
+    if (!user) return <HomeIcon className="h-4 w-4 mr-2" />
+
+    switch (user.userType) {
+      case 'admin':
+        return <Shield className="h-4 w-4 mr-2" />
+      case 'agent':
+        return <Building2 className="h-4 w-4 mr-2" />
+      case 'seller':
+        return <HomeIcon className="h-4 w-4 mr-2" />
+      case 'buyer':
+        return <HomeIcon className="h-4 w-4 mr-2" />
+      default:
+        return <HomeIcon className="h-4 w-4 mr-2" />
+    }
+  }
+
+  // Get dashboard label based on user type
+  const getDashboardLabel = () => {
+    if (!user) return 'Dashboard'
+
+    switch (user.userType) {
+      case 'admin':
+        return 'Admin Dashboard'
+      case 'agent':
+        return 'Agent Dashboard'
+      case 'seller':
+        return 'Seller Dashboard'
+      case 'buyer':
+        return 'Buyer Dashboard'
+      default:
+        return 'Dashboard'
+    }
+  }
+
+  // Get profile link based on user type - UPDATED for dynamic URLs
+  const getProfileLink = () => {
+    if (!user?.$id || !user?.userType) return '/profile'
+
+    // Use the dynamic URL pattern: /profile/[userType]/[id]
+    return `/profile/${user.userType}/${user.$id}`
+  }
+
+  // Get list property link based on user type
+  const getListPropertyLink = () => {
+    if (user?.userType === 'agent') {
+      return '/properties/post' // Agents use the advanced property posting
+    } else if (user?.userType === 'seller') {
+      return '/list-property' // Regular sellers use simple listing
+    }
+    return '/list-property' // Fallback
+  }
 
   const handleLogout = () => {
     logout()
@@ -327,12 +390,12 @@ export default function MobileNavContent({
 
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" className="w-full" asChild>
-              <Link href="/profile" onClick={closeSheet}>
+              <Link href={getProfileLink()} onClick={closeSheet}>
                 My Profile
               </Link>
             </Button>
             <Button variant="outline" className="w-full" asChild>
-              <Link href="/list-property" onClick={closeSheet}>
+              <Link href={getListPropertyLink()} onClick={closeSheet}>
                 List Property
               </Link>
             </Button>
@@ -340,12 +403,16 @@ export default function MobileNavContent({
 
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" className="w-full" asChild>
-              <Link href="/dashboard" onClick={closeSheet}>
+              <Link href={getDashboardLink()} onClick={closeSheet}>
                 Dashboard
               </Link>
             </Button>
             <Button variant="outline" className="w-full" asChild>
-              <Link href="/my-properties" onClick={closeSheet}>
+              <Link
+                href={`/dashboard/agent/${user?.$id || ''}/properties`}
+                onClick={closeSheet}
+              >
+                {' '}
                 My Properties
               </Link>
             </Button>

@@ -31,7 +31,6 @@ export interface Property {
   originalPrice?: number
   priceHistory?: PriceHistory[]
   address: string
-  paymentOutright: string
   phone: string
   city: string
   state: string
@@ -72,6 +71,7 @@ export interface Property {
   cancellationPolicy?: 'flexible' | 'moderate' | 'strict'
 
   // paymentOptions
+  paymentOutright: boolean
   outright: boolean
   paymentPlan: boolean
   mortgageEligible: boolean
@@ -80,8 +80,8 @@ export interface Property {
   customPlanMonths: number
 
   // analytics
-  leads?: number // Add this
-  conversionRate?: number // Add this
+  leads?: number
+  conversionRate?: number
 }
 
 export interface PriceHistory {

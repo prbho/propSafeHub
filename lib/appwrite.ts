@@ -470,3 +470,27 @@ export const getCurrentUser = async () => {
     throw error
   }
 }
+
+// Delete Property Images
+export async function deleteImageFromStorage(imageUrl: string): Promise<void> {
+  try {
+    // Extract file ID from URL
+    const urlParts = imageUrl.split('/')
+    const fileId = urlParts[urlParts.length - 1]
+
+    await storage.deleteFile(STORAGE_BUCKET_ID, fileId)
+    console.log('✅ Deleted image:', fileId)
+  } catch (error) {
+    console.error('❌ Error deleting image:', error)
+    // Don't throw - we'll continue even if one image fails
+  }
+}
+
+// Bulk delete function
+export async function deleteImagesFromStorage(
+  imageUrls: string[]
+): Promise<void> {
+  for (const url of imageUrls) {
+    await deleteImageFromStorage(url)
+  }
+}

@@ -2,7 +2,6 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -11,6 +10,13 @@ import {
   PROPERTY_FEATURES,
   PROPERTY_TYPES,
 } from '@/types'
+import {
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { arrayMove } from '@dnd-kit/sortable'
 import {
   AlertTriangle,
   Bath,
@@ -51,10 +57,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { databases } from '@/lib/appwrite'
+import { databases, storage, STORAGE_BUCKET_ID } from '@/lib/appwrite'
 import { Location } from '@/lib/locations/locationService'
 
-import ImageUpload from '../ui/ImageUpload'
+import ImageManager from '../properties/ImageManager'
+import EditImageUpload from '../ui/EditImageUpload'
 import { SafeRichTextEditor } from '../ui/SafeRichTextEditor'
 import { Switch } from '../ui/switch'
 import LocationSearch from './LocationSearch'
@@ -68,12 +75,17 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(
     null
   )
+  const [uploadingImages, setUploadingImages] = useState<string[]>([]) // Track currently uploading images
+  const [isUploading, setIsUploading] = useState(false)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
-  const [existingImages, setExistingImages] = useState<string[]>(
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([])
+  const [orderedImages, setOrderedImages] = useState<string[]>(
     property.images || []
   )
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -82,6 +94,15 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     null
   )
   const [lastSaved, setLastSaved] = useState<Date | null>(null)
+
+  // Initialize DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
+  )
 
   const [formData, setFormData] = useState({
     // Basic Information
@@ -144,6 +165,11 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     availabilityEnd: property.availabilityEnd || '',
   })
 
+  // Sync orderedImages when property changes
+  useEffect(() => {
+    setOrderedImages(property.images || [])
+  }, [property.images])
+
   // House rules for short-let
   const houseRulesList = [
     'No smoking',
@@ -182,7 +208,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     'Breakfast Included',
   ]
 
-  // Check authentication and ownership - UPDATED FIX
+  // Check authentication and ownership
   useEffect(() => {
     if (!authLoading && user) {
       // Allow both agents and sellers
@@ -330,20 +356,133 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
         ? prev[field]?.filter((item) => item !== value)
         : [...(prev[field] || []), value],
     }))
-  }
-
-  const handleImageChange = (files: File[]) => {
-    setUploadedFiles(files)
-    imagePreviews.forEach((url) => URL.revokeObjectURL(url))
-    const previewUrls = files.map((file) => URL.createObjectURL(file))
-    setImagePreviews(previewUrls)
     markChanges()
   }
 
+  const handleImageChange = async (files: File[]) => {
+    setUploadedFiles(files)
+
+    // Convert files to data URLs for reliable previews
+    const previewPromises = files.map(async (file) => {
+      return new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.readAsDataURL(file) // Use readAsDataURL instead of blob URL
+      })
+    })
+
+    const previewUrls = await Promise.all(previewPromises)
+    setImagePreviews(previewUrls)
+
+    markChanges()
+  }
+
+  // Clean up blob URLs when component unmounts
+  useEffect(() => {
+    return () => {
+      imagePreviews.forEach((url) => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url)
+        }
+      })
+    }
+  }, [imagePreviews])
+
+  // Function to extract file ID from Appwrite URL
+  const extractFileIdFromUrl = (imageUrl: string): string | null => {
+    try {
+      // Example Appwrite URL: https://cloud.appwrite.io/v1/storage/buckets/[BUCKET_ID]/files/[FILE_ID]/view
+      const urlParts = imageUrl.split('/')
+
+      // Look for 'files' in the URL path
+      const filesIndex = urlParts.findIndex((part) => part === 'files')
+      if (filesIndex !== -1 && filesIndex + 1 < urlParts.length) {
+        const fileIdWithQuery = urlParts[filesIndex + 1]
+        // Remove any query parameters
+        return fileIdWithQuery.split('?')[0]
+      }
+
+      // Alternative pattern: direct file ID
+      if (imageUrl.includes('/files/')) {
+        const match = imageUrl.match(/\/files\/([^/?]+)/)
+        return match ? match[1] : null
+      }
+
+      console.warn('Could not extract file ID from URL:', imageUrl)
+      return null
+    } catch (error) {
+      console.error('Error extracting file ID:', error)
+      return null
+    }
+  }
+
+  // Function to delete an image from Appwrite storage
+  const deleteImageFromStorage = async (imageUrl: string): Promise<void> => {
+    try {
+      const fileId = extractFileIdFromUrl(imageUrl)
+      if (!fileId) {
+        console.warn('No file ID found for URL:', imageUrl)
+        return
+      }
+
+      console.log('Deleting file from storage:', { fileId, imageUrl })
+      await storage.deleteFile(STORAGE_BUCKET_ID, fileId)
+      console.log('✅ Deleted image from storage:', fileId)
+    } catch (error: any) {
+      console.error('❌ Error deleting image from storage:', {
+        error: error.message,
+        imageUrl,
+      })
+      // Don't throw - we'll continue even if one image fails
+    }
+  }
+
+  // Handler for deleting an image
+  const handleDeleteImage = (imageUrl: string) => {
+    if (orderedImages.includes(imageUrl)) {
+      // Remove from display order
+      const newOrder = orderedImages.filter((img) => img !== imageUrl)
+      setOrderedImages(newOrder)
+
+      // Add to deletion queue (only for existing images)
+      if (property.images?.includes(imageUrl)) {
+        setImagesToDelete((prev) => [...prev, imageUrl])
+      }
+
+      markChanges()
+    }
+  }
+
+  // Handler for setting main image
+  const handleSetMainImage = (imageUrl: string) => {
+    const newOrder = [...orderedImages]
+    const filtered = newOrder.filter((img) => img !== imageUrl)
+    setOrderedImages([imageUrl, ...filtered])
+    markChanges()
+  }
+
+  // Handler for drag and drop reordering
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over && active.id !== over.id) {
+      const oldIndex = orderedImages.findIndex((img) => img === active.id)
+      const newIndex = orderedImages.findIndex((img) => img === over.id)
+      const newOrder = arrayMove(orderedImages, oldIndex, newIndex)
+      setOrderedImages(newOrder)
+      markChanges()
+    }
+  }
+
+  // UploadImagesToStorage function to track upload progress
   const uploadImagesToStorage = async (files: File[]): Promise<string[]> => {
     const uploadedImageUrls: string[] = []
 
-    for (const file of files) {
+    // Add to uploading state
+    setUploadingImages(files.map((file) => URL.createObjectURL(file)))
+    setIsUploading(true)
+
+    for (const [index, file] of files.entries()) {
       try {
         const formData = new FormData()
         formData.append('image', file)
@@ -354,20 +493,24 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
         })
 
         if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(
-            errorData.error || `Failed to upload image: ${response.statusText}`
-          )
+          throw new Error(`Failed to upload image: ${file.name}`)
         }
 
         const result = await response.json()
-        uploadedImageUrls.push(result.fileUrl || result.fileId)
+        uploadedImageUrls.push(result.fileUrl)
+
+        // Remove from uploading state
+        setUploadingImages((prev) =>
+          prev.filter((url) => url !== URL.createObjectURL(file))
+        )
       } catch (error) {
         console.error('Error uploading image:', error)
-        throw new Error(`Failed to upload image: ${file.name}`)
+        // Keep in uploading state to show error
       }
     }
 
+    setIsUploading(false)
+    setUploadingImages([])
     return uploadedImageUrls
   }
 
@@ -382,33 +525,85 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     setIsSubmitting(true)
 
     try {
-      let imageUrls = [...existingImages]
-
-      // Upload new images if any
-      if (uploadedFiles.length > 0) {
-        const newImageUrls = await uploadImagesToStorage(uploadedFiles)
-        imageUrls = [...imageUrls, ...newImageUrls]
+      // 1. Delete marked images from Appwrite storage
+      if (imagesToDelete.length > 0) {
+        try {
+          const deletePromises = imagesToDelete.map((url) =>
+            deleteImageFromStorage(url)
+          )
+          await Promise.allSettled(deletePromises)
+          toast.success(
+            `Deleted ${imagesToDelete.length} image(s) from storage`
+          )
+        } catch (error) {
+          console.error('Error deleting images:', error)
+          toast.error(
+            'Failed to delete some images, but property will still be updated'
+          )
+        }
       }
 
-      // Update property data
+      // 2. Upload new images if any
+      let allImageUrls = [...orderedImages]
+
+      if (uploadedFiles.length > 0) {
+        try {
+          const newImageUrls = await uploadImagesToStorage(uploadedFiles)
+          allImageUrls = [...allImageUrls, ...newImageUrls]
+          toast.success(`Uploaded ${newImageUrls.length} new image(s)`)
+        } catch (error) {
+          console.error('Error uploading new images:', error)
+          toast.error('Failed to upload some new images')
+        }
+      }
+
+      // 3. Prepare update data - CORRECTED FIELD NAMES
       const updateData = {
         ...formData,
-        images: imageUrls,
+        // Use the correct field name for paymentOutright
+        paymentOutright: formData.paymentOutright, // This should be boolean
+        // Ensure images are properly included
+        images: allImageUrls,
         lastUpdated: new Date().toISOString(),
+        // Ensure paymentPlan is included
+        paymentPlan: formData.paymentPlan,
+        // Ensure mortgageEligible is included
+        mortgageEligible: formData.mortgageEligible,
+        // Ensure customPlanAvailable is included
+        customPlanAvailable: formData.customPlanAvailable,
+        // Ensure customPlanDepositPercent is included
+        customPlanDepositPercent: formData.customPlanDepositPercent,
+        // Ensure customPlanMonths is included
+        customPlanMonths: formData.customPlanMonths,
       }
+
+      console.log('📤 Updating property with:', {
+        propertyId: property.$id,
+        imagesCount: allImageUrls.length,
+        images: allImageUrls,
+        paymentOutright: updateData.paymentOutright,
+        paymentPlan: updateData.paymentPlan,
+      })
 
       const databaseId =
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'propertyDB'
       const propertiesCollectionId =
         process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID || 'properties'
 
-      await databases.updateDocument(
+      // 4. Update the property document
+      const result = await databases.updateDocument(
         databaseId,
         propertiesCollectionId,
         property.$id,
         updateData
       )
 
+      console.log('✅ Property updated successfully:', result)
+
+      // Clear states
+      setImagesToDelete([])
+      setUploadedFiles([])
+      setImagePreviews([])
       setHasUnsavedChanges(false)
       setLastSaved(new Date())
       if (autoSaveTimer) {
@@ -417,18 +612,72 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
       }
 
       toast.success('Property updated successfully!')
-      if (user) {
-        router.push(`/dashboard/${user.userType}/${user.$id}/properties`)
-      }
-    } catch {
-      toast.error('Failed to update property listing')
+
+      // Refresh the page to show updated images
+      setTimeout(() => {
+        if (user) {
+          router.refresh()
+          router.push(
+            `/dashboard/${user.userType}/${user.$id}/properties?updated=true`
+          )
+        }
+      }, 1000)
+    } catch (error: any) {
+      console.error('❌ Error updating property:', error)
+      toast.error(error.message || 'Failed to update property listing')
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  // Handler for deleting new images before upload
+  const handleDeleteNewImage = (index: number) => {
+    const newFiles = [...uploadedFiles]
+    const newPreviews = [...imagePreviews]
+
+    // Revoke the preview URL
+    URL.revokeObjectURL(newPreviews[index])
+
+    newFiles.splice(index, 1)
+    newPreviews.splice(index, 1)
+
+    setUploadedFiles(newFiles)
+    setImagePreviews(newPreviews)
+    markChanges()
+  }
+
+  // Handler for setting new image as main
+  const handleSetNewAsMain = (index: number) => {
+    const newFiles = [...uploadedFiles]
+    const newPreviews = [...imagePreviews]
+
+    // Move selected file to beginning
+    const [movedFile] = newFiles.splice(index, 1)
+    const [movedPreview] = newPreviews.splice(index, 1)
+
+    setUploadedFiles([movedFile, ...newFiles])
+    setImagePreviews([movedPreview, ...newPreviews])
+    markChanges()
+  }
+
   const handleDelete = async () => {
+    setIsDeleting(true)
+
     try {
+      // First delete all images from storage
+      if (orderedImages.length > 0) {
+        try {
+          for (const imageUrl of orderedImages) {
+            await deleteImageFromStorage(imageUrl)
+          }
+          toast.success('All property images deleted')
+        } catch (error) {
+          console.error('Error deleting property images:', error)
+          // Continue with property deletion even if image deletion fails
+        }
+      }
+
+      // Then delete the property document
       const databaseId =
         process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'propertyDB'
       const propertiesCollectionId =
@@ -450,6 +699,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
       console.error('Error deleting property:', error)
       toast.error('Failed to delete property')
     }
+    setIsDeleting(false)
   }
 
   const handleSaveDraft = async () => {
@@ -468,9 +718,15 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
 
       const draftData = {
         ...formData,
+        images: orderedImages, // Use current ordered images
         isActive: false, // Mark as draft
         lastUpdated: new Date().toISOString(),
+        paymentOutright: formData.paymentOutright,
+        paymentPlan: formData.paymentPlan,
+        mortgageEligible: formData.mortgageEligible,
       }
+
+      console.log('💾 Saving draft with images:', orderedImages)
 
       await databases.updateDocument(
         databaseId,
@@ -487,9 +743,9 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
       }
 
       toast.success('Draft saved successfully!')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving draft:', error)
-      toast.error('Failed to save draft')
+      toast.error(error.message || 'Failed to save draft')
     } finally {
       setIsSubmitting(false)
     }
@@ -504,37 +760,9 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
     setIsSubmitting(true)
 
     try {
-      const databaseId =
-        process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID || 'propertyDB'
-      const propertiesCollectionId =
-        process.env.NEXT_PUBLIC_APPWRITE_PROPERTIES_TABLE_ID || 'properties'
-
-      const publishData = {
-        ...formData,
-        isActive: true, // Mark as published
-        lastUpdated: new Date().toISOString(),
-      }
-
-      await databases.updateDocument(
-        databaseId,
-        propertiesCollectionId,
-        property.$id,
-        publishData
-      )
-
-      setHasUnsavedChanges(false)
-      setLastSaved(new Date())
-      if (autoSaveTimer) {
-        clearTimeout(autoSaveTimer)
-        setAutoSaveTimer(null)
-      }
-
-      toast.success('Property published successfully!')
-      if (user) {
-        router.push(`/dashboard/${user.userType}/${user.$id}/properties`)
-      } else {
-        router.push('/dashboard')
-      }
+      // Use the same logic as handleSubmit for consistency
+      const form = document.createElement('form')
+      await handleSubmit({ preventDefault: () => {} } as React.FormEvent)
     } catch (error) {
       console.error('Error publishing property:', error)
       toast.error('Failed to publish property')
@@ -593,7 +821,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
   }
 
   return (
-    <div className="min-h-screen ">
+    <div className="min-h-screen">
       {/* Header */}
       <div className="sticky top-0 z-10">
         <div className="">
@@ -601,7 +829,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
             <div className="flex items-center gap-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-900">
-                  {property.title}{' '}
+                  {property.title}
                 </h2>
               </div>
             </div>
@@ -639,6 +867,121 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Main Content - 3/4 width */}
           <div className="lg:col-span-3 space-y-6">
+            {/* IMAGES WITH DRAG & DROP MANAGEMENT */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <Upload className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg">Property Images</CardTitle>
+                    <CardDescription>
+                      Manage your property photos. Drag to reorder, set a main
+                      image, or delete.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Image Manager for Existing Images */}
+                {orderedImages.length > 0 && (
+                  <div className="space-y-4">
+                    <ImageManager
+                      existingImages={orderedImages}
+                      imagesToDelete={imagesToDelete}
+                      newImages={uploadedFiles.map((file, index) => ({
+                        file,
+                        previewUrl: imagePreviews[index],
+                      }))}
+                      uploadingImages={uploadingImages}
+                      onDeleteImage={handleDeleteImage}
+                      onDeleteNewImage={handleDeleteNewImage}
+                      onSetAsMain={handleSetMainImage}
+                      onSetNewAsMain={handleSetNewAsMain}
+                      onReorder={setOrderedImages}
+                      onReorderNewImages={(newOrder) => {
+                        setUploadedFiles(newOrder.map((item) => item.file))
+                        setImagePreviews(
+                          newOrder.map((item) => item.previewUrl)
+                        )
+                        markChanges()
+                      }}
+                      isUploading={isUploading}
+                    />
+                  </div>
+                )}
+
+                {/* Image Upload for New Images */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-medium text-gray-900">
+                    Add New Images ({imagePreviews.length} selected)
+                  </h4>
+                  <EditImageUpload
+                    onImagesChange={handleImageChange}
+                    maxImages={10 - orderedImages.length}
+                    accept="image/*"
+                  />
+
+                  {/* New Image Previews */}
+                  {/* {imagePreviews.length > 0 && (
+                    <div className="mt-4">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {imagePreviews.map((previewUrl, index) => (
+                          <div
+                            key={index}
+                            className="relative aspect-square rounded-lg border border-gray-200 overflow-hidden"
+                          >
+                            <Image
+                              src={previewUrl}
+                              alt={`New image ${index + 1}`}
+                              className="w-full h-full object-cover"
+                              fill
+                              sizes="(max-width: 768px) 50vw, 25vw"
+                            />
+                            <div className="absolute bottom-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
+                              New
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )} */}
+                </div>
+
+                {/* Instructions */}
+                {/* <div className="rounded-lg bg-emerald-50 p-4 border border-emerald-50">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 bg-emerald-100 border-emerald-50 rounded-lg">
+                      <Upload className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <h5 className="font-medium text-sm text-gray-900 mb-1">
+                        How to manage images
+                      </h5>
+                      <ul className="text-xs text-gray-600 space-y-1">
+                        <li>
+                          • <strong>Drag</strong> images to reorder them
+                        </li>
+                        <li>
+                          • <strong>First image</strong> is the main property
+                          photo
+                        </li>
+                        <li>
+                          • <strong>Hover</strong> over images to see action
+                          buttons
+                        </li>
+                        <li>
+                          • <strong>Deleted images</strong> will be removed from
+                          storage when you save
+                        </li>
+                        <li>• Maximum of 10 images total</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div> */}
+              </CardContent>
+            </Card>
             {/* Basic Information */}
             <Card>
               <CardHeader>
@@ -1578,92 +1921,6 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
               </CardContent>
             </Card>
 
-            {/* Images */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-pink-100 rounded-lg">
-                    <Upload className="w-5 h-5 text-pink-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="text-lg">Property Images</CardTitle>
-                    <CardDescription>
-                      Upload new photos (existing images preserved)
-                    </CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <ImageUpload
-                  onImagesChange={handleImageChange}
-                  maxImages={10 - existingImages.length}
-                  accept="image/*"
-                />
-                <p className="text-sm text-gray-500">
-                  Upload new images to add to existing ones. You can upload up
-                  to {10 - existingImages.length} more images.
-                </p>
-
-                {/* Existing Images */}
-                {existingImages.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="text-sm font-medium text-gray-900 mb-3">
-                      Existing Images ({existingImages.length})
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {existingImages.map((imageUrl, index) => (
-                        <div
-                          key={index}
-                          className="relative group aspect-square rounded-lg border border-gray-200 overflow-hidden shadow-sm"
-                        >
-                          <Image
-                            src={imageUrl}
-                            alt={`Property image ${index + 1}`}
-                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-300"
-                            fill
-                            sizes="(max-width: 768px) 50vw, 25vw"
-                          />
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300" />
-                          <span className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                            {index + 1}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* New Image Previews */}
-                {imagePreviews.length > 0 && (
-                  <div className="mt-6">
-                    <h4 className="text-sm font-medium text-gray-900 mb-3">
-                      New Images ({imagePreviews.length})
-                    </h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {imagePreviews.map((previewUrl, index) => (
-                        <div
-                          key={index}
-                          className="relative group aspect-square rounded-lg border border-gray-200 overflow-hidden shadow-sm"
-                        >
-                          <Image
-                            src={previewUrl}
-                            alt={`New image ${index + 1}`}
-                            className="object-cover w-full h-full"
-                            fill
-                            sizes="(max-width: 768px) 50vw, 25vw"
-                          />
-                          <div className="absolute inset-0 bg-linear-to-t from-black/60 via-black/0 to-black/0" />
-                          <div className="absolute bottom-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
-                            New
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             {/* Payment Options */}
             <Card>
               <CardHeader>
@@ -1901,9 +2158,9 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                       {property.isActive ? 'Published' : 'Draft'}
                     </span>
                   </div>
-                  <span className="text-xs px-2 py-1 bg-gray-100 rounded">
+                  {/* <span className="text-xs px-2 py-1 bg-gray-100 rounded">
                     ID: {property.$id.substring(0, 8)}
-                  </span>
+                  </span> */}
                 </div>
 
                 {/* Progress Summary */}
@@ -2036,6 +2293,7 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                             variant="outline"
                             size="sm"
                             className="flex-1"
+                            disabled={isSubmitting}
                           >
                             Cancel
                           </Button>
@@ -2045,8 +2303,9 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                             variant="destructive"
                             size="sm"
                             className="flex-1"
+                            disabled={isSubmitting}
                           >
-                            Delete
+                            {isSubmitting ? 'Deleting...' : 'Delete'}
                           </Button>
                         </div>
                       </CardContent>
@@ -2058,8 +2317,9 @@ export default function PropertyEditForm({ property }: PropertyEditFormProps) {
                       variant="outline"
                       className="w-full border-red-300 text-red-700 hover:bg-red-50 hover:text-red-800 hover:border-red-400"
                       size="lg"
+                      disabled={isSubmitting}
                     >
-                      Delete Property
+                      {isSubmitting ? 'Deleting...' : 'Delete Property'}
                     </Button>
                   )}
                 </div>

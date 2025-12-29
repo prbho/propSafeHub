@@ -11,9 +11,7 @@ import {
   FileCheck,
   Globe,
   Handshake,
-  Home,
   Plane,
-  ShieldCheck,
   TrendingUp,
   Users,
 } from 'lucide-react'
