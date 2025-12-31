@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let userDoc
       let collectionId = USERS_COLLECTION_ID
       let agentDocumentId: string | undefined = undefined
+      let avatarUrl: string | undefined = undefined // Add this variable
 
       // First try users collection
       try {
@@ -83,17 +84,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (agentProfiles.documents.length > 0) {
               const agentProfile = agentProfiles.documents[0]
               agentDocumentId = agentProfile.$id
+
+              // ✅ CRITICAL: Use agent's avatar if available
+              avatarUrl = agentProfile.avatar || userDoc.avatar
+
               console.log('✅ Found agent profile for user:', {
                 userAccountId: userId,
                 agentDocumentId: agentProfile.$id,
-                agentName: agentProfile.name,
+                agentAvatar: agentProfile.avatar ? 'Set' : 'Not set',
+                userAvatar: userDoc.avatar ? 'Set' : 'Not set',
+                finalAvatar: avatarUrl ? 'Set' : 'Not set',
               })
             } else {
               console.log('⚠️ User is agent type but no agent profile found')
+              avatarUrl = userDoc.avatar // Fall back to user avatar
             }
           } catch (agentError) {
             console.log('⚠️ Could not search for agent profile:', agentError)
+            avatarUrl = userDoc.avatar // Fall back to user avatar
           }
+        } else {
+          // Regular user - use user's avatar
+          avatarUrl = userDoc.avatar
         }
       } catch {
         // If not found in users, try agents collection
@@ -105,6 +117,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           )
           collectionId = AGENTS_COLLECTION_ID
           agentDocumentId = userDoc.$id // This IS the agent document
+
+          // ✅ Direct agent login - use agent's avatar
+          avatarUrl = userDoc.avatar
+
           console.log('✅ User found in AGENTS collection (direct agent login)')
         } catch {
           return null
@@ -117,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: userDoc.name,
         userType: userDoc.userType,
         emailVerified: userDoc.emailVerified,
-        avatar: userDoc.avatar,
+        avatar: avatarUrl ? 'Set' : 'Not set', // Log the determined avatar
         collection: collectionId === USERS_COLLECTION_ID ? 'users' : 'agents',
         agentDocumentId,
       })
@@ -139,7 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailVerifiedAt: userDoc.emailVerifiedAt,
         savedSearches: userDoc.savedSearches || [],
         favoriteProperties: userDoc.favoriteProperties || [],
-        avatar: userDoc.avatar,
+        avatar: avatarUrl || userDoc.avatar || '', // ✅ Use the determined avatar URL
         bio: userDoc.bio,
         city: userDoc.city,
         state: userDoc.state,
@@ -156,7 +172,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (userDoc.state) userObject.state = userDoc.state
 
       // Add agent-specific fields if user is an agent
-      if (collectionId === AGENTS_COLLECTION_ID) {
+      // Check both collectionId AND userType for agent-specific fields
+      if (
+        collectionId === AGENTS_COLLECTION_ID ||
+        userDoc.userType === 'agent'
+      ) {
         userObject.agency = userDoc.agency
         userObject.licenseNumber = userDoc.licenseNumber
         userObject.yearsExperience = userDoc.yearsExperience
@@ -345,7 +365,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // CORRECTED refreshUser function (single implementation)
+  // refreshUser function (single implementation)
   const refreshUser = async () => {
     try {
       console.log('🔄 Refreshing user data...')
@@ -362,7 +382,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: updatedUserDoc.name,
           email: updatedUserDoc.email,
           userType: updatedUserDoc.userType,
-          isAgent: updatedUserDoc.userType === 'agent',
+          avatar: updatedUserDoc.avatar, // Check if avatar is included
+          collection: updatedUserDoc.userType === 'agent' ? 'agents' : 'users',
         })
 
         setAuthState((prev) => ({

@@ -6,8 +6,8 @@ import { ID, Models, Query } from 'appwrite'
 
 import {
   DATABASE_ID,
+  databases,
   PAYMENT_COLLECTION_ID,
-  serverDatabases,
 } from '../appwrite-server'
 import { PREMIUM_PLANS } from './premium-service'
 
@@ -76,7 +76,7 @@ export class PaymentService {
   static async createPaymentRecord(paymentData: any): Promise<PaymentRecord> {
     const plan = PREMIUM_PLANS[paymentData.metadata.planType as PlanType]
 
-    const paymentDoc = await serverDatabases.createDocument(
+    const paymentDoc = await databases.createDocument(
       DATABASE_ID,
       PAYMENT_COLLECTION_ID,
       ID.unique(),
@@ -122,7 +122,7 @@ export class PaymentService {
     reference: string
   ): Promise<PaymentRecord | null> {
     try {
-      const result = await serverDatabases.listDocuments(
+      const result = await databases.listDocuments(
         DATABASE_ID,
         PAYMENT_COLLECTION_ID,
         [Query.equal('gatewayReference', reference)]

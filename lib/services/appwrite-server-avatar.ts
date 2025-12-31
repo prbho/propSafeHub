@@ -5,7 +5,7 @@ import { ID, Permission, Role } from 'appwrite'
 
 import {
   DATABASE_ID,
-  serverDatabases,
+  databases,
   serverStorage,
   STORAGE_BUCKET_ID,
   USERS_COLLECTION_ID,
@@ -74,12 +74,9 @@ export async function uploadAvatarServer(
     }
 
     // Update user document with avatar URL
-    await serverDatabases.updateDocument(
-      DATABASE_ID,
-      USERS_COLLECTION_ID,
-      userId,
-      { avatar: avatarUrl }
-    )
+    await databases.updateDocument(DATABASE_ID, USERS_COLLECTION_ID, userId, {
+      avatar: avatarUrl,
+    })
 
     console.log('✅ Server: User document updated with avatar URL')
 

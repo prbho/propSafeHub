@@ -6,8 +6,8 @@ import { ID, Models, Query } from 'appwrite'
 
 import {
   DATABASE_ID,
+  databases,
   PREMIUM_COLLECTION_ID,
-  serverDatabases,
 } from '../appwrite-server'
 import { PropertyService } from './property-service' // Add this import
 
@@ -80,7 +80,7 @@ export class PremiumListingService {
       Date.now() + plan.duration * 24 * 60 * 60 * 1000
     ).toISOString()
 
-    const premiumListing = await serverDatabases.createDocument(
+    const premiumListing = await databases.createDocument(
       DATABASE_ID,
       PREMIUM_COLLECTION_ID,
       ID.unique(),
@@ -107,7 +107,7 @@ export class PremiumListingService {
   static async getActivePremiumListings(): Promise<PremiumListing[]> {
     const now = new Date().toISOString()
 
-    const result = await serverDatabases.listDocuments(
+    const result = await databases.listDocuments(
       DATABASE_ID,
       PREMIUM_COLLECTION_ID,
       [
@@ -125,7 +125,7 @@ export class PremiumListingService {
   static async isPropertyPremium(propertyId: string): Promise<boolean> {
     const now = new Date().toISOString()
 
-    const result = await serverDatabases.listDocuments(
+    const result = await databases.listDocuments(
       DATABASE_ID,
       PREMIUM_COLLECTION_ID,
       [
@@ -144,7 +144,7 @@ export class PremiumListingService {
   ): Promise<PremiumListing[]> {
     const now = new Date().toISOString()
 
-    const result = await serverDatabases.listDocuments(
+    const result = await databases.listDocuments(
       DATABASE_ID,
       PREMIUM_COLLECTION_ID,
       [
@@ -160,13 +160,13 @@ export class PremiumListingService {
 
   // Record impression
   static async recordImpression(premiumListingId: string): Promise<void> {
-    const listing = await serverDatabases.getDocument(
+    const listing = await databases.getDocument(
       DATABASE_ID,
       PREMIUM_COLLECTION_ID,
       premiumListingId
     )
 
-    await serverDatabases.updateDocument(
+    await databases.updateDocument(
       DATABASE_ID,
       PREMIUM_COLLECTION_ID,
       premiumListingId,
@@ -178,13 +178,13 @@ export class PremiumListingService {
 
   // Record click
   static async recordClick(premiumListingId: string): Promise<void> {
-    const listing = await serverDatabases.getDocument(
+    const listing = await databases.getDocument(
       DATABASE_ID,
       PREMIUM_COLLECTION_ID,
       premiumListingId
     )
 
-    await serverDatabases.updateDocument(
+    await databases.updateDocument(
       DATABASE_ID,
       PREMIUM_COLLECTION_ID,
       premiumListingId,
@@ -202,7 +202,7 @@ export class PremiumListingService {
       const now = new Date().toISOString()
 
       // Find active listings that have expired
-      const expiredListings = await serverDatabases.listDocuments(
+      const expiredListings = await databases.listDocuments(
         DATABASE_ID,
         PREMIUM_COLLECTION_ID,
         [Query.equal('status', 'active'), Query.lessThanEqual('endDate', now)]
@@ -210,7 +210,7 @@ export class PremiumListingService {
 
       // Update expired listings
       const updatePromises = expiredListings.documents.map((listing) =>
-        serverDatabases.updateDocument(
+        databases.updateDocument(
           DATABASE_ID,
           PREMIUM_COLLECTION_ID,
           listing.$id,

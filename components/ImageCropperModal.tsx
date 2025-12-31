@@ -1,4 +1,3 @@
-// components/ImageCropperModal.tsx
 'use client'
 
 import { useCallback, useState } from 'react'
@@ -25,17 +24,10 @@ export default function ImageCropperModal({
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const onCropChange = (crop: { x: number; y: number }) => {
-    setCrop(crop)
-  }
-
-  const onZoomChange = (zoom: number) => {
-    setZoom(zoom)
-  }
-
-  const onRotationChange = (rotation: number) => {
-    setRotation(rotation)
-  }
+  console.log(
+    '🖼️ ImageCropperModal received image URL:',
+    image?.substring?.(0, 100)
+  )
 
   const onCropAreaChange = useCallback(
     (croppedArea: Area, croppedAreaPixels: Area) => {
@@ -47,9 +39,16 @@ export default function ImageCropperModal({
   const createImage = (url: string): Promise<HTMLImageElement> =>
     new Promise((resolve, reject) => {
       const image = new Image()
-      image.addEventListener('load', () => resolve(image))
-      image.addEventListener('error', (error) => reject(error))
-      image.setAttribute('crossOrigin', 'anonymous') // needed to avoid cross-origin issues
+      image.addEventListener('load', () => {
+        console.log('✅ Image loaded in createImage')
+        resolve(image)
+      })
+      image.addEventListener('error', (error) => {
+        console.error('❌ Error loading image in createImage:', error)
+        reject(error)
+      })
+      // For blob URLs, crossOrigin might not be needed
+      // image.setAttribute('crossOrigin', 'anonymous')
       image.src = url
     })
 
@@ -58,67 +57,79 @@ export default function ImageCropperModal({
     pixelCrop: Area,
     rotation = 0
   ): Promise<Blob> => {
-    const image = await createImage(imageSrc)
-    const canvas = document.createElement('canvas')
-    const ctx = canvas.getContext('2d')
+    try {
+      console.log('✂️ Starting crop process...')
+      const image = await createImage(imageSrc)
 
-    if (!ctx) {
-      throw new Error('No 2d context')
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')
+
+      if (!ctx) {
+        throw new Error('No 2d context')
+      }
+
+      const maxSize = Math.max(image.width, image.height)
+      const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2))
+
+      canvas.width = safeArea
+      canvas.height = safeArea
+
+      ctx.translate(safeArea / 2, safeArea / 2)
+      ctx.rotate((rotation * Math.PI) / 180)
+      ctx.translate(-safeArea / 2, -safeArea / 2)
+
+      ctx.drawImage(
+        image,
+        safeArea / 2 - image.width * 0.5,
+        safeArea / 2 - image.height * 0.5
+      )
+
+      const data = ctx.getImageData(0, 0, safeArea, safeArea)
+
+      canvas.width = pixelCrop.width
+      canvas.height = pixelCrop.height
+
+      ctx.putImageData(
+        data,
+        Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
+        Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
+      )
+
+      return new Promise((resolve, reject) => {
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              console.log('✅ Crop successful, blob size:', blob.size)
+              resolve(blob)
+            } else {
+              reject(new Error('Failed to create blob from canvas'))
+            }
+          },
+          'image/jpeg',
+          0.95
+        )
+      })
+    } catch (error) {
+      console.error('❌ Error in getCroppedImg:', error)
+      throw error
     }
-
-    const maxSize = Math.max(image.width, image.height)
-    const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2))
-
-    // set each dimensions to double largest dimension to allow for a safe area for the
-    // image to rotate in without being clipped by canvas context
-    canvas.width = safeArea
-    canvas.height = safeArea
-
-    // translate canvas context to a central location on image to allow rotating around the center
-    ctx.translate(safeArea / 2, safeArea / 2)
-    ctx.rotate((rotation * Math.PI) / 180)
-    ctx.translate(-safeArea / 2, -safeArea / 2)
-
-    // draw rotated image and store data
-    ctx.drawImage(
-      image,
-      safeArea / 2 - image.width * 0.5,
-      safeArea / 2 - image.height * 0.5
-    )
-
-    const data = ctx.getImageData(0, 0, safeArea, safeArea)
-
-    // set canvas width to final desired crop size - this will clear existing context
-    canvas.width = pixelCrop.width
-    canvas.height = pixelCrop.height
-
-    // paste generated rotated image with correct offsets for x,y crop values
-    ctx.putImageData(
-      data,
-      Math.round(0 - safeArea / 2 + image.width * 0.5 - pixelCrop.x),
-      Math.round(0 - safeArea / 2 + image.height * 0.5 - pixelCrop.y)
-    )
-
-    // As a blob
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        if (blob) {
-          resolve(blob)
-        }
-      }, 'image/jpeg')
-    })
   }
 
   const handleCropComplete = async () => {
-    if (!croppedAreaPixels) return
+    if (!croppedAreaPixels) {
+      toast.error('Please select a crop area first')
+      return
+    }
 
     setIsProcessing(true)
     try {
+      console.log('🚀 Starting crop process...')
       const croppedImageBlob = await getCroppedImg(
         image,
         croppedAreaPixels,
         rotation
       )
+      console.log('✅ Crop completed successfully')
       onCropComplete(croppedImageBlob)
       onClose()
     } catch (error) {
@@ -130,85 +141,118 @@ export default function ImageCropperModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl w-full max-w-2xl flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-200">
+        <div className="flex-shrink-0 flex items-center justify-between p-4 border-b border-gray-200">
           <h2 className="text-lg font-semibold text-gray-900">
             Crop Profile Picture
           </h2>
           <button
             onClick={onClose}
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+            aria-label="Close"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Cropper Container */}
-        <div className="relative h-96 bg-gray-900">
-          <Cropper
-            image={image}
-            crop={crop}
-            zoom={zoom}
-            rotation={rotation}
-            aspect={aspectRatio}
-            onCropChange={onCropChange}
-            onZoomChange={onZoomChange}
-            onCropComplete={onCropAreaChange}
-            objectFit="contain"
-            classes={{
-              containerClassName: '!bg-gray-900',
-              mediaClassName: '!max-h-full !max-w-full',
-            }}
-          />
+        <div
+          className="relative flex-grow min-h-[400px] bg-black"
+          style={{ height: '400px' }}
+        >
+          {/* Debug info */}
+          <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded opacity-75 z-10">
+            {image ? 'Image URL loaded' : 'No image'}
+          </div>
+
+          {image ? (
+            <Cropper
+              image={image}
+              crop={crop}
+              zoom={zoom}
+              rotation={rotation}
+              aspect={aspectRatio}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropAreaChange}
+              onRotationChange={setRotation}
+              showGrid={true}
+              restrictPosition={false}
+              style={{
+                containerStyle: {
+                  position: 'relative',
+                  width: '100%',
+                  height: '100%',
+                  backgroundColor: '#000',
+                },
+                cropAreaStyle: {
+                  border: '2px solid rgba(255, 255, 255, 0.8)',
+                  boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+                },
+                mediaStyle: {
+                  transform: `scale(${zoom}) rotate(${rotation}deg)`,
+                },
+              }}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto"></div>
+                <p className="text-white mt-4">No image to display</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Controls */}
-        <div className="p-4 border-t border-gray-200">
+        <div className="flex-shrink-0 p-4 border-t border-gray-200">
           <div className="space-y-4">
             {/* Zoom Control */}
             <div className="flex items-center gap-4">
-              <ZoomOut className="w-4 h-4 text-gray-600" />
+              <ZoomOut className="w-4 h-4 text-gray-600 flex-shrink-0" />
               <input
                 type="range"
                 value={zoom}
                 min={1}
                 max={3}
                 step={0.1}
-                onChange={(e) => onZoomChange(Number(e.target.value))}
-                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                onChange={(e) => setZoom(Number(e.target.value))}
+                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-600"
               />
-              <ZoomIn className="w-4 h-4 text-gray-600" />
+              <ZoomIn className="w-4 h-4 text-gray-600 flex-shrink-0" />
             </div>
 
             {/* Rotation Control */}
             <div className="flex items-center gap-4">
-              <RotateCw className="w-4 h-4 text-gray-600" />
+              <RotateCw className="w-4 h-4 text-gray-600 flex-shrink-0" />
               <input
                 type="range"
                 value={rotation}
                 min={0}
                 max={360}
                 step={1}
-                onChange={(e) => onRotationChange(Number(e.target.value))}
-                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                onChange={(e) => setRotation(Number(e.target.value))}
+                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-emerald-600"
               />
-              <span className="text-sm text-gray-600 w-8">{rotation}°</span>
+              <span className="text-sm text-gray-600 w-8 flex-shrink-0">
+                {rotation}°
+              </span>
             </div>
 
             {/* Action Buttons */}
             <div className="flex gap-3 pt-2">
               <button
                 onClick={onClose}
-                className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 py-3 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCropComplete}
                 disabled={isProcessing || !croppedAreaPixels}
-                className="flex-1 py-2 px-4 bg-emerald-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                className="flex-1 py-3 px-4 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center gap-2"
               >
                 {isProcessing ? (
                   <>

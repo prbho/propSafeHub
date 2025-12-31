@@ -735,7 +735,7 @@ export default function PropertyPostForm({
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="title">Property Title *</Label>
+                <Label htmlFor="title">Lisitng Title *</Label>
                 <Input
                   id="title"
                   required
@@ -750,29 +750,29 @@ export default function PropertyPostForm({
                   }
                 />
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="propertyType">Property Type *</Label>
-                <Select
-                  required
-                  value={formData.propertyType}
-                  onValueChange={(value) =>
-                    handleInputChange('propertyType', value)
-                  }
-                >
-                  <SelectTrigger id="propertyType">
-                    <SelectValue placeholder="Select property type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PROPERTY_TYPES.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type.charAt(0).toUpperCase() + type.slice(1)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
+              {formData.status !== 'short-let' && (
+                <div className="space-y-2">
+                  <Label htmlFor="propertyType">Property Type *</Label>
+                  <Select
+                    required
+                    value={formData.propertyType}
+                    onValueChange={(value) =>
+                      handleInputChange('propertyType', value)
+                    }
+                  >
+                    <SelectTrigger id="propertyType">
+                      <SelectValue placeholder="Select property type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PROPERTY_TYPES.map((type) => (
+                        <SelectItem key={type} value={type}>
+                          {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               {/* UPDATED STATUS FIELD */}
               <div className="space-y-2">
                 <Label htmlFor="status">Listing Type *</Label>
@@ -1313,86 +1313,100 @@ export default function PropertyPostForm({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="bedrooms" className="flex items-center gap-2">
-                  <Bed className="w-4 h-4" />
-                  Bedrooms *
-                </Label>
-                <Input
-                  id="bedrooms"
-                  type="number"
-                  required
-                  min="0"
-                  max="20"
-                  value={formData.bedrooms}
-                  onChange={(e) =>
-                    handleInputChange('bedrooms', parseInt(e.target.value) || 0)
-                  }
-                />
-              </div>
+            {formData.propertyType !== 'land' && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="bedrooms" className="flex items-center gap-2">
+                    <Bed className="w-4 h-4" />
+                    Bedrooms *
+                  </Label>
+                  <Input
+                    id="bedrooms"
+                    type="number"
+                    required
+                    min="0"
+                    max="20"
+                    value={formData.bedrooms}
+                    onChange={(e) =>
+                      handleInputChange(
+                        'bedrooms',
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="bathrooms" className="flex items-center gap-2">
-                  <Bath className="w-4 h-4" />
-                  Bathrooms *
-                </Label>
-                <Input
-                  id="bathrooms"
-                  type="number"
-                  required
-                  min="0"
-                  max="20"
-                  value={formData.bathrooms}
-                  onChange={(e) =>
-                    handleInputChange(
-                      'bathrooms',
-                      parseInt(e.target.value) || 0
-                    )
-                  }
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="bathrooms"
+                    className="flex items-center gap-2"
+                  >
+                    <Bath className="w-4 h-4" />
+                    Bathrooms *
+                  </Label>
+                  <Input
+                    id="bathrooms"
+                    type="number"
+                    required
+                    min="0"
+                    max="20"
+                    value={formData.bathrooms}
+                    onChange={(e) =>
+                      handleInputChange(
+                        'bathrooms',
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="squareFeet" className="flex items-center gap-2">
-                  <Square className="w-4 h-4" />
-                  Square Meter *
-                </Label>
-                <Input
-                  id="squareFeet"
-                  type="number"
-                  required
-                  min="0"
-                  value={formData.squareFeet}
-                  onChange={(e) =>
-                    handleInputChange(
-                      'squareFeet',
-                      parseInt(e.target.value) || 0
-                    )
-                  }
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="squareFeet"
+                    className="flex items-center gap-2"
+                  >
+                    <Square className="w-4 h-4" />
+                    Square Meter *
+                  </Label>
+                  <Input
+                    id="squareFeet"
+                    type="number"
+                    required
+                    min="0"
+                    value={formData.squareFeet}
+                    onChange={(e) =>
+                      handleInputChange(
+                        'squareFeet',
+                        parseInt(e.target.value) || 0
+                      )
+                    }
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="yearBuilt" className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
-                  Year Built
-                </Label>
-                <Input
-                  id="yearBuilt"
-                  type="number"
-                  min="1800"
-                  max={new Date().getFullYear()}
-                  value={formData.yearBuilt || ''}
-                  onChange={(e) =>
-                    handleInputChange(
-                      'yearBuilt',
-                      e.target.value ? parseInt(e.target.value) : undefined
-                    )
-                  }
-                />
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="yearBuilt"
+                    className="flex items-center gap-2"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Year Built
+                  </Label>
+                  <Input
+                    id="yearBuilt"
+                    type="number"
+                    min="1800"
+                    max={new Date().getFullYear()}
+                    value={formData.yearBuilt || ''}
+                    onChange={(e) =>
+                      handleInputChange(
+                        'yearBuilt',
+                        e.target.value ? parseInt(e.target.value) : undefined
+                      )
+                    }
+                  />
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="lotSize">Lot Size (m²)</Label>
@@ -1518,120 +1532,122 @@ export default function PropertyPostForm({
         )}
 
         {/* Payment Options */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Options</CardTitle>
-            <CardDescription>
-              Configure available payment methods for{' '}
-              {formData.status === 'short-let' ? 'guests' : 'buyers'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="paymentOutright"
-                checked={formData.paymentOutright}
-                onCheckedChange={(checked) =>
-                  handleInputChange('paymentOutright', checked)
-                }
-              />
-              <Label htmlFor="paymentOutright" className="cursor-pointer">
-                {formData.status === 'short-let'
-                  ? 'Full Payment Required'
-                  : 'Outright Purchase Available'}
-              </Label>
-            </div>
+        {formData.status !== 'short-let' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Payment Options</CardTitle>
+              <CardDescription>
+                {/* Remove the ternary - it's always "buyers" since we're not in short-let */}
+                Configure available payment methods for buyers
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="paymentOutright"
+                  checked={formData.paymentOutright}
+                  onCheckedChange={(checked) =>
+                    handleInputChange('paymentOutright', checked)
+                  }
+                />
+                <Label htmlFor="paymentOutright" className="cursor-pointer">
+                  {/* Remove the ternary - it's always "Outright Purchase Available" */}
+                  Outright Purchase Available
+                </Label>
+              </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="paymentPlan"
-                checked={formData.paymentPlan}
-                onCheckedChange={(checked) =>
-                  handleInputChange('paymentPlan', checked)
-                }
-              />
-              <Label htmlFor="paymentPlan" className="cursor-pointer">
-                {formData.status === 'short-let'
-                  ? 'Deposit + Installment'
-                  : 'Payment Plan Available'}
-              </Label>
-            </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="paymentPlan"
+                  checked={formData.paymentPlan}
+                  onCheckedChange={(checked) =>
+                    handleInputChange('paymentPlan', checked)
+                  }
+                />
+                <Label htmlFor="paymentPlan" className="cursor-pointer">
+                  {/* Remove the ternary - it's always "Payment Plan Available" */}
+                  Payment Plan Available
+                </Label>
+              </div>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="mortgageEligible"
-                checked={formData.mortgageEligible}
-                onCheckedChange={(checked) =>
-                  handleInputChange('mortgageEligible', checked)
-                }
-              />
-              <Label htmlFor="mortgageEligible" className="cursor-pointer">
-                Mortgage Eligible
-              </Label>
-            </div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="mortgageEligible"
+                  checked={formData.mortgageEligible}
+                  onCheckedChange={(checked) =>
+                    handleInputChange('mortgageEligible', checked)
+                  }
+                />
+                <Label htmlFor="mortgageEligible" className="cursor-pointer">
+                  Mortgage Eligible
+                </Label>
+              </div>
 
-            {formData.paymentPlan && (
-              <Card className="bg-gray-50">
-                <CardContent className="p-4 space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="customPlanAvailable"
-                      checked={formData.customPlanAvailable}
-                      onCheckedChange={(checked) =>
-                        handleInputChange('customPlanAvailable', checked)
-                      }
-                    />
-                    <Label
-                      htmlFor="customPlanAvailable"
-                      className="cursor-pointer"
-                    >
-                      Custom Payment Plan
-                    </Label>
-                  </div>
-
-                  {formData.customPlanAvailable && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="customPlanDepositPercent">
-                          Deposit Percentage
-                        </Label>
-                        <Input
-                          id="customPlanDepositPercent"
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={formData.customPlanDepositPercent}
-                          onChange={(e) =>
-                            handleInputChange(
-                              'customPlanDepositPercent',
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="customPlanMonths">Payment Months</Label>
-                        <Input
-                          id="customPlanMonths"
-                          type="number"
-                          min="1"
-                          max="60"
-                          value={formData.customPlanMonths}
-                          onChange={(e) =>
-                            handleInputChange(
-                              'customPlanMonths',
-                              parseInt(e.target.value) || 0
-                            )
-                          }
-                        />
-                      </div>
+              {formData.paymentPlan && (
+                <Card className="bg-gray-50">
+                  <CardContent className="p-4 space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="customPlanAvailable"
+                        checked={formData.customPlanAvailable}
+                        onCheckedChange={(checked) =>
+                          handleInputChange('customPlanAvailable', checked)
+                        }
+                      />
+                      <Label
+                        htmlFor="customPlanAvailable"
+                        className="cursor-pointer"
+                      >
+                        Custom Payment Plan
+                      </Label>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </CardContent>
-        </Card>
+
+                    {formData.customPlanAvailable && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="customPlanDepositPercent">
+                            Deposit Percentage
+                          </Label>
+                          <Input
+                            id="customPlanDepositPercent"
+                            type="number"
+                            min="0"
+                            max="100"
+                            value={formData.customPlanDepositPercent}
+                            onChange={(e) =>
+                              handleInputChange(
+                                'customPlanDepositPercent',
+                                parseInt(e.target.value) || 0
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="customPlanMonths">
+                            Payment Months
+                          </Label>
+                          <Input
+                            id="customPlanMonths"
+                            type="number"
+                            min="1"
+                            max="60"
+                            value={formData.customPlanMonths}
+                            onChange={(e) =>
+                              handleInputChange(
+                                'customPlanMonths',
+                                parseInt(e.target.value) || 0
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+            </CardContent>
+          </Card>
+        )}
 
         {/* Additional Options */}
         <Card>

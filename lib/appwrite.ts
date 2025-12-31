@@ -177,11 +177,15 @@ export async function updateAgentProfile(
 
 // Add image upload function
 export async function uploadAvatar(
-  userId: string,
+  documentId: string, // Document ID in the specified collection
   file: File | Blob,
-  collectionId: string = USERS_COLLECTION_ID
+  collectionId: string // Which collection to update
 ): Promise<string> {
   try {
+    console.log('📤 Starting avatar upload...')
+    console.log('📄 Document ID:', documentId)
+    console.log('🗂️ Collection:', collectionId)
+
     // Convert blob to file if needed
     let uploadFile: File
     if (file instanceof Blob && !(file instanceof File)) {
@@ -193,67 +197,92 @@ export async function uploadAvatar(
       uploadFile = file as File
     }
 
+    console.log('📁 File details:', {
+      name: uploadFile.name,
+      type: uploadFile.type,
+      size: uploadFile.size,
+    })
+
     // Show upload progress
     showToast('Uploading avatar...', 'info')
 
-    // Delete old avatar if exists - search by name pattern
+    // Verify document exists
+    try {
+      const existingDoc = await databases.getDocument(
+        DATABASE_ID,
+        collectionId,
+        documentId
+      )
+      console.log('✅ Document verified:', {
+        id: existingDoc.$id,
+        name: existingDoc.name,
+        email: existingDoc.email,
+        userId: existingDoc.userId, // For agents
+      })
+    } catch (error) {
+      console.error('❌ Document not found!', {
+        collectionId,
+        documentId,
+      })
+      throw new Error(`Document not found in ${collectionId} collection`)
+    }
+
+    // Delete old avatar if exists
     try {
       const existingFiles = await storage.listFiles(STORAGE_BUCKET_ID)
-      const userAvatarFile = existingFiles.files.find((f) => {
+      const oldAvatarFile = existingFiles.files.find((f) => {
         const storageFile = f as unknown as StorageFile
         return (
-          storageFile.name.startsWith(`avatar_${userId}_`) ||
-          storageFile.name === `avatar_${userId}.jpg`
+          storageFile.name.startsWith(`avatar_${documentId}_`) ||
+          storageFile.name === `avatar_${documentId}.jpg`
         )
       })
 
-      if (userAvatarFile) {
-        await storage.deleteFile(STORAGE_BUCKET_ID, userAvatarFile.$id)
+      if (oldAvatarFile) {
+        console.log('🗑️ Deleting old avatar:', oldAvatarFile.$id)
+        await storage.deleteFile(STORAGE_BUCKET_ID, oldAvatarFile.$id)
       }
     } catch (error) {
-      console.log('No existing avatar found or error deleting:', error)
-      // Continue with upload even if deletion fails
+      console.log('ℹ️ No existing avatar found or error deleting:')
     }
 
-    // Create unique filename with userId
-    // const fileName = `avatar_${userId}_${Date.now()}.jpg`
-
-    // Upload new avatar with proper permissions
+    // Upload new avatar
+    const fileId = ID.unique()
+    console.log('⬆️ Uploading file with ID:', fileId)
     const result = await storage.createFile(
       STORAGE_BUCKET_ID,
-      ID.unique(),
+      fileId,
       uploadFile
     )
+    console.log('✅ File uploaded to storage:', result.$id)
 
-    // Get the file URL - use getFileView for permanent URLs
+    // Get the file URL
     const avatarUrl = storage
       .getFileView(STORAGE_BUCKET_ID, result.$id)
       .toString()
+    console.log('🔗 Avatar URL:', avatarUrl)
 
-    // Update user/agent document with avatar URL
-    await databases.updateDocument(DATABASE_ID, collectionId, userId, {
+    // Update the document
+    console.log(`📝 Updating document ${documentId} in ${collectionId}...`)
+    await databases.updateDocument(DATABASE_ID, collectionId, documentId, {
       avatar: avatarUrl,
+      updatedAt: new Date().toISOString(),
     })
 
-    console.log('✅ User document updated with avatar URL')
-
-    // Show success toast
+    console.log('✅ Document updated successfully!')
     showToast('Avatar uploaded successfully!', 'success')
 
     return avatarUrl
   } catch (error) {
     console.error('❌ Error uploading avatar:', error)
-
-    // Show error toast
     showToast('Failed to upload avatar. Please try again.', 'warning')
-
-    throw new Error('Failed to upload avatar')
+    throw error
   }
 }
 
 // User avatar upload wrapper
 export async function uploadUserAvatar(
-  userId: string,
+  userId: string, // User document ID in users collection
   file: File | Blob
 ): Promise<string> {
   return uploadAvatar(userId, file, USERS_COLLECTION_ID)
@@ -261,10 +290,29 @@ export async function uploadUserAvatar(
 
 // Agent avatar upload wrapper
 export async function uploadAgentAvatar(
-  agentId: string,
+  agentDocumentId: string,
   file: File | Blob
 ): Promise<string> {
-  return uploadAvatar(agentId, file, AGENTS_COLLECTION_ID)
+  return uploadAvatar(agentDocumentId, file, AGENTS_COLLECTION_ID)
+}
+
+// Helper function to find agent document by userId
+export async function findAgentDocumentByUserId(userId: string) {
+  try {
+    const agents = await databases.listDocuments(
+      DATABASE_ID,
+      AGENTS_COLLECTION_ID,
+      [Query.equal('userId', userId)]
+    )
+
+    if (agents.total > 0) {
+      return agents.documents[0]
+    }
+    return null
+  } catch (error) {
+    console.error('Error finding agent document:', error)
+    return null
+  }
 }
 
 // Generic delete account function (internal)

@@ -26,12 +26,16 @@ import PremiumFeaturesSection from '@/components/PremiumFeaturesSection'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import {
+  AGENTS_COLLECTION_ID,
+  DATABASE_ID,
+  databases,
   deleteAgentAccount,
   deleteUserAccount,
+  Query,
   updateAgentProfile,
   updateUserProfile,
-  uploadAgentAvatar,
-  uploadUserAvatar,
+  uploadAvatar,
+  USERS_COLLECTION_ID,
 } from '@/lib/appwrite'
 
 const checkUserPremiumStatus = async (userId: string) => {
@@ -146,6 +150,8 @@ export default function DynamicProfilePage({}: {
     const file = event.target.files?.[0]
     if (!file) return
 
+    console.log('📁 Selected file:', file.name, file.type, file.size)
+
     // Validate file type and size
     if (!file.type.startsWith('image/')) {
       toast.error('Please select an image file')
@@ -157,10 +163,27 @@ export default function DynamicProfilePage({}: {
       return
     }
 
-    // Create object URL for the selected image
-    const imageUrl = URL.createObjectURL(file)
-    setSelectedImage(imageUrl)
-    setShowCropper(true)
+    // Clean up previous URL if exists
+    if (selectedImage && selectedImage.startsWith('blob:')) {
+      URL.revokeObjectURL(selectedImage)
+    }
+
+    // Use FileReader to convert to base64 instead of blob URL
+    const reader = new FileReader()
+
+    reader.onload = (e) => {
+      const base64Image = e.target?.result as string
+      console.log('🖼️ Converted to base64, length:', base64Image?.length)
+      setSelectedImage(base64Image)
+      setShowCropper(true)
+    }
+
+    reader.onerror = () => {
+      console.error('❌ Error reading file')
+      toast.error('Failed to read image file')
+    }
+
+    reader.readAsDataURL(file)
 
     // Reset file input
     if (fileInputRef.current) {
@@ -181,14 +204,46 @@ export default function DynamicProfilePage({}: {
         lastModified: Date.now(),
       })
 
-      // Use appropriate avatar upload based on user type
+      let avatarUrl
+
       if (user.userType === 'agent') {
-        await uploadAgentAvatar(user.$id, croppedFile)
+        console.log('👔 User is agent, updating AGENT document')
+
+        // Find or use agent document ID
+        let agentDocId = user.agentDocumentId
+
+        if (!agentDocId) {
+          console.log('🔍 Searching for agent document...')
+          const agents = await databases.listDocuments(
+            DATABASE_ID,
+            AGENTS_COLLECTION_ID,
+            [Query.equal('userId', user.$id)]
+          )
+
+          if (agents.total === 0) {
+            throw new Error('Agent profile not found')
+          }
+
+          agentDocId = agents.documents[0].$id
+        }
+
+        // ✅ Update AGENT document in AGENTS collection
+        avatarUrl = await uploadAvatar(
+          agentDocId,
+          croppedFile,
+          AGENTS_COLLECTION_ID
+        )
       } else {
-        await uploadUserAvatar(user.$id, croppedFile)
+        console.log('👤 User is regular user, updating USER document')
+        // ✅ Update USER document in USERS collection
+        avatarUrl = await uploadAvatar(
+          user.$id,
+          croppedFile,
+          USERS_COLLECTION_ID
+        )
       }
 
-      // Refresh user data to get the new avatar
+      // Refresh user data
       await refreshUser()
       toast.success('Avatar updated successfully!')
     } catch (error) {
@@ -196,20 +251,22 @@ export default function DynamicProfilePage({}: {
       toast.error('Failed to upload avatar')
     } finally {
       setIsUploading(false)
-      // Clean up object URL
       if (selectedImage) {
         URL.revokeObjectURL(selectedImage)
+        setSelectedImage('')
       }
     }
   }
 
   const handleCancelCrop = () => {
     setShowCropper(false)
-    // Clean up object URL
-    if (selectedImage) {
-      URL.revokeObjectURL(selectedImage)
-      setSelectedImage('')
-    }
+    // Don't revoke immediately - wait a bit to ensure modal is closed
+    setTimeout(() => {
+      if (selectedImage) {
+        URL.revokeObjectURL(selectedImage)
+        setSelectedImage('')
+      }
+    }, 100)
   }
 
   const handleCancel = () => {
@@ -756,7 +813,7 @@ export default function DynamicProfilePage({}: {
       </div>
 
       {/* Cropper Modal */}
-      {showCropper && (
+      {showCropper && selectedImage && (
         <ImageCropperModal
           image={selectedImage}
           onClose={handleCancelCrop}
