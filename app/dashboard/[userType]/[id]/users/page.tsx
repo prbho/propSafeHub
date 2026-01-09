@@ -91,7 +91,6 @@ export default function UserManagementPage() {
       // Transform regular users data
       const transformedUsers: User[] = usersResponse.documents.map(
         (doc: any) => ({
-           
           $id: doc.$id,
           $createdAt: doc.$createdAt,
           $updatedAt: doc.$updatedAt,
@@ -111,7 +110,6 @@ export default function UserManagementPage() {
       // Transform agents data and set userType to 'agent'
       const transformedAgents: User[] = agentsResponse.documents.map(
         (doc: any) => ({
-           
           $id: doc.$id,
           $createdAt: doc.$createdAt,
           $updatedAt: doc.$updatedAt,
@@ -454,7 +452,7 @@ export default function UserManagementPage() {
               ].map((tab) => (
                 <button
                   key={tab.key}
-                  onClick={() => setActiveTab(tab.key as any)}  
+                  onClick={() => setActiveTab(tab.key as any)}
                   className={`flex items-center gap-2 py-4 px-6 border-b-2 font-medium text-sm ${
                     activeTab === tab.key
                       ? 'border-blue-500 text-blue-600'
@@ -524,6 +522,7 @@ export default function UserManagementPage() {
                               width={48}
                               height={48}
                               className="w-12 h-12 rounded-full"
+                              unoptimized
                             />
                           ) : (
                             <Users className="w-6 h-6 text-blue-600" />

@@ -208,7 +208,7 @@ export default function ServicesSection() {
     <section className="pt-20 bg-white">
       <div className="mx-auto px-4 max-w-7xl">
         {/* Enhanced Services Grid - 4 columns on large screens */}
-        <div className="mb-20">
+        <div className="pb-20">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Our Comprehensive Services
@@ -277,7 +277,7 @@ export default function ServicesSection() {
         </div>
 
         {/* Core Values Section */}
-        <section className="mb-20">
+        <section className="py-20">
           <div className="text-center mb-12">
             <h3 className="text-3xl font-bold text-gray-900 mb-4">
               Why Choose PropSafe Hub?
@@ -311,113 +311,6 @@ export default function ServicesSection() {
             ))}
           </div>
         </section>
-
-        {/* Trust & Credibility Section */}
-        <div className="mb-20">
-          <div className="bg-linear-to-br from-emerald-600 to-emerald-700 rounded-2xl p-12 text-white">
-            <div className="text-center mb-10">
-              <h3 className="text-3xl font-bold mb-4">
-                Trusted by Thousands of Investors
-              </h3>
-              <p className="text-emerald-100 text-lg max-w-2xl mx-auto">
-                Join over 50,000 Nigerians who trust PropSafe Hub for secure,
-                profitable real estate investments.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
-              <div className="text-center">
-                <div className="text-4xl font-bold mb-2">50K+</div>
-                <div className="text-emerald-200">Happy Investors</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold mb-2">15K+</div>
-                <div className="text-emerald-200">Properties Verified</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold mb-2">98%</div>
-                <div className="text-emerald-200">Satisfaction Rate</div>
-              </div>
-              <div className="text-center">
-                <div className="text-4xl font-bold mb-2">10+</div>
-                <div className="text-emerald-200">Years Expertise</div>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <p className="text-emerald-100 mb-6">
-                Ready to invest with confidence?
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                {/* For unauthenticated users */}
-                {!isAuthenticated ? (
-                  <>
-                    <Button
-                      asChild
-                      className="bg-white text-emerald-700 hover:bg-gray-100 px-8 py-6 text-lg font-semibold rounded-lg"
-                    >
-                      <Link href="/signup">Create Free Account</Link>
-                    </Button>
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="border-white bg-transparent hover:text-white text-white hover:bg-white/10 px-8 py-6 text-lg font-semibold rounded-lg"
-                    >
-                      <Link href="/contact">Contact Our Team</Link>
-                    </Button>
-                  </>
-                ) : (
-                  /* For authenticated users - show relevant dashboard */
-                  <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    {user?.userType === 'seller' && (
-                      <Button
-                        asChild
-                        className="bg-white text-emerald-700 hover:bg-gray-100 px-8 py-6 text-lg font-semibold rounded-lg"
-                      >
-                        <Link href="/dashboard">Seller Dashboard</Link>
-                      </Button>
-                    )}
-                    {user?.userType === 'buyer' && (
-                      <Button
-                        asChild
-                        className="bg-white text-emerald-700 hover:bg-gray-100 px-8 py-6 text-lg font-semibold rounded-lg"
-                      >
-                        <Link href="/dashboard">My Investments</Link>
-                      </Button>
-                    )}
-                    {user?.userType === 'agent' && (
-                      <Button
-                        asChild
-                        className="bg-white text-emerald-700 hover:bg-gray-100 px-8 py-6 text-lg font-semibold rounded-lg"
-                      >
-                        <Link
-                          href={`/dashboard/${user?.userType}/${user?.$id}`}
-                        >
-                          Agent Dashboard
-                        </Link>
-                      </Button>
-                    )}
-                    {user?.userType === 'admin' && (
-                      <Button
-                        asChild
-                        className="bg-white text-emerald-700 hover:bg-gray-100 px-8 py-6 text-lg font-semibold rounded-lg"
-                      >
-                        <Link href="/admin/dashboard">Admin Dashboard</Link>
-                      </Button>
-                    )}
-                    {/* Keep contact button for all authenticated users */}
-                    <Button
-                      asChild
-                      className="border-white bg-emerald-600 text-white hover:bg-white/10 px-8 py-6 text-lg font-semibold rounded-lg"
-                    >
-                      <Link href="contact">Contact Our Team</Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     </section>
   )

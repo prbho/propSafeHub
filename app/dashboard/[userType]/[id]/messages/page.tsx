@@ -67,6 +67,7 @@ const UserAvatar = ({
         alt={name}
         width={48}
         height={48}
+        unoptimized
         className={`${sizeClasses[size]} rounded-full object-cover`}
         onError={(e) => {
           // If image fails to load, fall back to initials

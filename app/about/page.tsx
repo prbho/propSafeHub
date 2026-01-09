@@ -143,7 +143,6 @@ export default function AboutPage() {
                       alt="Tunde Oluwaniyi"
                       width={320}
                       height={320}
-                      className=""
                     />
                   </div>
                 </div>
@@ -305,6 +304,7 @@ export default function AboutPage() {
                           alt={member.name}
                           layout="fill"
                           objectFit="cover"
+                          unoptimized
                         />
                       </div>
                     </div>

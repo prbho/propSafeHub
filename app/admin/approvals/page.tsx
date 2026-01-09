@@ -625,6 +625,7 @@ export default function AdminApprovalsPage() {
                             className="w-full h-48 object-cover rounded-lg"
                             width={192}
                             height={192}
+                            unoptimized
                           />
                         ) : (
                           <div className="w-full h-48 bg-gray-200 rounded-lg flex items-center justify-center">

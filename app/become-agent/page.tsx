@@ -351,6 +351,7 @@ export default function BecomeAgentPage() {
                         width={96}
                         height={96}
                         className="h-full w-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <div className="h-full w-full flex items-center justify-center">
