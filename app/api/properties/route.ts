@@ -1,4 +1,4 @@
-// app/api/properties/route.ts - UPDATED SEARCH LOGIC
+// app/api/properties/route.ts - FIXED
 import { NextRequest, NextResponse } from 'next/server'
 
 import {
@@ -34,48 +34,46 @@ export async function GET(request: NextRequest) {
     // Build queries array
     const queries = [Query.equal('isActive', true)]
 
-    // Handle status/type
+    // Handle status/type - FIXED LOGIC
     let finalStatus = status
+
+    // If type is provided (from frontend), use it to determine status
     if (type === 'buy') {
       finalStatus = 'for-sale'
     } else if (type === 'rent') {
       finalStatus = 'for-rent'
     } else if (type === 'short-let') {
       finalStatus = 'short-let'
+    } else if (type === 'all') {
+      finalStatus = null
     }
 
-    if (!finalStatus) {
-      finalStatus = 'for-sale'
-    }
-
-    // Allow multiple statuses for "all" view
-    if (finalStatus === 'all' || finalStatus === 'all-properties') {
-      // Don't filter by status for "all" view
-      console.log('🌐 Showing all property types (no status filter)')
-    } else {
+    // Only add status filter if we have a specific status
+    if (finalStatus && finalStatus !== 'all') {
       console.log(`🎯 Filtering by status: ${finalStatus}`)
       queries.push(Query.equal('status', finalStatus))
+    } else {
+      console.log('🌐 Showing all property types (no status filter)')
     }
 
-    console.log(`🎯 Using status: ${finalStatus}`)
-    queries.push(Query.equal('status', finalStatus))
-
+    // Search functionality
     if (q) {
-      console.log(`🔎 Searching EXACTLY for: "${q}"`)
-      const cleanQuery = q.trim()
+      console.log(`🔎 Searching for: "${q}"`)
+      const cleanQuery = q.trim().toLowerCase()
 
-      // Only exact matches on city and state
+      // Search across multiple fields (case-insensitive)
       queries.push(
         Query.or([
-          Query.equal('city', cleanQuery),
-          Query.equal('state', cleanQuery),
+          Query.search('title', cleanQuery),
+          Query.search('city', cleanQuery),
+          Query.search('state', cleanQuery),
+          Query.search('location', cleanQuery),
+          Query.search('description', cleanQuery),
         ])
       )
-
-      console.log('🎯 Using exact location matching only')
     }
 
-    // If specific city/state provided, use them (overrides general search)
+    // If specific city/state provided, use them
     if (city && !q) {
       queries.push(Query.equal('city', city))
     }
@@ -105,7 +103,7 @@ export async function GET(request: NextRequest) {
     queries.push(Query.orderDesc('listDate'))
 
     console.log('📤 Final queries count:', queries.length)
-    console.log('🔍 Query details:', queries)
+    console.log('📝 Page:', page, 'Limit:', limit, 'Offset:', offset)
 
     // Execute query
     const properties = await databases.listDocuments(
@@ -114,20 +112,19 @@ export async function GET(request: NextRequest) {
       queries
     )
 
-    console.log('✅ Found properties:', properties.total)
-
-    // Log the actual cities/states found for debugging
-    if (properties.documents.length > 0) {
-      const locations = properties.documents.map((p) => `${p.city}, ${p.state}`)
-      console.log('📍 Properties locations:', [...new Set(locations)])
-    }
+    console.log('✅ Found properties:', properties.documents.length)
+    console.log('📊 Total documents in collection:', properties.total)
 
     return NextResponse.json({
       success: true,
       documents: properties.documents,
       total: properties.total,
+      currentPage: page,
+      limit: limit,
+      hasMore: page * limit < properties.total,
     })
-  } catch {
+  } catch (error) {
+    console.error('❌ API Error:', error)
     return NextResponse.json(
       {
         success: false,

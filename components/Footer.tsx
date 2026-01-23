@@ -6,8 +6,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {
   ArrowRight,
-  Code2, // Added for Cofellow
-  ExternalLink, // Added for Cofellow
   Facebook,
   FileText,
   Globe,

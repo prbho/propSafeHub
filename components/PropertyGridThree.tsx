@@ -1,9 +1,9 @@
-// components/PropertyGrid.tsx
+// components/PropertyGrid.tsx - FIXED INFINITE SCROLL
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { Property, PropertyFilters } from '../types'
 import PropertyCard from './PropertyCard'
@@ -42,21 +42,30 @@ export default function PropertyGridThree({
   showFilters = false,
   searchParams = {},
 }: PropertyGridThreeProps) {
-  const [properties, setProperties] = useState<Property[]>([])
+  // State for ALL loaded properties (cumulative)
+  const [allProperties, setAllProperties] = useState<Property[]>([])
+  // State for current page properties (temporary)
+  const [currentPageProperties, setCurrentPageProperties] = useState<
+    Property[]
+  >([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalProperties, setTotalProperties] = useState(0)
+  const observer = useRef<IntersectionObserver | null>(null)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
   const [filters, setFilters] = useState<PropertyFilters>({
     status: initialStatus,
     page: 1,
-    limit: 12,
+    limit: 9,
   })
 
-  // Convert searchParams to filters - FIXED VERSION
+  // Convert searchParams to filters
   const convertSearchParamsToFilters = (
     searchParams: any
   ): Partial<PropertyFilters> => {
     const converted: Partial<PropertyFilters> = {}
-
-    console.log('🔄 Converting searchParams:', searchParams)
 
     // Handle type (buy/rent) to status conversion
     if (searchParams.type === 'buy') {
@@ -67,13 +76,13 @@ export default function PropertyGridThree({
       converted.status = 'short-let'
     }
 
-    // Handle location/city - FIXED: Use 'q' parameter for general search
+    // Handle location/city
     if (searchParams.location) {
-      converted.q = searchParams.location // Use 'q' for general search
+      converted.q = searchParams.location
     } else if (searchParams.city) {
-      converted.q = searchParams.city // Use 'q' for general search
+      converted.q = searchParams.city
     } else if (searchParams.q) {
-      converted.q = searchParams.q // Use 'q' for general search
+      converted.q = searchParams.q
     }
 
     // Handle other filters
@@ -90,86 +99,127 @@ export default function PropertyGridThree({
       converted.bedrooms = parseInt(searchParams.bedrooms)
     }
 
-    console.log('✅ Converted filters:', converted)
     return converted
   }
 
-  const fetchProperties = async (currentFilters: PropertyFilters) => {
-    try {
-      setLoading(true)
-      const queryParams = new URLSearchParams()
+  // Reset everything when filters change (new search)
+  const resetForNewSearch = useCallback(() => {
+    setAllProperties([])
+    setCurrentPageProperties([])
+    setCurrentPage(1)
+    setHasMore(true)
+    setTotalProperties(0)
+  }, [])
 
-      // Add all filters to query params - FIXED: Handle type parameter
-      Object.entries(currentFilters).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
-          // Convert 'status' back to 'type' for the URL if needed
-          if (key === 'status') {
-            if (value === 'for-sale') {
-              queryParams.append('type', 'buy')
-            } else if (value === 'for-rent') {
-              queryParams.append('type', 'rent')
-            } else if (value === 'short-let') {
-              queryParams.append('type', 'short-let')
-            }
-          } else {
-            queryParams.append(key, value.toString())
-          }
+  const fetchProperties = useCallback(
+    async (page: number, isLoadMore = false) => {
+      try {
+        if (isLoadMore) {
+          setLoadingMore(true)
+        } else {
+          setLoading(true)
+          resetForNewSearch()
         }
-      })
 
-      console.log('🔍 Fetching properties with filters:', currentFilters)
-      console.log('📤 Final API query params:', queryParams.toString())
+        const queryParams = new URLSearchParams()
 
-      const apiUrl = `/api/properties?${queryParams}`
-      console.log('🌐 API URL:', apiUrl)
+        // Build query params without status conversion
+        queryParams.append('page', page.toString())
+        queryParams.append('limit', '9')
 
-      const response = await fetch(apiUrl)
+        // Add type parameter
+        if (filters.status === 'for-sale') {
+          queryParams.append('type', 'buy')
+        } else if (filters.status === 'for-rent') {
+          queryParams.append('type', 'rent')
+        } else if (filters.status === 'short-let') {
+          queryParams.append('type', 'short-let')
+        }
 
-      if (!response.ok) {
-        const errorText = await response.text()
-        console.error('❌ API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-        })
-        throw new Error(
-          `Failed to fetch properties: ${response.status} ${response.statusText}`
+        // Add other filters
+        if (filters.q) queryParams.append('q', filters.q)
+        if (filters.propertyType)
+          queryParams.append('propertyType', filters.propertyType)
+        if (filters.minPrice)
+          queryParams.append('minPrice', filters.minPrice.toString())
+        if (filters.maxPrice)
+          queryParams.append('maxPrice', filters.maxPrice.toString())
+        if (filters.bedrooms)
+          queryParams.append('bedrooms', filters.bedrooms.toString())
+
+        console.log(
+          `📤 Fetching page ${page} with:`,
+          Object.fromEntries(queryParams.entries())
         )
-      }
 
-      const data = await response.json()
-      console.log('✅ API Response:', {
-        success: data.success,
-        total: data.total,
-        documentsCount: data.documents?.length || 0,
-      })
+        const response = await fetch(`/api/properties?${queryParams}`)
 
-      if (data.success) {
-        console.log('✅ Properties fetched:', data.documents?.length || 0)
-        setProperties(data.documents || [])
-      } else {
-        console.error('❌ API returned error:', data.error)
-        setProperties([])
+        if (!response.ok) {
+          throw new Error(`Failed to fetch properties: ${response.status}`)
+        }
+
+        const data = await response.json()
+        console.log(`📥 Page ${page} response:`, {
+          total: data.total,
+          received: data.documents?.length,
+          hasMore: data.hasMore,
+        })
+
+        if (data.success) {
+          const newProperties = data.documents || []
+
+          if (isLoadMore) {
+            // Append new properties to all properties
+            setAllProperties((prev) => [...prev, ...newProperties])
+            setCurrentPageProperties(newProperties)
+          } else {
+            // Initial load
+            setAllProperties(newProperties)
+            setCurrentPageProperties(newProperties)
+          }
+
+          setTotalProperties(data.total)
+          setHasMore(
+            data.hasMore !== undefined ? data.hasMore : page * 9 < data.total
+          )
+
+          // Update current page if successful
+          setCurrentPage(page)
+        } else {
+          if (!isLoadMore) {
+            setAllProperties([])
+            setCurrentPageProperties([])
+          }
+          setHasMore(false)
+        }
+      } catch (error) {
+        console.error('Error fetching properties:', error)
+        if (!isLoadMore) {
+          setAllProperties([])
+          setCurrentPageProperties([])
+        }
+        setHasMore(false)
+      } finally {
+        if (isLoadMore) {
+          setLoadingMore(false)
+        } else {
+          setLoading(false)
+        }
       }
-    } catch (error) {
-      console.error('💥 Error fetching properties:', error)
-      setProperties([])
-    } finally {
-      setLoading(false)
-    }
-  }
+    },
+    [filters, resetForNewSearch]
+  )
 
   // Update filters when searchParams change
   useEffect(() => {
     if (Object.keys(searchParams).length > 0) {
-      console.log('🔄 Updating filters from searchParams:', searchParams)
       const convertedFilters = convertSearchParamsToFilters(searchParams)
-
-      setFilters((prev) => ({
-        ...prev,
+      const newFilters = {
+        ...filters,
         ...convertedFilters,
-        page: 1, // Reset to first page when search params change
-      }))
+        page: 1,
+      }
+      setFilters(newFilters)
     }
   }, [searchParams])
 
@@ -180,23 +230,54 @@ export default function PropertyGridThree({
       status: initialStatus,
       page: 1,
     }))
-  }, [initialStatus])
+    resetForNewSearch()
+  }, [initialStatus, resetForNewSearch])
 
-  // Fetch properties when filters change
+  // Initial fetch when filters change
   useEffect(() => {
-    fetchProperties(filters)
-  }, [filters])
+    fetchProperties(1)
+  }, [fetchProperties])
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (loading || loadingMore || !hasMore) return
+
+    if (observer.current) observer.current.disconnect()
+
+    observer.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          console.log('🎯 Load more triggered for page:', currentPage + 1)
+          fetchProperties(currentPage + 1, true)
+        }
+      },
+      {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0.1,
+      }
+    )
+
+    if (loadMoreRef.current) {
+      observer.current.observe(loadMoreRef.current)
+    }
+
+    return () => {
+      if (observer.current) observer.current.disconnect()
+    }
+  }, [loading, loadingMore, hasMore, currentPage, fetchProperties])
 
   // Listen for search events from SearchFilters
   useEffect(() => {
     const handleSearch = (event: Event) => {
       const customEvent = event as CustomEvent<PropertyFilters>
-      console.log('🎯 Received search event:', customEvent.detail)
-      setFilters((prev) => ({
-        ...prev,
+      const newFilters = {
+        ...filters,
         ...customEvent.detail,
-        page: 1, // Reset to first page on new search
-      }))
+        page: 1,
+      }
+      setFilters(newFilters)
+      resetForNewSearch()
     }
 
     window.addEventListener('propertySearch', handleSearch as EventListener)
@@ -205,17 +286,17 @@ export default function PropertyGridThree({
         'propertySearch',
         handleSearch as EventListener
       )
-  }, [])
+  }, [filters, resetForNewSearch])
 
   const handleClearFilters = () => {
     const resetFilters: PropertyFilters = {
       status: initialStatus,
       page: 1,
-      limit: 12,
+      limit: 9,
     }
     setFilters(resetFilters)
+    resetForNewSearch()
 
-    // Dispatch clear event
     const searchEvent = new CustomEvent('propertySearch', {
       detail: resetFilters,
     })
@@ -244,15 +325,38 @@ export default function PropertyGridThree({
     return 'No properties found'
   }
 
-  if (loading) {
+  // Calculate display text
+  const getDisplayText = () => {
+    if (loading && allProperties.length === 0) {
+      return 'Loading properties...'
+    }
+
+    if (allProperties.length === 0) {
+      return getEmptyStateMessage()
+    }
+
+    return `Found ${totalProperties} propert${totalProperties !== 1 ? 'ies' : 'y'}${
+      filters.q ? ` for "${filters.q}"` : ''
+    }${filters.propertyType ? ` • ${filters.propertyType}` : ''}${
+      filters.status === 'for-sale'
+        ? ' • For Sale'
+        : filters.status === 'for-rent'
+          ? ' • For Rent'
+          : filters.status === 'short-let'
+            ? ' • Short Let'
+            : ''
+    }`
+  }
+
+  if (loading && allProperties.length === 0) {
     return (
       <div className="space-y-6">
         <div className="flex gap-x-2">
-          <div className="h-4 w-18 bg-gray-200 rounded-lg"></div>
-          <div className="h-4 w-8 bg-gray-200 rounded-lg"></div>
+          <div className="h-4 w-18 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div className="h-4 w-8 bg-gray-200 rounded-lg animate-pulse"></div>
         </div>
         {showFilters && (
-          <div className="bg-white p-6 rounded-2xl shadow-xl border border-gray-100 animate-pulse">
+          <div className="bg-white p-6 rounded-2xl border animate-pulse">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="h-12 bg-gray-200 rounded-lg"></div>
@@ -265,15 +369,19 @@ export default function PropertyGridThree({
             </div>
           </div>
         )}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-          {Array.from({ length: 8 }).map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="bg-white rounded-lg shadow-md p-4 animate-pulse"
+              className="bg-white rounded-lg border p-4 animate-pulse"
             >
               <div className="h-48 bg-gray-200 rounded mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded mb-2 w-3/4"></div>
+              <div className="h-4 bg-gray-200 rounded w-1/2 mb-4"></div>
+              <div className="flex justify-between">
+                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+              </div>
             </div>
           ))}
         </div>
@@ -286,27 +394,57 @@ export default function PropertyGridThree({
       {/* Search Filters */}
       {showFilters && <SearchFilters />}
 
-      {/* Results Count */}
-      {properties.length > 0 && (
-        <div className="text-sm text-gray-600">
-          Showing {properties.length} propert
-          {properties.length !== 1 ? 'ies' : 'y'}
-          {filters.q && ` for "${filters.q}"`}
-          {filters.propertyType && ` • ${filters.propertyType}`}
-          {filters.status === 'for-sale' && ' • For Sale'}
-          {filters.status === 'for-rent' && ' • For Rent'}
+      {/* Results Count - Always show total count */}
+      {allProperties.length > 0 && (
+        <div className="text-sm text-gray-600">{getDisplayText()}</div>
+      )}
+
+      {/* Properties Grid - Show ALL loaded properties */}
+      {allProperties.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {allProperties.map((property, index) => (
+            <PropertyCard
+              key={`${property.$id}-${index}-${
+                property.$updatedAt || Date.now()
+              }`}
+              property={property}
+              userId={''}
+            />
+          ))}
         </div>
       )}
 
-      {/* Properties Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-        {properties.map((property) => (
-          <PropertyCard key={property.$id} property={property} userId={''} />
-        ))}
-      </div>
+      {/* Loading More Indicator */}
+      {loadingMore && (
+        <div className="flex justify-center py-8">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+            <span className="text-gray-600">Loading more properties...</span>
+          </div>
+        </div>
+      )}
 
-      {/* Empty State */}
-      {properties.length === 0 && !loading && (
+      {/* Load More Trigger (invisible element for intersection observer) */}
+      {hasMore && !loadingMore && allProperties.length > 0 && (
+        <div ref={loadMoreRef} className="h-10" />
+      )}
+
+      {/* End of Results */}
+      {!hasMore && allProperties.length > 0 && (
+        <div className="text-center py-8 border-t">
+          <p className="text-gray-500">
+            {allProperties.length === totalProperties
+              ? `Showing all ${totalProperties} properties`
+              : `You've viewed ${allProperties.length} of ${totalProperties} properties`}
+          </p>
+          <p className="text-sm text-gray-400 mt-1">
+            No more properties to load
+          </p>
+        </div>
+      )}
+
+      {/* Empty State - Only show when there are NO properties at all */}
+      {allProperties.length === 0 && !loading && !loadingMore && (
         <div className="text-center py-12">
           <div className="text-gray-400 mb-4">
             <svg
@@ -331,26 +469,9 @@ export default function PropertyGridThree({
           </p>
           <button
             onClick={handleClearFilters}
-            className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium"
+            className="bg-brand text-white px-6 py-2 rounded-lg hover:bg-brand/90 transition-colors font-medium"
           >
             Show All Properties
-          </button>
-        </div>
-      )}
-
-      {/* Load More Button */}
-      {properties.length > 0 && properties.length >= filters.limit! && (
-        <div className="text-center">
-          <button
-            onClick={() => {
-              setFilters((prev) => ({
-                ...prev,
-                page: prev.page! + 1,
-              }))
-            }}
-            className="bg-emerald-600 text-white px-6 py-2 rounded-lg hover:bg-emerald-700 transition-colors font-medium"
-          >
-            Load More Properties
           </button>
         </div>
       )}
