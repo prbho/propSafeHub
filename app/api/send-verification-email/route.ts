@@ -39,8 +39,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('Sending verification email to:', email)
-
     // Initialize Resend client inside the POST handler (runtime)
     const resend = getResendClient()
 
@@ -62,7 +60,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('✅ Email sent successfully via public API')
     return NextResponse.json({
       success: true,
       message: 'Verification email sent successfully!',
@@ -124,3 +121,4 @@ function generateVerificationEmail(verificationUrl: string, userName: string) {
     </html>
   `
 }
+

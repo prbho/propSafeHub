@@ -13,8 +13,6 @@ const PASSWORD_RESET_TOKENS_COLLECTION = 'password_reset_tokens'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔑 Forget password request received')
-
     // Get security headers
     const userAgent = request.headers.get('user-agent') || 'Unknown'
     const ipAddress =
@@ -52,12 +50,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('📧 Processing password reset for:', {
-      email,
-      ip: ipAddress,
-      userAgent: userAgent.substring(0, 50) + '...',
-    })
-
     try {
       // Search for user in database
       let user: any = null
@@ -76,7 +68,6 @@ export async function POST(request: NextRequest) {
 
         if (agents.total === 0) {
           // User not found, but return success for security
-          console.log('ℹ️ User not found in any collection')
           return NextResponse.json({
             success: true,
             message:
@@ -120,8 +111,6 @@ export async function POST(request: NextRequest) {
       // Create reset URL with our token
       const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}&email=${encodeURIComponent(email)}`
 
-      console.log('✅ Custom password token created for:', email)
-
       // Send branded email using Resend
       const emailParams: EmailTemplateParams = {
         name: user.name || '',
@@ -131,7 +120,6 @@ export async function POST(request: NextRequest) {
         userAgent: userAgent,
       }
 
-      console.log('📤 Sending email via Resend...')
       const emailResult = await emailService.sendPasswordResetEmail(emailParams)
 
       if (!emailResult.success) {
@@ -143,17 +131,7 @@ export async function POST(request: NextRequest) {
         throw new Error('Failed to send email')
       }
 
-      console.log('✅ Branded password reset email sent to:', email)
-
       // Security logging
-      console.log('🔒 Security event - Password reset requested:', {
-        email,
-        userId: user.userId || user.$id,
-        timestamp: new Date().toISOString(),
-        ipAddress,
-        userAgent,
-      })
-
       return NextResponse.json({
         success: true,
         message:
@@ -171,14 +149,6 @@ export async function POST(request: NextRequest) {
       })
 
       // Log failed attempt
-      console.log('🔒 Security event - Failed password reset attempt:', {
-        email,
-        error: error.message,
-        timestamp: new Date().toISOString(),
-        ipAddress,
-        userAgent,
-      })
-
       // For security, always return the same success message
       return NextResponse.json({
         success: true,
@@ -201,3 +171,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

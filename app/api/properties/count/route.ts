@@ -1,4 +1,3 @@
-// app/api/properties/count/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 
 import {
@@ -15,16 +14,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status')
     const propertyType = searchParams.get('propertyType')
 
-    console.log('🔢 Counting properties with params:', {
-      city,
-      status,
-      propertyType,
-    })
-
-    // Build queries array for counting
     const queries = [Query.equal('isActive', true)]
 
-    // Add filters if provided
     if (city) {
       queries.push(Query.equal('city', city))
     }
@@ -35,22 +26,26 @@ export async function GET(request: NextRequest) {
       queries.push(Query.equal('propertyType', propertyType))
     }
 
-    // Get total count of properties matching the filters
     const result = await databases.listDocuments(
       DATABASE_ID,
       PROPERTIES_COLLECTION_ID,
       [...queries, Query.limit(1)]
     )
 
-    console.log('✅ Count result:', result.total)
-
-    return NextResponse.json({
-      success: true,
-      count: result.total,
-      city,
-      status,
-      propertyType,
-    })
+    return NextResponse.json(
+      {
+        success: true,
+        count: result.total,
+        city,
+        status,
+        propertyType,
+      },
+      {
+        headers: {
+          'Cache-Control': 'public, max-age=20, stale-while-revalidate=40',
+        },
+      }
+    )
   } catch {
     return NextResponse.json(
       {

@@ -42,7 +42,6 @@ export async function PUT(request: NextRequest, context: Context) {
 
     if (lastUpdate && Date.now() - lastUpdate < 5000) {
       // 5 second cache
-      console.log('Returning cached status update response')
       return NextResponse.json({
         success: true,
         cached: true,
@@ -82,8 +81,6 @@ export async function PUT(request: NextRequest, context: Context) {
     }
 
     const duration = Date.now() - startTime
-    console.log(`Viewing status update completed in ${duration}ms`)
-
     return NextResponse.json(updatedViewing)
   } catch {
     const duration = Date.now() - startTime

@@ -6,7 +6,7 @@ import {
   DATABASE_ID,
   databases,
   PROPERTIES_COLLECTION_ID,
-} from '@/lib/appwrite'
+} from '@/lib/appwrite-server'
 
 interface PageProps {
   params: Promise<{
@@ -14,7 +14,10 @@ interface PageProps {
   }>
 }
 
-async function getProperty(id: string): Promise<Property> {
+async function getProperty(
+  id: string,
+  options?: { incrementViews?: boolean }
+): Promise<Property> {
   try {
     if (!id) {
       throw new Error('Missing document ID')
@@ -26,26 +29,29 @@ async function getProperty(id: string): Promise<Property> {
       id
     )
 
-    // Update view count
-    await databases.updateDocument(DATABASE_ID, PROPERTIES_COLLECTION_ID, id, {
-      views: (property.views || 0) + 1,
-    })
+    if (options?.incrementViews) {
+      void databases
+        .updateDocument(DATABASE_ID, PROPERTIES_COLLECTION_ID, id, {
+          views: (property.views || 0) + 1,
+        })
+        .catch((error) => {
+          console.error('Error incrementing property views:', error)
+        })
+    }
 
-    // Cast to Property type
     return property as unknown as Property
-  } catch {
-    console.error('Error fetching property')
+  } catch (error) {
+    console.error('Error fetching property:', error)
     throw new Error('Property not found')
   }
 }
 
 export default async function PropertyPage(props: PageProps) {
-  // Unwrap the params promise
   const params = await props.params
   let property: Property
 
   try {
-    property = await getProperty(params.id)
+    property = await getProperty(params.id, { incrementViews: true })
   } catch {
     notFound()
   }
@@ -53,13 +59,11 @@ export default async function PropertyPage(props: PageProps) {
   return <PropertyDetails property={property} />
 }
 
-// Generate metadata for SEO
 export async function generateMetadata(props: PageProps) {
-  // Unwrap the params promise
   const params = await props.params
 
   try {
-    const property = await getProperty(params.id)
+    const property = await getProperty(params.id, { incrementViews: false })
 
     return {
       title: `${property.title} | ${property.city}, ${property.state} - PropSafeHub`,

@@ -16,8 +16,6 @@ export async function GET(request: NextRequest) {
     const agentId = searchParams.get('agentId')
     const limit = parseInt(searchParams.get('limit') || '50')
 
-    console.log('🔍 Fetching agent notifications for:', agentId)
-
     if (!agentId) {
       return NextResponse.json(
         { error: 'Agent ID is required' },
@@ -37,10 +35,6 @@ export async function GET(request: NextRequest) {
       ]
     )
 
-    console.log(
-      `✅ Fetched ${notifications.total} notifications for agent ${agentId}`
-    )
-
     // Filter to only show agent-specific notifications
     const agentNotifications = notifications.documents.filter(
       (notification) =>
@@ -50,9 +44,6 @@ export async function GET(request: NextRequest) {
         notification.actionUrl?.includes('/agent/')
     )
 
-    console.log(
-      `📊 Filtered to ${agentNotifications.length} agent-specific notifications`
-    )
     return NextResponse.json(agentNotifications)
   } catch {
     return NextResponse.json(
@@ -75,8 +66,6 @@ export async function POST(request: NextRequest) {
       actionUrl,
       actionText,
     } = body
-
-    console.log('📝 Creating agent notification with data:', body)
 
     if (!agentId || !title || !message) {
       return NextResponse.json(
@@ -109,7 +98,6 @@ export async function POST(request: NextRequest) {
       notificationData
     )
 
-    console.log(`✅ Created agent notification: ${notification.$id}`)
     return NextResponse.json(notification)
   } catch {
     return NextResponse.json(
@@ -118,3 +106,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

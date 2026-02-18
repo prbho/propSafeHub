@@ -36,8 +36,6 @@ export async function PUT(request: NextRequest, context: Context) {
     )
 
     const duration = Date.now() - startTime
-    console.log(`User notification read update completed in ${duration}ms`)
-
     return NextResponse.json({
       success: true,
       notification: updatedNotification,

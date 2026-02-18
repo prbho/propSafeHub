@@ -19,13 +19,6 @@ export async function POST(request: NextRequest) {
     // Remove sensitive or unnecessary fields
     const { $permissions, ...cleanPropertyData } = propertyData
 
-    console.log('🔍 Received property data:', {
-      userType: cleanPropertyData.userType,
-      agentId: cleanPropertyData.agentId,
-      sellerId: cleanPropertyData.sellerId,
-      listedBy: cleanPropertyData.listedBy,
-    })
-
     // VALIDATE USER TYPE
     if (!['agent', 'seller'].includes(cleanPropertyData.userType)) {
       return NextResponse.json(
@@ -62,7 +55,6 @@ export async function POST(request: NextRequest) {
             AGENTS_COLLECTION_ID,
             cleanPropertyData.agentId
           )
-          console.log('✅ Agent found by ID:', agent.$id)
           correctAgentId = agent.$id
           correctAgentName = agent.name || cleanPropertyData.agentName
         }
@@ -78,7 +70,6 @@ export async function POST(request: NextRequest) {
             const foundAgent = agents.documents[0]
             correctAgentId = foundAgent.$id
             correctAgentName = foundAgent.name
-            console.log('✅ Agent found by name:', foundAgent.$id)
           } else {
             console.warn(
               '⚠️ No agent found with name:',
@@ -126,11 +117,6 @@ export async function POST(request: NextRequest) {
       // Force listedBy to 'owner' for sellers
       cleanPropertyData.listedBy = 'owner'
 
-      console.log('✅ Seller property detected:', {
-        ownerId,
-        ownerName,
-        listedBy: cleanPropertyData.listedBy,
-      })
     }
 
     // Validate required fields
@@ -286,13 +272,6 @@ export async function POST(request: NextRequest) {
       documentData.listedBy = 'owner' // Always 'owner' for sellers
     }
 
-    console.log('📝 Creating property with:', {
-      userType: cleanPropertyData.userType,
-      agentId: documentData.agentId || 'N/A',
-      ownerId: documentData.ownerId || 'N/A',
-      listedBy: documentData.listedBy,
-    })
-
     // Create the property in Appwrite
     const property = await databases.createDocument(
       DATABASE_ID,
@@ -319,7 +298,6 @@ export async function POST(request: NextRequest) {
             lastUpdated: new Date().toISOString(),
           }
         )
-        console.log('✅ Updated agent properties count for:', correctAgentId)
       } catch (agentUpdateError) {
         console.error(
           '❌ Failed to update agent properties count:',
@@ -365,3 +343,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

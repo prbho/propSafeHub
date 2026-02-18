@@ -20,8 +20,6 @@ export async function PUT(request: NextRequest, context: Context) {
     const params = await context.params
     const notificationId = params.id
 
-    console.log('📖 Marking agent notification as read:', notificationId)
-
     if (!notificationId) {
       return NextResponse.json(
         { error: 'Notification ID is required' },
@@ -32,7 +30,6 @@ export async function PUT(request: NextRequest, context: Context) {
     // Check if we already marked this as read recently
     const cacheKey = `agent-read-${notificationId}`
     if (readStatusCache.has(cacheKey)) {
-      console.log('Returning cached agent read status response')
       return NextResponse.json({
         success: true,
         cached: true,
@@ -47,12 +44,6 @@ export async function PUT(request: NextRequest, context: Context) {
         NOTIFICATIONS_COLLECTION_ID,
         notificationId
       )
-
-      console.log('🔍 Found agent notification:', {
-        id: notification.$id,
-        agentId: notification.agentId,
-        title: notification.title,
-      })
 
       // Update only the isRead field
       const updatedNotification = await databases.updateDocument(
@@ -78,10 +69,6 @@ export async function PUT(request: NextRequest, context: Context) {
       }
 
       const duration = Date.now() - startTime
-      console.log(
-        `✅ Agent notification read update completed in ${duration}ms`
-      )
-
       return NextResponse.json({
         success: true,
         notification: updatedNotification,

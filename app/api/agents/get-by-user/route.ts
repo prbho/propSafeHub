@@ -16,8 +16,6 @@ export async function GET(request: NextRequest) {
     const email = searchParams.get('email')
     const name = searchParams.get('name') // Add name parameter
 
-    console.log('🔍 Searching agent by:', { userId, email, name })
-
     // Try multiple methods to find agent
     let agent = null
 
@@ -31,7 +29,6 @@ export async function GET(request: NextRequest) {
         )
         if (agentsByUserId.documents.length > 0) {
           agent = agentsByUserId.documents[0]
-          console.log('✅ Found agent by userId:', agent.$id)
         }
       } catch {}
     }
@@ -46,7 +43,6 @@ export async function GET(request: NextRequest) {
         )
         if (agentsByEmail.documents.length > 0) {
           agent = agentsByEmail.documents[0]
-          console.log('✅ Found agent by email:', agent.$id)
         }
       } catch {}
     }
@@ -69,13 +65,11 @@ export async function GET(request: NextRequest) {
 
         if (foundAgent) {
           agent = foundAgent
-          console.log('✅ Found agent by name similarity:', agent.$id)
         }
       } catch {}
     }
 
     if (!agent) {
-      console.log('❌ No agent profile found')
       return NextResponse.json(
         { error: 'Agent profile not found' },
         { status: 404 }
@@ -91,3 +85,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+

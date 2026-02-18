@@ -59,8 +59,6 @@ function base64ToFile(base64Data: string, mimeType: string): File {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔍 Registration request received')
-
     let name: string,
       email: string,
       password: string,
@@ -74,7 +72,6 @@ export async function POST(request: NextRequest) {
 
     if (contentType.includes('multipart/form-data')) {
       // Handle FormData
-      console.log('📁 Processing FormData request')
       const formData = await request.formData()
 
       name = formData.get('name') as string
@@ -100,8 +97,6 @@ export async function POST(request: NextRequest) {
 
       // Handle avatar upload
       if (avatarFile && avatarFile.size > 0) {
-        console.log('📸 Avatar file found:', avatarFile.name)
-
         if (!avatarFile.type.startsWith('image/')) {
           console.error('❌ Invalid file type')
         } else if (avatarFile.size > 5 * 1024 * 1024) {
@@ -109,8 +104,6 @@ export async function POST(request: NextRequest) {
         } else {
           try {
             const fileId = uuidv4()
-            console.log(`📤 Uploading avatar with ID: ${fileId}`)
-
             // Upload file
             const uploadedFile = await serverStorage.createFile(
               STORAGE_BUCKET_ID,
@@ -118,20 +111,9 @@ export async function POST(request: NextRequest) {
               avatarFile
             )
 
-            console.log('✅ File uploaded to Appwrite')
-
             // Get URL using manual construction (NO Appwrite SDK methods)
             avatarUrl = getFileUrl(uploadedFile.$id)
-            console.log(`✅ Avatar URL: ${avatarUrl}`)
-
             // Debug: Check URL for transformations
-            console.log('🔍 Generated avatar URL check:', {
-              hasPreview: avatarUrl.includes('/preview'),
-              hasView: avatarUrl.includes('/view'),
-              hasTransformations:
-                avatarUrl.includes('width=') || avatarUrl.includes('height='),
-              url: avatarUrl.substring(0, 100) + '...',
-            })
           } catch (uploadError: any) {
             console.error('❌ Upload error:', uploadError.message)
           }
@@ -139,7 +121,6 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // Handle JSON request
-      console.log('📄 Processing JSON request')
       try {
         const jsonData = await request.json()
         name = jsonData.name
@@ -151,7 +132,6 @@ export async function POST(request: NextRequest) {
 
         // Handle base64 avatar
         if (jsonData.avatarBase64) {
-          console.log('📸 Avatar received as base64')
           try {
             const mimeType =
               jsonData.avatarBase64.match(/[^:]\w+\/[\w-+\d.]+(?=;|,)/)?.[0] ||
@@ -166,7 +146,6 @@ export async function POST(request: NextRequest) {
             )
 
             avatarUrl = getFileUrl(uploadedFile.$id)
-            console.log(`✅ Base64 avatar uploaded: ${avatarUrl}`)
           } catch (error) {
             console.error('❌ Base64 processing error:', error)
           }
@@ -179,15 +158,6 @@ export async function POST(request: NextRequest) {
         )
       }
     }
-
-    console.log('📊 Registration summary:', {
-      name,
-      email,
-      userType,
-      agency: agentData?.agency || 'None',
-      city: agentData?.city || 'None',
-      hasAvatar: !!avatarUrl,
-    })
 
     // Validation
     if (!name || !email || !password) {
@@ -222,7 +192,6 @@ export async function POST(request: NextRequest) {
         password,
         name
       )
-      console.log('✅ Appwrite account created:', appwriteUser.$id)
     } catch (error: any) {
       console.error('❌ Account creation error:', error.message)
 
@@ -262,11 +231,8 @@ export async function POST(request: NextRequest) {
         avatarUrl.includes('[object') ||
         !avatarUrl.startsWith('http')
       ) {
-        console.log('⚠️ Using default avatar')
         finalAvatarUrl = `${DEFAULT_AVATAR}${encodeURIComponent(email)}`
       }
-
-      console.log(`🎯 Final avatar URL: ${finalAvatarUrl}`)
 
       // Build document data
       const documentData: any = {
@@ -310,7 +276,6 @@ export async function POST(request: NextRequest) {
         if (agentData.website) documentData.website = agentData.website
         if (agentData.specialty) documentData.specialty = agentData.specialty
 
-        console.log(`🏢 Agent data: ${agentData.agency} in ${agentData.city}`)
       }
 
       // Create the document
@@ -321,15 +286,10 @@ export async function POST(request: NextRequest) {
         documentData
       )
 
-      console.log(
-        `✅ ${isAgent ? 'Agent' : 'User'} document created in ${collectionId}:`,
-        userDoc.$id
-      )
     } catch (error: any) {
       // Cleanup on error
       try {
         await serverUsers.delete(appwriteUser.$id)
-        console.log('🗑️ Cleaned up Appwrite account')
       } catch {}
 
       if (avatarUrl) {
@@ -337,7 +297,6 @@ export async function POST(request: NextRequest) {
           const fileId = avatarUrl.split('/files/')[1]?.split('/')[0]
           if (fileId) {
             await serverStorage.deleteFile(STORAGE_BUCKET_ID, fileId)
-            console.log('🗑️ Cleaned up uploaded file')
           }
         } catch {}
       }
@@ -365,7 +324,6 @@ export async function POST(request: NextRequest) {
       }
 
       await emailService.sendVerificationEmail(emailParams)
-      console.log('📧 Verification email sent')
     } catch (emailError) {
       console.error('❌ Email error:', emailError)
       // Don't fail registration if email fails
@@ -394,9 +352,6 @@ export async function POST(request: NextRequest) {
       responseData.yearsExperience = userDoc.yearsExperience
       if (userDoc.specialty) responseData.specialty = userDoc.specialty
 
-      console.log(
-        `🎉 Agent registration complete: ${userDoc.name} (${userDoc.agency})`
-      )
     }
 
     return NextResponse.json({
@@ -415,3 +370,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

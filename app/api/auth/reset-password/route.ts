@@ -16,8 +16,6 @@ const PASSWORD_RESET_TOKENS_COLLECTION = 'password_reset_tokens'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔑 Reset password request received')
-
     // Parse request body
     const { token, email, password, confirmPassword } = await request.json()
 
@@ -66,8 +64,6 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
-
-    console.log('🔄 Processing password reset for email:', email)
 
     try {
       // 1. Find the reset token in database
@@ -137,19 +133,11 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      console.log(
-        '✅ Token validated for user:',
-        appwriteUserId.substring(0, 8) + '...'
-      )
-
       // 4. UPDATE PASSWORD USING ADMIN API (NO EMAIL SENT!)
       try {
-        console.log('🔑 Attempting to update password using admin API...')
-
         // Use serverUsers (which should have admin privileges with your API key)
         await serverUsers.updatePassword(appwriteUserId, password)
 
-        console.log('✅ Password updated successfully using Admin API!')
       } catch (adminError: any) {
         console.error('❌ Admin API password update failed:', {
           message: adminError.message,
@@ -193,8 +181,6 @@ export async function POST(request: NextRequest) {
         }
       )
 
-      console.log('✅ Password reset completed for:', email)
-
       // 6. Send confirmation email
       try {
         await emailService.sendPasswordResetSuccessEmail({
@@ -203,7 +189,6 @@ export async function POST(request: NextRequest) {
           userType:
             user.userType || (collection === 'agents' ? 'agent' : 'user'),
         })
-        console.log('📧 Confirmation email sent to:', email)
       } catch (emailError: any) {
         console.warn(
           '⚠️ Failed to send confirmation email:',
@@ -212,12 +197,6 @@ export async function POST(request: NextRequest) {
       }
 
       // Log success
-      console.log('🔒 Security event - Password successfully reset:', {
-        userId: appwriteUserId,
-        email: email,
-        timestamp: new Date().toISOString(),
-      })
-
       return NextResponse.json({
         success: true,
         message:
@@ -272,3 +251,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

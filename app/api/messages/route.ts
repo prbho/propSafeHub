@@ -14,13 +14,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    console.log('📨 Creating new message:', {
-      userId: body.userId,
-      toUserId: body.toUserId,
-      propertyId: body.propertyId,
-      message: body.message?.substring(0, 50) + '...',
-    })
-
     // Validate required fields
     if (!body.userId || !body.toUserId || !body.message) {
       return NextResponse.json(
@@ -47,21 +40,12 @@ export async function POST(request: NextRequest) {
       messageTitle: body.messageTitle || body.message.substring(0, 50),
     }
 
-    console.log('📨 Creating message with data:', messageData)
-
     const message = await databases.createDocument(
       DATABASE_ID,
       MESSAGES_COLLECTION_ID,
       ID.unique(),
       messageData
     )
-
-    console.log('✅ Message created successfully:', {
-      id: message.$id,
-      fromUserId: message.fromUserId,
-      toUserId: message.toUserId,
-      sentAt: message.sentAt,
-    })
 
     return NextResponse.json({
       success: true,
@@ -98,12 +82,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log('📨 Fetching messages for conversation:', {
-      userId,
-      otherUserId,
-      propertyId,
-    })
-
     // Build the query
     const queries = [
       Query.or([
@@ -133,19 +111,6 @@ export async function GET(request: NextRequest) {
     )
 
     const messages = messagesResponse.documents
-
-    console.log('📨 Messages fetched:', {
-      total: messagesResponse.total,
-      sample: messages.slice(0, 3).map((msg) => ({
-        id: msg.$id,
-        message: msg.message?.substring(0, 50),
-        from: msg.fromUserId,
-        to: msg.toUserId,
-        sentAt: msg.sentAt,
-        isRead: msg.isRead,
-        propertyId: msg.propertyId,
-      })),
-    })
 
     // Transform to ensure consistent field names
     const transformedMessages = messages.map((msg: any) => ({
@@ -178,3 +143,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+

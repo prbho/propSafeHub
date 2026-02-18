@@ -99,7 +99,6 @@ function initializeIfNeeded(): boolean {
 
     try {
       client.setEndpoint(endpoint).setProject(projectId).setKey(apiKey)
-      console.log('✅ Appwrite initialized for Railway build')
       return true
     } catch (error) {
       console.error(
@@ -237,3 +236,4 @@ export function validateAppwriteConfig(): boolean {
 
   return missing.length === 0
 }
+

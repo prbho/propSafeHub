@@ -17,15 +17,11 @@ export async function GET(request: NextRequest, context: Context) {
     const params = await context.params
     const propertyId = params.id
 
-    console.log('🔍 Fetching property with ID:', propertyId)
-
     const property = await databases.getDocument(
       DATABASE_ID,
       PROPERTIES_COLLECTION_ID,
       propertyId
     )
-
-    console.log('✅ Property found:', property.title)
 
     // Increment view count
     try {
@@ -37,7 +33,6 @@ export async function GET(request: NextRequest, context: Context) {
           views: (property.views || 0) + 1,
         }
       )
-      console.log('✅ View count incremented')
     } catch (updateError) {
       console.error('❌ Error updating view count:', updateError)
       // Don't fail the entire request if view count update fails

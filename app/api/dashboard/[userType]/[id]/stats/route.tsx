@@ -12,8 +12,6 @@ import {
 
 export async function GET() {
   try {
-    console.log('📊 Fetching stats from Appwrite...')
-
     // Get total properties count
     const properties = await databases.listDocuments(
       DATABASE_ID,
@@ -42,7 +40,6 @@ export async function GET() {
       )
       usersCount = users.total
     } catch {
-      console.log('Using default users count')
     }
 
     const stats = {
@@ -53,8 +50,6 @@ export async function GET() {
       responseTime: '< 24h',
       marketCoverage: 'All major cities',
     }
-
-    console.log('✅ Stats fetched successfully:', stats)
 
     return NextResponse.json({
       success: true,

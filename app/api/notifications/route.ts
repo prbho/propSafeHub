@@ -1,4 +1,3 @@
-// app/api/notifications/route.ts
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -32,12 +31,18 @@ export async function GET(request: NextRequest) {
       ]
     )
 
-    return NextResponse.json(notifications.documents)
+    return NextResponse.json(notifications.documents, {
+      headers: {
+        'Cache-Control': 'private, max-age=8, stale-while-revalidate=20',
+      },
+    })
   } catch (error: any) {
-    console.error('Error fetching notifications:', error.message)
-    return NextResponse.json(
-      { error: 'Failed to fetch notifications' },
-      { status: 500 }
-    )
+    console.error('Error fetching notifications:', error?.message || error)
+    return NextResponse.json([], {
+      status: 200,
+      headers: {
+        'Cache-Control': 'private, max-age=2, stale-while-revalidate=5',
+      },
+    })
   }
 }

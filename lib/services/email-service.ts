@@ -41,9 +41,6 @@ export class EmailService {
     try {
       // Check if resend is initialized (might be null during build)
       if (!this.resend) {
-        console.log(
-          `📧 [Build simulation] Verification email would be sent to: ${params.email}`
-        )
         return {
           success: true,
           error: 'Email service not configured during build',
@@ -53,8 +50,6 @@ export class EmailService {
       const { subject, html } = generateVerificationEmail(params)
 
       const fromAddress = this.getFromAddress(params.userType)
-
-      console.log('📤 Sending verification email to:', params.email)
 
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
@@ -68,10 +63,6 @@ export class EmailService {
         return { success: false, error: error.message }
       }
 
-      console.log(
-        `✅ ${params.userType.charAt(0).toUpperCase() + params.userType.slice(1)} verification email sent to: ${params.email}`
-      )
-      console.log('📧 Email ID:', data?.id)
       return { success: true }
     } catch (error: any) {
       console.error('❌ Email service error:', error.message)
@@ -85,9 +76,6 @@ export class EmailService {
     try {
       // Check if resend is initialized (might be null during build)
       if (!this.resend) {
-        console.log(
-          `📧 [Build simulation] Password reset email would be sent to: ${params.email}`
-        )
         return {
           success: true,
           error: 'Email service not configured during build',
@@ -101,9 +89,6 @@ export class EmailService {
         params.userType || 'user',
         'password-reset'
       )
-
-      console.log('📤 Sending password reset email to:', params.email)
-      console.log('📤 Using from address:', fromAddress)
 
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
@@ -123,8 +108,6 @@ export class EmailService {
         return { success: false, error: error.message }
       }
 
-      console.log(`✅ Password reset email sent to: ${params.email}`)
-      console.log('📧 Email ID:', data?.id)
       return { success: true }
     } catch (error: any) {
       console.error('❌ Password reset email service error:', error.message)
@@ -138,9 +121,6 @@ export class EmailService {
     try {
       // Check if resend is initialized (might be null during build)
       if (!this.resend) {
-        console.log(
-          `📧 [Build simulation] Password reset success email would be sent to: ${params.email}`
-        )
         return {
           success: true,
           error: 'Email service not configured during build',
@@ -231,8 +211,6 @@ export class EmailService {
       const fromAddress =
         'PropSafeHub Account Security <security@notifications.propsafehub.com>'
 
-      console.log('📤 Sending password reset success email to:', params.email)
-
       const { data, error } = await this.resend.emails.send({
         from: fromAddress,
         to: params.email,
@@ -245,10 +223,6 @@ export class EmailService {
         return { success: false, error: error.message }
       }
 
-      console.log(
-        `✅ Password reset success notification sent to: ${params.email}`
-      )
-      console.log('📧 Email ID:', data?.id)
       return { success: true }
     } catch (error: any) {
       console.error(
@@ -265,14 +239,11 @@ export class EmailService {
     try {
       // Check if resend is initialized (might be null during build)
       if (!this.resend) {
-        console.log(`📧 [Build simulation] Test email would be sent to: ${to}`)
         return {
           success: true,
           error: 'Email service not configured during build',
         }
       }
-
-      console.log('📤 Sending test email to:', to)
 
       const { data, error } = await this.resend.emails.send({
         from: 'PropSafeHub Test <test@notifications.propsafehub.com>',
@@ -286,8 +257,6 @@ export class EmailService {
         return { success: false, error: error.message }
       }
 
-      console.log(`✅ Test email sent to: ${to}`)
-      console.log('📧 Email ID:', data?.id)
       return { success: true }
     } catch (error: any) {
       console.error('❌ Test email service error:', error.message)
@@ -324,3 +293,4 @@ export class EmailService {
 
 // Export a singleton instance
 export const emailService = new EmailService()
+

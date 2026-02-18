@@ -46,9 +46,6 @@ export async function POST(request: NextRequest) {
     // ✅ AUTO-FEATURE: Sync property with premium status
     try {
       await PropertyService.syncPropertyWithPremium(metadata.propertyId)
-      console.log(
-        `✅ Property ${metadata.propertyId} featured status synced with premium`
-      )
     } catch (featureError) {
       console.error('Error syncing property featured status:', featureError)
       // Don't fail the entire request if featuring fails
@@ -64,3 +61,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: 500 })
   }
 }
+

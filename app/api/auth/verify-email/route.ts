@@ -12,11 +12,6 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('token')
     const userId = searchParams.get('userId')
 
-    console.log('🔄 Processing old verification link:', {
-      hasToken: !!token,
-      hasUserId: !!userId,
-    })
-
     if (!token) {
       console.error('❌ Missing token in old verification link')
       return NextResponse.redirect(
@@ -26,8 +21,6 @@ export async function GET(request: NextRequest) {
 
     // Redirect to new clean URL format
     const newVerificationUrl = `${process.env.NEXT_PUBLIC_APP_URL}/verify/${token}`
-
-    console.log('🔀 Redirecting to new format:', newVerificationUrl)
 
     return NextResponse.redirect(newVerificationUrl)
   } catch (error: any) {
@@ -49,3 +42,4 @@ export async function POST() {
     { status: 410 } // 410 Gone
   )
 }
+

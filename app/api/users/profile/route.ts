@@ -12,8 +12,6 @@ import {
 
 export async function PUT(request: NextRequest) {
   try {
-    console.log('🔧 PUT /api/user/profile - Starting request...')
-
     // Parse the request body
     let body
     try {
@@ -30,17 +28,7 @@ export async function PUT(request: NextRequest) {
 
     const { name, email, phone, bio, city, state } = body
 
-    console.log('📝 Profile update request received:', {
-      name,
-      email,
-      hasPhone: !!phone,
-      hasBio: !!bio,
-      hasCity: !!city,
-      hasState: !!state,
-    })
-
     // Get the current user
-    console.log('👤 Getting current user...')
     const user = await getCurrentUser()
 
     if (!user) {
@@ -55,8 +43,6 @@ export async function PUT(request: NextRequest) {
     }
 
     const userId = user.$id
-    console.log('✅ Current user ID:', userId)
-
     // Validate required fields
     if (!name || !email) {
       return NextResponse.json(
@@ -68,13 +54,10 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.log('📊 Attempting to update user document...')
-
     try {
       // First, check if the user document exists
       try {
         await databases.getDocument(DATABASE_ID, USERS_COLLECTION_ID, userId)
-        console.log('✅ User document exists')
       } catch {}
 
       // Update user document
@@ -91,8 +74,6 @@ export async function PUT(request: NextRequest) {
           state: state || '',
         }
       )
-
-      console.log('✅ Profile updated successfully')
 
       return NextResponse.json({
         success: true,
@@ -156,8 +137,6 @@ export async function PUT(request: NextRequest) {
 // Add GET method for testing
 export async function GET(request: NextRequest) {
   try {
-    console.log('🔧 GET /api/user/profile - Testing route...')
-
     const user = await getCurrentUser()
 
     if (!user) {
@@ -189,3 +168,4 @@ export async function GET(request: NextRequest) {
     )
   }
 }
+

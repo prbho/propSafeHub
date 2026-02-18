@@ -13,8 +13,6 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { messageIds, userId } = body
 
-    console.log('📥 Read API request:', { messageIds, userId })
-
     // Validate request body
     if (!messageIds || !Array.isArray(messageIds)) {
       console.error('❌ Invalid messageIds:', messageIds)
@@ -45,8 +43,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🔍 Valid message IDs:', validMessageIds)
-
     // Verify that the user has permission to mark these messages as read
     // Only mark messages where the user is the recipient
     const messagesToUpdate = await databases.listDocuments(
@@ -54,12 +50,6 @@ export async function POST(request: NextRequest) {
       MESSAGES_COLLECTION_ID,
       [Query.equal('$id', validMessageIds), Query.equal('toUserId', userId)]
     )
-
-    console.log('📋 Messages found for update:', {
-      requested: validMessageIds.length,
-      found: messagesToUpdate.total,
-      documents: messagesToUpdate.documents.map((d) => d.$id),
-    })
 
     if (messagesToUpdate.total === 0) {
       return NextResponse.json(
@@ -74,24 +64,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Mark messages as read
-    const promises = messagesToUpdate.documents.map((message) =>
-      databases.updateDocument(
-        DATABASE_ID,
-        MESSAGES_COLLECTION_ID,
-        message.$id,
-        {
-          isRead: true,
-        }
+    // Mark messages as read in small batches to avoid write spikes.
+    const batchSize = 10
+    for (let i = 0; i < messagesToUpdate.documents.length; i += batchSize) {
+      const batch = messagesToUpdate.documents.slice(i, i + batchSize)
+      await Promise.all(
+        batch.map((message) =>
+          databases.updateDocument(
+            DATABASE_ID,
+            MESSAGES_COLLECTION_ID,
+            message.$id,
+            {
+              isRead: true,
+            }
+          )
+        )
       )
-    )
-
-    await Promise.all(promises)
-
-    console.log(
-      '✅ Successfully marked messages as read:',
-      messagesToUpdate.total
-    )
+    }
 
     return NextResponse.json({
       success: true,
@@ -109,3 +98,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

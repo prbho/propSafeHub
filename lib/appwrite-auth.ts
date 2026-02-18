@@ -59,16 +59,12 @@ export async function updateUserProfile(
     if (data.bio !== undefined) updateData.bio = data.bio
     if (data.avatar !== undefined) updateData.avatar = data.avatar // THIS WAS MISSING!
 
-    console.log('🔄 Updating user profile with data:', updateData)
-
     const updatedUser = await databases.updateDocument(
       DATABASE_ID,
       USERS_COLLECTION_ID,
       userId,
       updateData
     )
-
-    console.log('✅ User document updated successfully:', updatedUser.avatar)
 
     return {
       $id: updatedUser.$id,
@@ -133,7 +129,6 @@ export async function uploadAvatar(
         await storage.deleteFile(STORAGE_BUCKET_ID, userAvatarFile.$id)
       }
     } catch (error) {
-      console.log('No existing avatar found or error deleting:', error)
       // Continue with upload even if deletion fails
     }
 
@@ -156,8 +151,6 @@ export async function uploadAvatar(
     await databases.updateDocument(DATABASE_ID, USERS_COLLECTION_ID, userId, {
       avatar: avatarUrl,
     })
-
-    console.log('✅ User document updated with avatar URL')
 
     // Show success toast
     showToast('Avatar uploaded successfully!', 'success')
@@ -278,8 +271,6 @@ function showToast(
 // Delete function
 export async function deleteUserAccount(userId: string): Promise<void> {
   try {
-    console.log('🗑️ Starting account deletion for user:', userId)
-
     // 1. Delete user's avatar from storage if exists
     try {
       const existingFiles = await storage.listFiles(STORAGE_BUCKET_ID)
@@ -293,13 +284,8 @@ export async function deleteUserAccount(userId: string): Promise<void> {
 
       for (const file of userAvatarFiles) {
         await storage.deleteFile(STORAGE_BUCKET_ID, file.$id)
-        console.log(
-          '✅ Deleted avatar file:',
-          (file as unknown as StorageFile).name
-        )
       }
     } catch (error) {
-      console.log('No avatar files found or error deleting avatars:', error)
     }
 
     // 2. Delete user's favorites (if you have a separate favorites collection)
@@ -316,20 +302,14 @@ export async function deleteUserAccount(userId: string): Promise<void> {
           FAVORITES_COLLECTION_ID,
           favorite.$id
         )
-        console.log('✅ Deleted favorite:', favorite.$id)
       }
     } catch (error) {
-      console.log('No favorites found or error deleting favorites:', error)
     }
 
     // 3. Delete user document from database
     await databases.deleteDocument(DATABASE_ID, USERS_COLLECTION_ID, userId)
-    console.log('✅ Deleted user document')
-
     // 4. Delete user's account (this will also delete sessions)
     await account.deleteIdentity(userId)
-    console.log('✅ Deleted user account')
-
     // Show success toast
     showToast('Account deleted successfully', 'success')
   } catch (error) {
@@ -350,3 +330,4 @@ export const getCurrentUser = async () => {
     throw toast.error
   }
 }
+

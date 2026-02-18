@@ -16,8 +16,6 @@ export async function uploadAvatarServer(
   file: File | Blob
 ): Promise<string> {
   try {
-    console.log('🔄 Server: Uploading avatar for user:', userId)
-
     // Convert blob to file if needed
     let uploadFile: File
     if (file instanceof Blob && !(file instanceof File)) {
@@ -40,13 +38,8 @@ export async function uploadAvatarServer(
 
       if (userAvatarFile) {
         await serverStorage.deleteFile(STORAGE_BUCKET_ID, userAvatarFile.$id)
-        console.log('🗑️ Server: Deleted old avatar:', userAvatarFile.name)
       }
     } catch (error) {
-      console.log(
-        'ℹ️ Server: No existing avatar found or error deleting:',
-        error
-      )
     }
 
     // Upload new avatar with PUBLIC read permissions
@@ -61,12 +54,8 @@ export async function uploadAvatarServer(
       ]
     )
 
-    console.log('✅ Server: Avatar uploaded:', result.$id)
-
     // Generate proper file URL - Use the correct method based on your AppWrite setup
     const avatarUrl = generateFileUrl(result.$id)
-
-    console.log('🔗 Server: Generated avatar URL:', avatarUrl)
 
     // Validate URL format before saving
     if (!isValidUrl(avatarUrl)) {
@@ -77,8 +66,6 @@ export async function uploadAvatarServer(
     await databases.updateDocument(DATABASE_ID, USERS_COLLECTION_ID, userId, {
       avatar: avatarUrl,
     })
-
-    console.log('✅ Server: User document updated with avatar URL')
 
     return avatarUrl
   } catch (error) {
@@ -108,3 +95,4 @@ function isValidUrl(string: string): boolean {
     return false
   }
 }
+

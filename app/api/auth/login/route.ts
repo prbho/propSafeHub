@@ -27,7 +27,6 @@ export async function POST(request: NextRequest) {
     let session
     try {
       session = await serverAccount.createEmailPasswordSession(email, password)
-      console.log('Login session created:', session.$id)
     } catch (error: any) {
       console.error('Login failed:', error.message)
       return NextResponse.json(
@@ -61,7 +60,6 @@ export async function POST(request: NextRequest) {
           isActive: true,
         } as any // May need 'as any' if createDocument wrapper isn't fixed yet
       )
-      console.log('New user document created:', userDoc.$id)
     }
 
     const userResponse = {
@@ -89,3 +87,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

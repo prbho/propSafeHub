@@ -10,17 +10,8 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { currentPassword, newPassword } = body
 
-    console.log('🔒 Password update request received')
-    console.log('Request body:', body)
-    console.log(
-      'Current password provided (first 3 chars):',
-      currentPassword ? currentPassword.substring(0, 3) + '...' : 'empty'
-    )
-    console.log('New password length:', newPassword?.length || 0)
-
     // Validate input
     if (!currentPassword || !newPassword) {
-      console.log('❌ Missing required fields')
       return NextResponse.json(
         {
           success: false,
@@ -31,7 +22,6 @@ export async function PUT(request: NextRequest) {
     }
 
     if (newPassword.length < 6) {
-      console.log('❌ New password too short')
       return NextResponse.json(
         {
           success: false,
@@ -44,7 +34,6 @@ export async function PUT(request: NextRequest) {
     // First, let's check the current user session
     try {
       const user = await account.get()
-      console.log('✅ Current user:', user.email)
     } catch (sessionError: any) {
       console.error('❌ Session error:', sessionError)
       return NextResponse.json(
@@ -58,10 +47,7 @@ export async function PUT(request: NextRequest) {
 
     // Update password using Appwrite
     try {
-      console.log('🔄 Attempting to update password...')
       const result = await account.updatePassword(newPassword, currentPassword)
-      console.log('✅ Password updated successfully:', result)
-
       return NextResponse.json({
         success: true,
         message: 'Password updated successfully',
@@ -128,3 +114,4 @@ export async function OPTIONS() {
     }
   )
 }
+

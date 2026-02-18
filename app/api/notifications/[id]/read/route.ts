@@ -16,8 +16,6 @@ export async function PUT(request: NextRequest, context: Context) {
     const params = await context.params
     const notificationId = params.id
 
-    console.log('📖 Marking notification as read:', notificationId)
-
     if (!notificationId) {
       return NextResponse.json(
         { error: 'Notification ID is required' },
@@ -35,7 +33,6 @@ export async function PUT(request: NextRequest, context: Context) {
       }
     )
 
-    console.log('✅ Notification marked as read:', notificationId)
     return NextResponse.json({ success: true })
   } catch {}
 

@@ -1,7 +1,7 @@
 // components/properties/PropertySidebar.tsx
 'use client'
 
-import { useEffect, useMemo, useState } from 'react' // Add useMemo
+import { useMemo, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Property } from '@/types'
 import { Calculator, Calendar } from 'lucide-react'
@@ -24,13 +24,7 @@ export default function PropertySidebar({
   property,
   agentProfileId,
 }: PropertySidebarProps) {
-  const [agentData, setAgentData] = useState<{
-    name?: string
-    avatar?: string
-    rating?: number
-    reviewCount?: number
-    agency?: string
-  } | null>(null)
+
   const [showScheduleModal, setShowScheduleModal] = useState(false)
   const [showMortgageCalculator, setShowMortgageCalculator] = useState(false)
   const { user } = useAuth()
@@ -114,40 +108,6 @@ export default function PropertySidebar({
     }
   }
 
-  useEffect(() => {
-    async function fetchAgent() {
-      if (!property.agentId) return
-
-      try {
-        console.log('🔍 Fetching agent data for:', property.agentId)
-        const response = await fetch(`/api/agents/${property.agentId}`)
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch agent')
-        }
-
-        const data = await response.json()
-        console.log('✅ Agent data fetched:', {
-          name: data.name,
-          avatar: data.avatar,
-          agency: data.agency,
-          rating: data.rating,
-        })
-
-        setAgentData({
-          name: data.name,
-          avatar: data.avatar,
-          rating: data.rating,
-          reviewCount: data.reviewCount,
-          agency: data.agency,
-        })
-      } catch (error) {
-        console.error('❌ Failed to fetch agent:', error)
-      }
-    }
-
-    fetchAgent()
-  }, [property.agentId])
 
   return (
     <>
@@ -304,3 +264,5 @@ export default function PropertySidebar({
     </>
   )
 }
+
+

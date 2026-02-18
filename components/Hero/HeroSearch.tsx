@@ -30,6 +30,9 @@ export default function HeroSearch({ searchType, onSearch }: HeroSearchProps) {
   const [open, setOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const requestIdRef = useRef(0)
+  const countCacheRef = useRef<Map<string, number>>(new Map())
   const router = useRouter()
 
   // Function to get accurate count for a specific suggestion
@@ -37,6 +40,12 @@ export default function HeroSearch({ searchType, onSearch }: HeroSearchProps) {
     type: string,
     value: string
   ): Promise<number> => {
+    const cacheKey = `${searchType}:${type}:${value.toLowerCase()}`
+    const cached = countCacheRef.current.get(cacheKey)
+    if (cached !== undefined) {
+      return cached
+    }
+
     try {
       const params = new URLSearchParams()
 
@@ -58,7 +67,9 @@ export default function HeroSearch({ searchType, onSearch }: HeroSearchProps) {
       const response = await fetch(`/api/properties?${params.toString()}`)
       if (response.ok) {
         const data = await response.json()
-        return data.total || 0
+        const count = data.total || 0
+        countCacheRef.current.set(cacheKey, count)
+        return count
       }
     } catch (error) {
       console.error('Error fetching count:', error)
@@ -112,25 +123,31 @@ export default function HeroSearch({ searchType, onSearch }: HeroSearchProps) {
           })
 
           // Create suggestions with accurate counts
-          for (const [type] of propertyTypes) {
-            const accurateCount = await getSuggestionCount('property', type)
-            results.push({
-              type: 'property',
-              value: type,
-              display: `${type.charAt(0).toUpperCase() + type.slice(1)}s`,
-              count: accurateCount,
+          const propertyTypeSuggestions = await Promise.all(
+            Array.from(propertyTypes.keys()).map(async (type) => {
+              const accurateCount = await getSuggestionCount('property', type)
+              return {
+                type: 'property' as const,
+                value: type,
+                display: `${type.charAt(0).toUpperCase() + type.slice(1)}s`,
+                count: accurateCount,
+              }
             })
-          }
+          )
 
-          for (const [city] of cities) {
-            const accurateCount = await getSuggestionCount('city', city)
-            results.push({
-              type: 'city',
-              value: city,
-              display: city,
-              count: accurateCount,
+          const citySuggestions = await Promise.all(
+            Array.from(cities.keys()).map(async (city) => {
+              const accurateCount = await getSuggestionCount('city', city)
+              return {
+                type: 'city' as const,
+                value: city,
+                display: city,
+                count: accurateCount,
+              }
             })
-          }
+          )
+
+          results.push(...propertyTypeSuggestions, ...citySuggestions)
         }
       }
 
@@ -142,19 +159,23 @@ export default function HeroSearch({ searchType, onSearch }: HeroSearchProps) {
         if (locationsResponse.ok) {
           const locationsData = await locationsResponse.json()
           if (locationsData.locations?.length > 0) {
-            for (const location of locationsData.locations) {
-              const accurateCount = await getSuggestionCount(
-                'location',
-                location.name
-              )
-              results.push({
-                type: 'location',
-                value: location.name,
-                display: location.name,
-                count: accurateCount,
-                city: location.city,
+            const locationSuggestions = await Promise.all(
+              locationsData.locations.map(async (location: any) => {
+                const accurateCount = await getSuggestionCount(
+                  'location',
+                  location.name
+                )
+                return {
+                  type: 'location' as const,
+                  value: location.name,
+                  display: location.name,
+                  count: accurateCount,
+                  city: location.city,
+                }
               })
-            }
+            )
+
+            results.push(...locationSuggestions)
           }
         }
       } catch (locationError) {
@@ -179,13 +200,22 @@ export default function HeroSearch({ searchType, onSearch }: HeroSearchProps) {
   }
 
   // Debounced input handler
-  const handleInputChange = async (value: string) => {
+  const handleInputChange = (value: string) => {
     setSearchQuery(value)
 
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+    }
+
+    const requestId = ++requestIdRef.current
+
     if (value.length > 1) {
-      const newSuggestions = await fetchSuggestions(value)
-      setSuggestions(newSuggestions)
-      setOpen(true)
+      debounceTimeoutRef.current = setTimeout(async () => {
+        const newSuggestions = await fetchSuggestions(value)
+        if (requestId !== requestIdRef.current) return
+        setSuggestions(newSuggestions)
+        setOpen(true)
+      }, 300)
     } else if (value.length === 0) {
       setSuggestions([])
       setOpen(false)
@@ -269,6 +299,14 @@ export default function HeroSearch({ searchType, onSearch }: HeroSearchProps) {
     document.addEventListener('mousedown', handleClickOutside)
     return () => {
       document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
     }
   }, [])
 

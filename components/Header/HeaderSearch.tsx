@@ -24,6 +24,12 @@ export default function HeaderSearch() {
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const searchRef = useRef<HTMLDivElement>(null)
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const requestIdRef = useRef(0)
+  const popularSuggestionsCacheRef = useRef<{
+    data: SearchSuggestion[]
+    timestamp: number
+  } | null>(null)
   const router = useRouter()
 
   // Close suggestions when clicking outside
@@ -41,48 +47,53 @@ export default function HeaderSearch() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
+  }, [])
+
   // Fetch accurate counts for each suggestion
   const fetchAccurateCounts = async (
     suggestions: SearchSuggestion[]
   ): Promise<SearchSuggestion[]> => {
-    const updatedSuggestions = [...suggestions]
+    return Promise.all(
+      suggestions.map(async (suggestion) => {
+        try {
+          const params = new URLSearchParams()
 
-    for (let i = 0; i < updatedSuggestions.length; i++) {
-      const suggestion = updatedSuggestions[i]
-
-      try {
-        const params = new URLSearchParams()
-
-        switch (suggestion.type) {
-          case 'city':
-          case 'location':
-            params.set('city', suggestion.value)
-            break
-          case 'property':
-            params.set('propertyType', suggestion.value)
-            break
-        }
-
-        // Only fetch count if we have a valid filter
-        if (params.toString()) {
-          const response = await fetch(
-            `/api/properties/count?${params.toString()}`
-          )
-          if (response.ok) {
-            const countData = await response.json()
-            updatedSuggestions[i] = {
-              ...suggestion,
-              count: countData.count || 0,
-            }
+          switch (suggestion.type) {
+            case 'city':
+            case 'location':
+              params.set('city', suggestion.value)
+              break
+            case 'property':
+              params.set('propertyType', suggestion.value)
+              break
           }
-        }
-      } catch (error) {
-        console.error(`Error fetching count for ${suggestion.display}:`, error)
-        // Keep the original count if there's an error
-      }
-    }
 
-    return updatedSuggestions
+          if (!params.toString()) {
+            return suggestion
+          }
+
+          const response = await fetch(`/api/properties/count?${params}`)
+          if (!response.ok) {
+            return suggestion
+          }
+
+          const countData = await response.json()
+          return {
+            ...suggestion,
+            count: countData.count || 0,
+          }
+        } catch (error) {
+          console.error(`Error fetching count for ${suggestion.display}:`, error)
+          return suggestion
+        }
+      })
+    )
   }
 
   // Fetch real data from Appwrite APIs
@@ -189,6 +200,12 @@ export default function HeaderSearch() {
 
   // Get popular suggestions (fallback when no query)
   const getPopularSuggestions = async (): Promise<SearchSuggestion[]> => {
+    const cached = popularSuggestionsCacheRef.current
+    const cacheAgeMs = cached ? Date.now() - cached.timestamp : Infinity
+    if (cached && cacheAgeMs < 5 * 60 * 1000) {
+      return cached.data
+    }
+
     try {
       const response = await fetch('/api/properties?limit=50') // Get more to calculate accurate counts
       if (response.ok) {
@@ -239,6 +256,11 @@ export default function HeaderSearch() {
             })
           })
 
+        popularSuggestionsCacheRef.current = {
+          data: suggestions,
+          timestamp: Date.now(),
+        }
+
         return suggestions
       }
     } catch (error) {
@@ -246,7 +268,7 @@ export default function HeaderSearch() {
     }
 
     // Fallback to realistic counts based on your actual data
-    return [
+    const fallback: SearchSuggestion[] = [
       { type: 'city', value: 'lagos', display: 'Lagos', count: 24 },
       { type: 'city', value: 'abuja', display: 'Abuja', count: 18 },
       {
@@ -266,21 +288,43 @@ export default function HeaderSearch() {
       { type: 'property', value: 'villa', display: 'Villas', count: 6 },
       { type: 'property', value: 'land', display: 'Land', count: 4 },
     ]
+
+    popularSuggestionsCacheRef.current = {
+      data: fallback,
+      timestamp: Date.now(),
+    }
+
+    return fallback
   }
 
-  const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
     setSearchQuery(value)
 
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+    }
+
+    const requestId = ++requestIdRef.current
+
     if (value.length > 1) {
-      const newSuggestions = await fetchSearchSuggestions(value)
-      setSuggestions(newSuggestions)
-      setShowSuggestions(true)
+      debounceTimeoutRef.current = setTimeout(async () => {
+        const newSuggestions = await fetchSearchSuggestions(value)
+        if (requestId !== requestIdRef.current) return
+        setSuggestions(newSuggestions)
+        setShowSuggestions(true)
+      }, 300)
     } else if (value.length === 0) {
-      const popularSuggestions = await getPopularSuggestions()
-      setSuggestions(popularSuggestions)
-      setShowSuggestions(true)
+      debounceTimeoutRef.current = setTimeout(async () => {
+        setIsLoading(true)
+        const popularSuggestions = await getPopularSuggestions()
+        if (requestId !== requestIdRef.current) return
+        setSuggestions(popularSuggestions)
+        setShowSuggestions(true)
+        setIsLoading(false)
+      }, 150)
     } else {
+      setIsLoading(false)
       setShowSuggestions(false)
     }
   }

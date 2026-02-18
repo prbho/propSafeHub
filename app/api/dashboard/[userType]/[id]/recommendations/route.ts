@@ -18,8 +18,6 @@ export async function GET(
 ) {
   try {
     const { userType, id } = await params
-    console.log('📊 Fetching recommendations for:', { userType, id })
-
     // Validate Appwrite configuration
     if (!validateAppwriteConfig()) {
       throw new Error('Server configuration error')

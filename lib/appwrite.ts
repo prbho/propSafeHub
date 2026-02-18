@@ -23,7 +23,6 @@ const isBrowser = typeof window !== 'undefined'
 if (endpoint && projectId) {
   // We have config, initialize normally
   client.setEndpoint(endpoint).setProject(projectId)
-  console.log('✅ Appwrite initialized')
 } else if (!isBrowser && isProductionBuild) {
   // Server-side during production build - skip initialization
   console.warn('⚠️ Appwrite: Skipping initialization during production build')
@@ -68,7 +67,6 @@ export function initializeAppwriteWithRetry() {
 
   if (!client.config.endpoint || !client.config.project) {
     client.setEndpoint(endpoint).setProject(projectId)
-    console.log('Appwrite initialized successfully')
   }
   return true
 }
@@ -182,10 +180,6 @@ export async function uploadAvatar(
   collectionId: string // Which collection to update
 ): Promise<string> {
   try {
-    console.log('📤 Starting avatar upload...')
-    console.log('📄 Document ID:', documentId)
-    console.log('🗂️ Collection:', collectionId)
-
     // Convert blob to file if needed
     let uploadFile: File
     if (file instanceof Blob && !(file instanceof File)) {
@@ -197,12 +191,6 @@ export async function uploadAvatar(
       uploadFile = file as File
     }
 
-    console.log('📁 File details:', {
-      name: uploadFile.name,
-      type: uploadFile.type,
-      size: uploadFile.size,
-    })
-
     // Show upload progress
     showToast('Uploading avatar...', 'info')
 
@@ -213,12 +201,6 @@ export async function uploadAvatar(
         collectionId,
         documentId
       )
-      console.log('✅ Document verified:', {
-        id: existingDoc.$id,
-        name: existingDoc.name,
-        email: existingDoc.email,
-        userId: existingDoc.userId, // For agents
-      })
     } catch (error) {
       console.error('❌ Document not found!', {
         collectionId,
@@ -239,37 +221,28 @@ export async function uploadAvatar(
       })
 
       if (oldAvatarFile) {
-        console.log('🗑️ Deleting old avatar:', oldAvatarFile.$id)
         await storage.deleteFile(STORAGE_BUCKET_ID, oldAvatarFile.$id)
       }
     } catch (error) {
-      console.log('ℹ️ No existing avatar found or error deleting:')
     }
 
     // Upload new avatar
     const fileId = ID.unique()
-    console.log('⬆️ Uploading file with ID:', fileId)
     const result = await storage.createFile(
       STORAGE_BUCKET_ID,
       fileId,
       uploadFile
     )
-    console.log('✅ File uploaded to storage:', result.$id)
-
     // Get the file URL
     const avatarUrl = storage
       .getFileView(STORAGE_BUCKET_ID, result.$id)
       .toString()
-    console.log('🔗 Avatar URL:', avatarUrl)
-
     // Update the document
-    console.log(`📝 Updating document ${documentId} in ${collectionId}...`)
     await databases.updateDocument(DATABASE_ID, collectionId, documentId, {
       avatar: avatarUrl,
       updatedAt: new Date().toISOString(),
     })
 
-    console.log('✅ Document updated successfully!')
     showToast('Avatar uploaded successfully!', 'success')
 
     return avatarUrl
@@ -321,8 +294,6 @@ async function _deleteAccount(
   collectionId: string
 ): Promise<void> {
   try {
-    console.log('🗑️ Starting account deletion for user:', userId)
-
     // 1. Delete user's avatar from storage if exists
     try {
       const existingFiles = await storage.listFiles(STORAGE_BUCKET_ID)
@@ -336,13 +307,8 @@ async function _deleteAccount(
 
       for (const file of userAvatarFiles) {
         await storage.deleteFile(STORAGE_BUCKET_ID, file.$id)
-        console.log(
-          '✅ Deleted avatar file:',
-          (file as unknown as StorageFile).name
-        )
       }
     } catch (error) {
-      console.log('No avatar files found or error deleting avatars:', error)
     }
 
     // 2. Delete user's favorites (if you have a separate favorites collection)
@@ -359,20 +325,14 @@ async function _deleteAccount(
           FAVORITES_COLLECTION_ID,
           favorite.$id
         )
-        console.log('✅ Deleted favorite:', favorite.$id)
       }
     } catch (error) {
-      console.log('No favorites found or error deleting favorites:', error)
     }
 
     // 3. Delete user document from database
     await databases.deleteDocument(DATABASE_ID, collectionId, userId)
-    console.log('✅ Deleted user document')
-
     // 4. Delete user's account (this will also delete sessions)
     await account.deleteIdentity(userId)
-    console.log('✅ Deleted user account')
-
     // Show success toast
     showToast('Account deleted successfully', 'success')
   } catch (error) {
@@ -527,7 +487,6 @@ export async function deleteImageFromStorage(imageUrl: string): Promise<void> {
     const fileId = urlParts[urlParts.length - 1]
 
     await storage.deleteFile(STORAGE_BUCKET_ID, fileId)
-    console.log('✅ Deleted image:', fileId)
   } catch (error) {
     console.error('❌ Error deleting image:', error)
     // Don't throw - we'll continue even if one image fails
@@ -542,3 +501,4 @@ export async function deleteImagesFromStorage(
     await deleteImageFromStorage(url)
   }
 }
+

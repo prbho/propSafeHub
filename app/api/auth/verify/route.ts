@@ -38,11 +38,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log(
-      '🔐 Email verification attempt for token:',
-      token.substring(0, 20) + '...'
-    )
-
     // Extract userId from token (token format: userId:timestamp:random)
     let userId = ''
     try {
@@ -50,7 +45,6 @@ export async function POST(request: NextRequest) {
       const parts = decoded.split(':')
       if (parts.length >= 1) {
         userId = parts[0]
-        console.log('🔍 Extracted userId from token:', userId)
       }
     } catch (decodeError) {
       console.error('❌ Failed to decode token:', decodeError)
@@ -95,10 +89,6 @@ export async function POST(request: NextRequest) {
         userDoc = usersWithToken.documents[0]
         collectionId = USERS_COLLECTION_ID
         foundByTokenSearch = true
-        console.log(
-          '✅ Found user by token in USERS collection:',
-          userDoc.email
-        )
       }
     } catch (searchError: any) {
       console.error('❌ Error searching users collection:', searchError.message)
@@ -117,10 +107,6 @@ export async function POST(request: NextRequest) {
           userDoc = agentsWithToken.documents[0]
           collectionId = AGENTS_COLLECTION_ID
           foundByTokenSearch = true
-          console.log(
-            '✅ Found user by token in AGENTS collection:',
-            userDoc.email
-          )
         }
       } catch (searchError: any) {
         console.error(
@@ -132,8 +118,6 @@ export async function POST(request: NextRequest) {
 
     // Strategy 2: Fallback - find by userId
     if (!userDoc) {
-      console.log('🔄 Token not found, trying userId lookup:', userId)
-
       // First try users collection
       try {
         userDoc = await databases.getDocument(
@@ -142,7 +126,6 @@ export async function POST(request: NextRequest) {
           userId
         )
         collectionId = USERS_COLLECTION_ID
-        console.log('✅ Found user by ID in USERS collection')
       } catch {
         // If not found in users, try agents collection
         try {
@@ -152,7 +135,6 @@ export async function POST(request: NextRequest) {
             userId
           )
           collectionId = AGENTS_COLLECTION_ID
-          console.log('✅ Found user by ID in AGENTS collection')
         } catch {
           console.error('❌ User not found in any collection by ID:', userId)
           return NextResponse.json(
@@ -168,21 +150,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Debug info
-    console.log('🔍 Verification details:', {
-      userId: userDoc.$id,
-      email: userDoc.email,
-      name: userDoc.name,
-      userType: userDoc.userType,
-      emailVerified: userDoc.emailVerified,
-      hasToken: !!userDoc.verificationToken,
-      tokenMatches: userDoc.verificationToken === token,
-      foundByTokenSearch,
-      collection: collectionId === USERS_COLLECTION_ID ? 'users' : 'agents',
-    })
-
     // Check if user already verified
     if (userDoc.emailVerified) {
-      console.log('✅ User already verified:', userDoc.email)
       return NextResponse.json({
         success: true,
         message: 'Email is already verified',
@@ -232,12 +201,6 @@ export async function POST(request: NextRequest) {
         const hoursDiff =
           (now.getTime() - lastVerificationDate.getTime()) / (1000 * 60 * 60)
 
-        console.log('⏰ Token age check:', {
-          lastVerificationRequest: userDoc.lastVerificationRequest,
-          hoursDiff: hoursDiff.toFixed(2),
-          expired: hoursDiff > 24,
-        })
-
         if (hoursDiff > 24) {
           console.error(
             '❌ Token expired (more than 24 hours):',
@@ -256,7 +219,6 @@ export async function POST(request: NextRequest) {
       } catch (parseError: any) {
         console.error('❌ Error checking token age:', parseError.message)
         // Continue with verification even if age check fails
-        console.log('⚠️ Token age check failed, proceeding anyway...')
       }
     }
 
@@ -276,8 +238,6 @@ export async function POST(request: NextRequest) {
         userDoc.$id,
         updateData
       )
-
-      console.log('✅ Email verified successfully for:', userDoc.email)
 
       return NextResponse.json({
         success: true,
@@ -313,3 +273,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

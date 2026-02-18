@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextRequest, NextResponse } from 'next/server'
 
 import {
@@ -8,7 +7,6 @@ import {
   Query,
 } from '@/lib/appwrite-server'
 
-// app/api/notifications/count/route.ts
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -30,48 +28,59 @@ export async function GET(request: NextRequest) {
     const allNotifications = await databases.listDocuments(
       DATABASE_ID,
       NOTIFICATIONS_COLLECTION_ID,
-      [Query.equal('userId', userId)]
+      [Query.equal('userId', userId), Query.limit(1)]
     )
 
-    // Debug: Log what types we're actually seeing
-    console.log('🔍 Notification types found:', {
-      allTypes: [
-        ...new Set(unreadNotifications.documents.map((n: any) => n.type)),
-      ],
-      totalUnread: unreadNotifications.total,
-    })
-
-    return NextResponse.json({
-      total: allNotifications.total,
-      unread: unreadNotifications.total,
-      byType: {
-        // Count 'userMessage' as messages
-        message: unreadNotifications.documents.filter(
-          (n) => n.type === 'userMessage' && !n.isRead
-        ).length,
-        // Count 'propertyUpdate' that are favorites
-        favorite: unreadNotifications.documents.filter(
-          (n) =>
-            n.type === 'propertyUpdate' &&
-            n.title.includes('favorited') &&
-            !n.isRead
-        ).length,
-        // Count 'propertyUpdate' that are property views
-        property_view: unreadNotifications.documents.filter(
-          (n) =>
-            n.type === 'propertyUpdate' &&
-            n.title.includes('viewed') &&
-            !n.isRead
-        ).length,
-        // Count 'appointmentReminder' as viewing requests
-        viewing_request: unreadNotifications.documents.filter(
-          (n) => n.type === 'appointmentReminder' && !n.isRead
-        ).length,
-        // System notifications
-        system: unreadNotifications.documents.filter(
-          (n) => n.type === 'systemAlert' && !n.isRead
-        ).length,
+    return NextResponse.json(
+      {
+        total: allNotifications.total,
+        unread: unreadNotifications.total,
+        byType: {
+          message: unreadNotifications.documents.filter(
+            (n) => n.type === 'userMessage' && !n.isRead
+          ).length,
+          favorite: unreadNotifications.documents.filter(
+            (n) =>
+              n.type === 'propertyUpdate' &&
+              n.title.includes('favorited') &&
+              !n.isRead
+          ).length,
+          property_view: unreadNotifications.documents.filter(
+            (n) =>
+              n.type === 'propertyUpdate' &&
+              n.title.includes('viewed') &&
+              !n.isRead
+          ).length,
+          viewing_request: unreadNotifications.documents.filter(
+            (n) => n.type === 'appointmentReminder' && !n.isRead
+          ).length,
+          system: unreadNotifications.documents.filter(
+            (n) => n.type === 'systemAlert' && !n.isRead
+          ).length,
+        },
       },
-    })
-  } catch {}
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=10, stale-while-revalidate=20',
+        },
+      }
+    )
+  } catch (error) {
+    console.error('Error fetching notification counts:', error)
+    return NextResponse.json(
+      {
+        total: 0,
+        unread: 0,
+        byType: {
+          message: 0,
+          favorite: 0,
+          property_view: 0,
+          viewing_request: 0,
+          system: 0,
+        },
+      },
+      { status: 500 }
+    )
+  }
 }
+

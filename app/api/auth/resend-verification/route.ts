@@ -48,8 +48,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🔄 START Resend verification for:', email)
-
     // Find user by email - check both collections
     let userDoc = null
     let collectionId = USERS_COLLECTION_ID
@@ -67,7 +65,6 @@ export async function POST(request: NextRequest) {
 
       if (users.total > 0) {
         userDoc = users.documents[0]
-        console.log('✅ User found in USERS collection:', userDoc.$id)
       } else {
         // Check agents collection with same query
         const agents = await databases.listDocuments(
@@ -79,7 +76,6 @@ export async function POST(request: NextRequest) {
         if (agents.total > 0) {
           userDoc = agents.documents[0]
           collectionId = AGENTS_COLLECTION_ID
-          console.log('✅ User found in AGENTS collection:', userDoc.$id)
         } else {
           console.error('❌ User not found in any collection:', email)
           return NextResponse.json(
@@ -107,7 +103,6 @@ export async function POST(request: NextRequest) {
 
     // Check if already verified
     if (userDoc.emailVerified) {
-      console.log('ℹ️ User already verified:', email)
       return NextResponse.json(
         {
           error: 'Email is already verified',
@@ -126,20 +121,12 @@ export async function POST(request: NextRequest) {
     // Create the NEW verification URL with the NEW token
     const verificationUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'https://propsafehub.com'}/verify/${verificationToken}`
 
-    console.log('🔐 Generated NEW verification token:', {
-      tokenPreview: verificationToken.substring(0, 30) + '...',
-      tokenLength: verificationToken.length,
-      userId: userDoc.$id,
-      verificationUrl: verificationUrl,
-    })
-
     // Update verification token in database FIRST
     try {
       await databases.updateDocument(DATABASE_ID, collectionId, userDoc.$id, {
         verificationToken: verificationToken, // Store in verificationToken field
         lastVerificationRequest: new Date().toISOString(),
       })
-      console.log('✅ New verification token stored in database')
     } catch (updateError: any) {
       console.error('❌ Database update error:', updateError.message)
       return NextResponse.json(
@@ -232,18 +219,11 @@ export async function POST(request: NextRequest) {
       </html>
     `
 
-    console.log('📧 Sending email with verification URL:', {
-      url: verificationUrl,
-      urlContainsToken: verificationUrl.includes(verificationToken),
-      emailTo: email,
-    })
-
     try {
       const resend = getResendClient()
 
       if (!resend) {
         // During build, simulate success
-        console.log('📧 [Build simulation] Email would be sent to:', email)
         return NextResponse.json({
           success: true,
           message: 'Verification email would be sent (build simulation)',
@@ -270,7 +250,6 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      console.log('✅ Email sent via Resend')
     } catch (emailError: any) {
       console.error('❌ Email service error:', emailError.message)
       return NextResponse.json(
@@ -281,8 +260,6 @@ export async function POST(request: NextRequest) {
         { status: 500 }
       )
     }
-
-    console.log('✅ Verification email resent successfully to:', email)
 
     return NextResponse.json({
       success: true,
@@ -302,3 +279,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

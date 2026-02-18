@@ -83,7 +83,6 @@ export default function DashboardPage() {
         fetchProperties(),
         fetchMessages(),
         fetchNotifications(),
-        fetchDashboardData(),
       ])
     } catch (error) {
       console.error('Error fetching dashboard data:', error)

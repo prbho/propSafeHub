@@ -6,8 +6,6 @@ import { toast } from 'sonner'
 export const clientPropertyService = {
   async createProperty(propertyData: any) {
     try {
-      console.log('📤 Sending property data to API...', propertyData)
-
       const response = await fetch('/api/properties/create', {
         method: 'POST',
         headers: {
@@ -26,7 +24,6 @@ export const clientPropertyService = {
       }
 
       const result = await response.json()
-      console.log('✅ Property created successfully:', result)
       return result
     } catch {
       throw toast.error('Failed to create property')
@@ -112,3 +109,4 @@ export const clientPropertyService = {
     }
   },
 }
+

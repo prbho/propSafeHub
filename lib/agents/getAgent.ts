@@ -10,18 +10,16 @@ export async function getAgent(id: string): Promise<Agent | null> {
       return null
     }
 
-    console.log('🔍 Fetching agent with ID:', id)
-
     const agent = await serverDatabases.getDocument(
       process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!,
       process.env.NEXT_PUBLIC_APPWRITE_AGENTS_TABLE_ID!,
       id.trim()
     )
 
-    console.log('✅ Agent found:', agent.name)
     return agent as unknown as Agent
   } catch {
     console.error('Error details:', {})
     return null
   }
 }
+

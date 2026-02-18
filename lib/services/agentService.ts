@@ -4,8 +4,6 @@ import { Agent } from '@/types'
 
 export async function getAgentById(id: string): Promise<Agent | null> {
   try {
-    console.log('🔍 getAgentById called with ID:', id)
-
     if (!id || typeof id !== 'string' || id.trim().length === 0) {
       console.error('❌ Invalid agent ID:', id)
       return null
@@ -15,8 +13,6 @@ export async function getAgentById(id: string): Promise<Agent | null> {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     })
-
-    console.log('📡 getAgentById response status:', response.status)
 
     if (response.status === 404) {
       return null
@@ -41,15 +37,11 @@ export async function syncUserToAgent(userData: {
   userPhone?: string
 }): Promise<Agent | null> {
   try {
-    console.log('🔄 syncUserToAgent called with:', userData)
-
     const response = await fetch('/api/agents/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData),
     })
-
-    console.log('📡 syncUserToAgent response status:', response.status)
 
     if (!response.ok) {
       let errorMessage = 'Failed to create agent profile'
@@ -74,9 +66,9 @@ export async function syncUserToAgent(userData: {
     }
 
     const agent = await response.json()
-    console.log('✅ syncUserToAgent success:', agent)
     return agent
   } catch {
     return null
   }
 }
+

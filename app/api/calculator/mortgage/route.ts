@@ -117,21 +117,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       isSaved: isSavedBoolean,
     }
 
-    console.log('Saving calculation data:', {
-      ...calculationData,
-      isSavedType: typeof calculationData.isSaved,
-      isSavedValue: calculationData.isSaved,
-    })
-
     // Save to database if requested
     if (isSavedBoolean && userId) {
       try {
-        console.log('Attempting to save calculation to database...', {
-          userId,
-          propertyId,
-          isSaved: calculationData.isSaved,
-        })
-
         const result = await databases.createDocument(
           DATABASE_ID,
           MORTGAGECALCULATIONS_COLLECTION_ID,
@@ -171,3 +159,4 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     )
   }
 }
+

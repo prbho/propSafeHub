@@ -16,10 +16,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId')
     const limit = parseInt(searchParams.get('limit') || '50')
 
-    console.log('🔍 Fetching user notifications for:', userId)
-
     if (!userId) {
-      console.log('❌ No user ID provided')
       return NextResponse.json(
         { error: 'User ID is required' },
         { status: 400 }
@@ -37,9 +34,6 @@ export async function GET(request: NextRequest) {
       ]
     )
 
-    console.log(
-      `✅ Fetched ${notifications.total} notifications for user ${userId}`
-    )
     return NextResponse.json(notifications.documents)
   } catch {
     return NextResponse.json(
@@ -92,7 +86,6 @@ export async function POST(request: NextRequest) {
       notificationData
     )
 
-    console.log(`✅ Created user notification: ${notification.$id}`)
     return NextResponse.json(notification)
   } catch {
     return NextResponse.json(
@@ -101,3 +94,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

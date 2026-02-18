@@ -27,8 +27,6 @@ export async function POST(request: NextRequest) {
       preferredContact,
     } = body
 
-    console.log('📅 Scheduling viewing for property:', propertyTitle)
-
     // Validate required fields
     if (!propertyId || !agentId || !date || !time || !name || !email) {
       return NextResponse.json(
@@ -67,8 +65,6 @@ export async function POST(request: NextRequest) {
       scheduleData
     )
 
-    console.log('✅ Viewing record created:', schedule.$id)
-
     // Create notification for the agent
     const notificationData = {
       userId: agentId,
@@ -99,8 +95,6 @@ export async function POST(request: NextRequest) {
         notificationData
       )
 
-      console.log('🔔 Notification created:', notification.$id)
-      console.log('🎯 Notification sent to agent:', agentId)
     } catch (notificationError: any) {
       console.error(
         '❌ Failed to create notification:',
@@ -108,7 +102,6 @@ export async function POST(request: NextRequest) {
       )
       // Don't fail the whole request if notification fails
       // The viewing was still scheduled successfully
-      console.log('⚠️ Viewing scheduled but notification failed')
     }
 
     return NextResponse.json({
@@ -128,3 +121,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

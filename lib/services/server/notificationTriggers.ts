@@ -16,7 +16,6 @@ export async function triggerMessageNotification({
   propertyId?: string
   propertyTitle?: string
 }) {
-  console.log('🔔 [NOTIFICATION TRIGGER] triggerMessageNotification called')
   const title = `New message from ${fromUserName}`
   const notificationMessage = propertyTitle
     ? `${fromUserName} sent you a message about ${propertyTitle}`
@@ -37,10 +36,6 @@ export async function triggerMessageNotification({
       },
     })
 
-    console.log(
-      '✅ [NOTIFICATION TRIGGER] Message notification result:',
-      result.success ? 'Success' : 'Failed'
-    )
     return result
   } catch (error: any) {
     console.error(
@@ -62,13 +57,6 @@ export async function triggerFavoriteNotification({
   propertyId: string
   propertyTitle: string
 }) {
-  console.log('🔔 [NOTIFICATION TRIGGER] triggerFavoriteNotification called', {
-    propertyOwnerId,
-    userName,
-    propertyId,
-    propertyTitle,
-  })
-
   try {
     const result = await createNotification({
       userId: propertyOwnerId,
@@ -83,10 +71,6 @@ export async function triggerFavoriteNotification({
       },
     })
 
-    console.log(
-      '✅ [NOTIFICATION TRIGGER] Favorite notification result:',
-      result.success ? 'Success' : 'Failed'
-    )
     return result
   } catch (error: any) {
     console.error(
@@ -106,10 +90,6 @@ export async function triggerPropertyViewNotification({
   propertyId: string
   propertyTitle: string
 }) {
-  console.log(
-    '🔔 [NOTIFICATION TRIGGER] triggerPropertyViewNotification called'
-  )
-
   try {
     const result = await createNotification({
       userId: propertyOwnerId,
@@ -120,10 +100,6 @@ export async function triggerPropertyViewNotification({
       actionUrl: `/properties/${propertyId}`,
     })
 
-    console.log(
-      '✅ [NOTIFICATION TRIGGER] Property view notification result:',
-      result.success ? 'Success' : 'Failed'
-    )
     return result
   } catch (error: any) {
     console.error(
@@ -145,10 +121,6 @@ export async function triggerViewingRequestNotification({
   propertyId: string
   propertyTitle: string
 }) {
-  console.log(
-    '🔔 [NOTIFICATION TRIGGER] triggerViewingRequestNotification called'
-  )
-
   try {
     const result = await createNotification({
       userId: agentId,
@@ -163,10 +135,6 @@ export async function triggerViewingRequestNotification({
       },
     })
 
-    console.log(
-      '✅ [NOTIFICATION TRIGGER] Viewing request notification result:',
-      result.success ? 'Success' : 'Failed'
-    )
     return result
   } catch (error: any) {
     console.error(
@@ -176,3 +144,4 @@ export async function triggerViewingRequestNotification({
     return { success: false, error: error.message }
   }
 }
+

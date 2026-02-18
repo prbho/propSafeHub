@@ -9,15 +9,11 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q') || ''
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    console.log('📍 API Route - Search query:', query)
-
     if (!query.trim()) {
       return NextResponse.json({ locations: [] })
     }
 
     const locations = await LocationService.searchLocations(query, limit)
-
-    console.log('📍 API Route - Found locations:', locations.length)
 
     return NextResponse.json({
       locations,
@@ -27,3 +23,4 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ status: 500 })
   }
 }
+

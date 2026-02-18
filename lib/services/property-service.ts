@@ -25,9 +25,6 @@ export class PropertyService {
         }
       )
 
-      console.log(
-        `✅ Property ${propertyId} featured status updated to: ${isFeatured}`
-      )
       return updatedProperty
     } catch (error) {
       console.error('Error updating property featured status:', error)
@@ -73,10 +70,6 @@ export class PropertyService {
         (result) => result.status === 'rejected'
       ).length
 
-      console.log(
-        `✅ Featured ${successful} properties for user ${userId}, ${failed} failed`
-      )
-
       return {
         successful,
         failed,
@@ -100,9 +93,6 @@ export class PropertyService {
       // Update featured status based on premium status
       await this.updateFeaturedStatus(propertyId, hasActivePremium)
 
-      console.log(
-        `✅ Synced property ${propertyId} featured status: ${hasActivePremium}`
-      )
       return hasActivePremium
     } catch (error) {
       console.error('Error syncing property with premium:', error)
@@ -125,10 +115,6 @@ export class PropertyService {
       const successful = results.filter(
         (result) => result.status === 'fulfilled'
       ).length
-
-      console.log(
-        `✅ Synced premium status for ${successful}/${userProperties.length} properties for user ${userId}`
-      )
 
       return {
         successful,
@@ -157,3 +143,4 @@ export class PropertyService {
     }
   }
 }
+

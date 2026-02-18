@@ -34,8 +34,6 @@ export async function POST(request: NextRequest) {
     const avatarFile = formData.get('avatar') as File
     const existingAvatar = formData.get('existingAvatar') as string
 
-    console.log('🔄 Processing agent upgrade for user:', userId)
-
     // 1. Verify user exists and is currently a buyer
     const user = await databases.getDocument(
       DATABASE_ID,
@@ -55,18 +53,14 @@ export async function POST(request: NextRequest) {
 
     // Validate existing avatar URL if it exists
     if (avatarUrl && !isValidUrl(avatarUrl)) {
-      console.log('⚠️ Existing avatar URL is invalid, will upload new one')
       avatarUrl = ''
     }
 
     // If new avatar file is provided, upload it
     if (avatarFile && avatarFile.size > 0) {
-      console.log('📸 Uploading new avatar for agent...')
-
       try {
         // Use server-compatible upload function
         avatarUrl = await uploadAvatarServer(userId, avatarFile)
-        console.log('✅ New avatar uploaded:', avatarUrl)
       } catch {
         return NextResponse.json(
           { error: 'Failed to upload professional photo' },
@@ -124,11 +118,6 @@ export async function POST(request: NextRequest) {
       verificationDocuments: [],
     }
 
-    console.log('📝 Creating agent document with data:', {
-      ...agentData,
-      avatar: avatarUrl.substring(0, 100) + '...', // Log truncated URL
-    })
-
     const agent = await databases.createDocument(
       DATABASE_ID,
       AGENTS_COLLECTION_ID,
@@ -163,8 +152,6 @@ export async function POST(request: NextRequest) {
       updateData
     )
 
-    console.log('✅ User upgraded to agent with synced avatar:', userId)
-
     return NextResponse.json({
       success: true,
       agentId: agent.$id,
@@ -187,3 +174,4 @@ function isValidUrl(string: string): boolean {
     return false
   }
 }
+

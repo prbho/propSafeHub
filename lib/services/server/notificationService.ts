@@ -31,13 +31,6 @@ export interface CreateNotificationData {
 }
 
 export async function createNotification(data: CreateNotificationData) {
-  console.log('🔔 [NOTIFICATION SERVICE] Creating notification:', {
-    userId: data.userId,
-    type: data.type,
-    title: data.title,
-    relatedId: data.relatedId,
-  })
-
   try {
     const notificationData = {
       userId: data.userId,
@@ -53,21 +46,11 @@ export async function createNotification(data: CreateNotificationData) {
       // updatedAt: new Date().toISOString(),
     }
 
-    console.log(
-      '📋 [NOTIFICATION SERVICE] Notification data:',
-      notificationData
-    )
-
     const notification = await serverDatabases.createDocument(
       DATABASE_ID,
       NOTIFICATIONS_COLLECTION_ID,
       ID.unique(),
       notificationData
-    )
-
-    console.log(
-      '✅ [NOTIFICATION SERVICE] Notification created successfully:',
-      notification.$id
     )
 
     return { success: true, notification }
@@ -80,3 +63,4 @@ export async function createNotification(data: CreateNotificationData) {
     return { success: false, error: 'Failed to create notification' }
   }
 }
+

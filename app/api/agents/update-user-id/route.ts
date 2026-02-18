@@ -17,14 +17,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🔄 Linking user to agent profile:', { agentId, userId })
-
     // Update agent profile with userId
     await databases.updateDocument(DATABASE_ID, AGENTS_COLLECTION_ID, agentId, {
       userId,
     })
 
-    console.log('✅ Agent profile updated with userId')
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('❌ Error updating agent profile:', error)
@@ -34,3 +31,4 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+

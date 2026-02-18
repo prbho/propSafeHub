@@ -20,7 +20,6 @@ export async function getServerCurrentUser(): Promise<User | null> {
     )
 
     if (!sessionCookie?.value) {
-      console.log('❌ No session cookie found in server context')
       return null
     }
 
@@ -58,3 +57,4 @@ export async function createAuthenticatedClient() {
   // You might need to use a different authentication strategy
   return null
 }
+
