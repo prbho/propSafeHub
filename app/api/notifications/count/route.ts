@@ -22,7 +22,11 @@ export async function GET(request: NextRequest) {
     const unreadNotifications = await databases.listDocuments(
       DATABASE_ID,
       NOTIFICATIONS_COLLECTION_ID,
-      [Query.equal('userId', userId), Query.equal('isRead', false)]
+      [
+        Query.equal('userId', userId),
+        Query.equal('isRead', false),
+        Query.select(['$id', 'type', 'title', 'isRead']),
+      ]
     )
 
     const allNotifications = await databases.listDocuments(
@@ -79,7 +83,12 @@ export async function GET(request: NextRequest) {
           system: 0,
         },
       },
-      { status: 500 }
+      {
+        status: 200,
+        headers: {
+          'Cache-Control': 'private, max-age=3, stale-while-revalidate=5',
+        },
+      }
     )
   }
 }

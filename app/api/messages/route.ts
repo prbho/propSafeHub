@@ -96,6 +96,25 @@ export async function GET(request: NextRequest) {
       ]),
       Query.orderAsc('sentAt'),
       Query.limit(100),
+      Query.select([
+        '$id',
+        '$createdAt',
+        '$updatedAt',
+        'fromUserId',
+        'toUserId',
+        'propertyId',
+        'message',
+        'messageType',
+        'sentAt',
+        'isRead',
+        'fromUserName',
+        'toUserName',
+        'fromUserType',
+        'toUserType',
+        'agentName',
+        'agentId',
+        'messageTitle',
+      ]),
     ]
 
     // Add property filter if provided
@@ -134,7 +153,11 @@ export async function GET(request: NextRequest) {
       $updatedAt: msg.$updatedAt,
     }))
 
-    return NextResponse.json(transformedMessages)
+    return NextResponse.json(transformedMessages, {
+      headers: {
+        'Cache-Control': 'private, max-age=3, stale-while-revalidate=10',
+      },
+    })
   } catch (error) {
     console.error('Error fetching messages:', error)
     return NextResponse.json(

@@ -1,7 +1,6 @@
-// components/NotificationBell.tsx
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { Bell, Check, Eye, EyeOff, Loader2 } from 'lucide-react'
 
@@ -23,11 +22,66 @@ interface Notification {
   message: string
   type: string
   isRead: boolean
-  createdAt: string
+  $createdAt: string
   actionUrl?: string
   actionText?: string
   userId?: string
   agentId?: string
+}
+
+const NOTIFICATIONS_CACHE_TTL_MS = 10000
+const notificationsCache = new Map<
+  string,
+  { data: Notification[]; expiresAt: number }
+>()
+const inFlightNotifications = new Map<string, Promise<Notification[]>>()
+
+function readNotificationsCache(endpoint: string) {
+  const cached = notificationsCache.get(endpoint)
+  if (!cached) return null
+
+  if (cached.expiresAt <= Date.now()) {
+    notificationsCache.delete(endpoint)
+    return null
+  }
+
+  return cached.data
+}
+
+async function fetchNotificationsData(endpoint: string) {
+  const cached = readNotificationsCache(endpoint)
+  if (cached) return cached
+
+  const pending = inFlightNotifications.get(endpoint)
+  if (pending) return pending
+
+  const request = (async () => {
+    const response = await fetch(endpoint)
+
+    if (!response.ok) {
+      if (response.status === 405) {
+        throw new Error('API method not allowed. Please check the route configuration.')
+      }
+      throw new Error(`Failed to fetch: ${response.status} ${response.statusText}`)
+    }
+
+    const data = (await response.json()) as Notification[]
+
+    notificationsCache.set(endpoint, {
+      data,
+      expiresAt: Date.now() + NOTIFICATIONS_CACHE_TTL_MS,
+    })
+
+    return data
+  })()
+
+  inFlightNotifications.set(endpoint, request)
+
+  try {
+    return await request
+  } finally {
+    inFlightNotifications.delete(endpoint)
+  }
 }
 
 export default function NotificationBell() {
@@ -38,75 +92,55 @@ export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false)
   const [error, setError] = useState<string>('')
 
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      fetchNotifications()
-    }
-  }, [isAuthenticated, user])
-
-  const getNotificationEndpoint = () => {
+  const getNotificationEndpoint = useCallback(() => {
     if (!user) return null
 
     if (user.userType === 'agent') {
       return `/api/agents/notifications?agentId=${user.$id}`
-    } else {
-      return `/api/notifications?userId=${user.$id}`
     }
-  }
+
+    return `/api/notifications?userId=${user.$id}`
+  }, [user])
 
   const getMarkAsReadEndpoint = (notificationId: string) => {
     if (!user) return null
 
     if (user.userType === 'agent') {
       return `/api/agents/notifications/${notificationId}/read`
-    } else {
-      return `/api/notifications/${notificationId}/read`
     }
+
+    return `/api/notifications/${notificationId}/read`
   }
 
-  // components/NotificationBell.tsx - Update the fetchNotifications function
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     const endpoint = getNotificationEndpoint()
     if (!endpoint) return
 
     try {
       setIsLoading(true)
       setError('')
-      console.log('🔍 Fetching notifications from:', endpoint)
 
-      const response = await fetch(endpoint)
-
-      if (!response.ok) {
-        if (response.status === 405) {
-          throw new Error(
-            'API method not allowed. Please check the route configuration.'
-          )
-        }
-        throw new Error(
-          `Failed to fetch: ${response.status} ${response.statusText}`
-        )
-      }
-
-      const data = await response.json()
-      console.log('✅ Notifications fetched:', data.length)
+      const data = await fetchNotificationsData(endpoint)
       setNotifications(data)
-      setUnreadCount(data.filter((n: Notification) => !n.isRead).length)
-    } catch (error) {
-      console.error('❌ Error fetching notifications:', error)
-      setError(
-        error instanceof Error ? error.message : 'Failed to load notifications'
-      )
+      setUnreadCount(data.filter((n) => !n.isRead).length)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load notifications')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [getNotificationEndpoint])
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      fetchNotifications()
+    }
+  }, [fetchNotifications, isAuthenticated, user])
 
   const markAsRead = async (notificationId: string) => {
     const endpoint = getMarkAsReadEndpoint(notificationId)
     if (!endpoint) return
 
     try {
-      console.log('📖 Marking notification as read:', notificationId)
       const response = await fetch(endpoint, {
         method: 'PUT',
       })
@@ -124,10 +158,9 @@ export default function NotificationBell() {
           )
         )
         setUnreadCount((prev) => Math.max(0, prev - 1))
-        console.log('✅ Notification marked as read')
       }
-    } catch (error) {
-      console.error('❌ Error marking notification as read:', error)
+    } catch (err) {
+      console.error('Error marking notification as read:', err)
     }
   }
 
@@ -136,7 +169,6 @@ export default function NotificationBell() {
     if (unreadNotifications.length === 0) return
 
     try {
-      console.log('📖 Marking all notifications as read')
       await Promise.all(
         unreadNotifications.map((n) => {
           const endpoint = getMarkAsReadEndpoint(n.$id)
@@ -148,23 +180,17 @@ export default function NotificationBell() {
 
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
       setUnreadCount(0)
-      console.log('✅ All notifications marked as read')
-    } catch (error) {
-      console.error('❌ Error marking all notifications as read:', error)
+    } catch (err) {
+      console.error('Error marking all notifications as read:', err)
     }
   }
 
   const toggleReadStatus = async (notificationId: string, isRead: boolean) => {
-    if (isRead) {
-      // If it's already read, we can't mark it as unread with current API
-      return
-    }
+    if (isRead) return
     await markAsRead(notificationId)
   }
 
-  // formatTime function
   const formatTime = (dateString: string | undefined | null) => {
-    // Handle undefined, null, or empty date strings
     if (!dateString || dateString.trim() === '') {
       return 'Recently'
     }
@@ -172,22 +198,15 @@ export default function NotificationBell() {
     try {
       let date: Date
 
-      // Check if it's an ISO string with timezone offset
       if (dateString.includes('T')) {
         date = new Date(dateString)
-      }
-      // Check if it's a timestamp (numeric string)
-      else if (!isNaN(Number(dateString))) {
+      } else if (!isNaN(Number(dateString))) {
         date = new Date(Number(dateString))
-      }
-      // Try parsing as regular date string
-      else {
+      } else {
         date = new Date(dateString)
       }
 
-      // Check if the date is valid
       if (isNaN(date.getTime())) {
-        console.warn('Invalid date string:', dateString)
         return 'Recently'
       }
 
@@ -199,26 +218,30 @@ export default function NotificationBell() {
 
       if (diffInMinutes < 1) {
         return 'Just now'
-      } else if (diffInMinutes < 60) {
+      }
+      if (diffInMinutes < 60) {
         return `${diffInMinutes}m ago`
-      } else if (diffInHours < 24) {
+      }
+      if (diffInHours < 24) {
         return `${diffInHours}h ago`
-      } else if (diffInDays === 1) {
+      }
+      if (diffInDays === 1) {
         return 'Yesterday'
-      } else if (diffInDays < 7) {
+      }
+      if (diffInDays < 7) {
         return `${diffInDays}d ago`
-      } else if (diffInDays < 30) {
+      }
+      if (diffInDays < 30) {
         const weeks = Math.floor(diffInDays / 7)
         return `${weeks}w ago`
-      } else {
-        return date.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          year: diffInDays > 365 ? 'numeric' : undefined,
-        })
       }
-    } catch (error) {
-      console.error('Error formatting time:', error, 'Date string:', dateString)
+
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: diffInDays > 365 ? 'numeric' : undefined,
+      })
+    } catch {
       return 'Recently'
     }
   }
@@ -379,7 +402,7 @@ export default function NotificationBell() {
 
                   <div className="flex justify-between items-center">
                     <span className="text-xs text-gray-400">
-                      {formatTime(notification.createdAt)}
+                      {formatTime(notification.$createdAt)}
                     </span>
                     {notification.actionUrl && (
                       <Button

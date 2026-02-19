@@ -28,6 +28,18 @@ export async function GET(request: NextRequest) {
         Query.equal('userId', userId),
         Query.orderDesc('$createdAt'),
         Query.limit(50),
+        Query.select([
+          '$id',
+          '$createdAt',
+          'title',
+          'message',
+          'type',
+          'isRead',
+          'actionUrl',
+          'actionText',
+          'userId',
+          'agentId',
+        ]),
       ]
     )
 

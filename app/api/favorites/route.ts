@@ -33,6 +33,8 @@ export async function GET(request: NextRequest) {
 
     if (propertyId) {
       queries.push(Query.equal('propertyId', propertyId))
+      queries.push(Query.limit(1))
+      queries.push(Query.select(['$id', 'userId', 'propertyId', 'category']))
     }
 
     if (category) {
@@ -72,7 +74,7 @@ export async function GET(request: NextRequest) {
             propertyMap.set(property.$id, property)
           })
         } catch (error) {
-          console.error('[API /favorites] Error fetching properties batch:', error)
+          console.error('[API /favorites] Error fetching properties batch')
         }
       }
 
@@ -83,16 +85,30 @@ export async function GET(request: NextRequest) {
         })
       )
 
-      return NextResponse.json({
-        favorites: favoritesWithDetails,
-        total: favoritesResponse.total,
-      })
+      return NextResponse.json(
+        {
+          favorites: favoritesWithDetails,
+          total: favoritesResponse.total,
+        },
+        {
+          headers: {
+            'Cache-Control': 'private, max-age=10',
+          },
+        }
+      )
     }
 
-    return NextResponse.json({
-      favorites: favoritesResponse.documents,
-      total: favoritesResponse.total,
-    })
+    return NextResponse.json(
+      {
+        favorites: favoritesResponse.documents,
+        total: favoritesResponse.total,
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=10',
+        },
+      }
+    )
   } catch (error: any) {
     console.error('❌ [FAVORITES API] GET error:', error)
     return NextResponse.json(

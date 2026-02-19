@@ -311,8 +311,6 @@ export default function MessagesPage() {
 
     try {
       setMessagesLoading(true)
-      console.log('📨 Fetching conversations for user:', user.$id)
-
       const response = await fetch(
         `/api/messages/conversations?userId=${user.$id}`
       )
@@ -322,17 +320,6 @@ export default function MessagesPage() {
       }
 
       const data = await response.json()
-
-      console.log('📨 Conversations data received:', {
-        userId: user.$id,
-        totalConversations: data.conversations?.length,
-        totalPartners: Object.keys(data.groupedByPartner || {}).length,
-        groupedData: Object.keys(data.groupedByPartner || {}).map((key) => ({
-          partnerId: key,
-          count: data.groupedByPartner[key].length,
-        })),
-      })
-
       if (data.conversations) {
         setConversations(data.conversations)
       }
@@ -370,7 +357,6 @@ export default function MessagesPage() {
   ) => {
     const currentUser = user
     if (!currentUser?.$id) {
-      console.log('⏳ Waiting for user object to stabilize...')
       return
     }
 
@@ -434,14 +420,6 @@ export default function MessagesPage() {
       if (conversation.propertyId) {
         params.append('propertyId', conversation.propertyId)
       }
-
-      console.log('📨 Fetching messages with params:', {
-        userId: user.$id,
-        otherUserId: conversation.partnerId,
-        propertyId: conversation.propertyId,
-        conversationTitle: conversation.propertyTitle,
-      })
-
       const response = await fetch(`/api/messages?${params}`)
 
       if (!response.ok) {
@@ -451,42 +429,12 @@ export default function MessagesPage() {
       }
 
       const messagesData = await response.json()
-
-      console.log('📨 Raw messages data received:', {
-        count: messagesData.length,
-        data: messagesData.map((msg: any, index: number) => ({
-          index,
-          id: msg.$id,
-          message: msg.message,
-          from: msg.fromUserId,
-          to: msg.toUserId,
-          sentAt: msg.sentAt,
-          isRead: msg.isRead,
-          hasMessageField: 'message' in msg,
-          hasTextField: 'text' in msg,
-          hasContentField: 'content' in msg,
-          allKeys: Object.keys(msg),
-        })),
-      })
-
       // Transform the data if needed
       const transformedMessages = messagesData.map((msg: any) => ({
         ...msg,
         // Ensure we have a message field
         message: msg.message || msg.text || msg.content || '',
       }))
-
-      console.log('📨 Transformed messages:', {
-        count: transformedMessages.length,
-        firstMessage: transformedMessages[0]
-          ? {
-              id: transformedMessages[0].$id,
-              message: transformedMessages[0].message,
-              sentAt: transformedMessages[0].sentAt,
-            }
-          : null,
-      })
-
       setMessages(transformedMessages)
 
       // Mark messages as read
@@ -499,12 +447,6 @@ export default function MessagesPage() {
   }
 
   const selectConversation = async (conversation: any) => {
-    console.log('🔍 Selecting conversation:', {
-      id: conversation.id,
-      partnerId: conversation.partnerId,
-      propertyTitle: conversation.propertyTitle,
-    })
-
     setSelectedConversation(conversation)
     await fetchMessages(conversation)
 
@@ -850,3 +792,4 @@ export default function MessagesPage() {
     </div>
   )
 }
+

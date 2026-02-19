@@ -333,8 +333,6 @@ export default function MessagesPage() {
 
     try {
       setMessagesLoading(true)
-      console.log('📨 Fetching conversations for user:', user.$id)
-
       const response = await fetch(
         `/api/messages/conversations?userId=${user.$id}`
       )
@@ -344,17 +342,6 @@ export default function MessagesPage() {
       }
 
       const data = await response.json()
-
-      console.log('📨 Conversations data received:', {
-        userId: user.$id,
-        totalConversations: data.conversations?.length,
-        totalPartners: Object.keys(data.groupedByPartner || {}).length,
-        groupedData: Object.keys(data.groupedByPartner || {}).map((key) => ({
-          partnerId: key,
-          count: data.groupedByPartner[key].length,
-        })),
-      })
-
       if (data.conversations) {
         setConversations(data.conversations)
       }
@@ -392,7 +379,6 @@ export default function MessagesPage() {
   ) => {
     const currentUser = user
     if (!currentUser?.$id) {
-      console.log('⏳ Waiting for user object to stabilize...')
       return
     }
 
@@ -461,14 +447,6 @@ export default function MessagesPage() {
       ) {
         params.append('propertyId', conversation.propertyId)
       }
-
-      console.log('📨 Fetching messages with params:', {
-        userId: user.$id,
-        otherUserId: conversation.partnerId,
-        propertyId: conversation.propertyId,
-        propertyTitle: conversation.propertyTitle,
-      })
-
       const response = await fetch(`/api/messages?${params}`)
 
       if (!response.ok) {
@@ -478,26 +456,6 @@ export default function MessagesPage() {
       }
 
       const messagesData = await response.json()
-
-      console.log('📨 Messages data received:', {
-        count: messagesData.length,
-        firstMessage: messagesData[0]
-          ? {
-              id: messagesData[0].$id,
-              message: messagesData[0].message,
-              fromUserId: messagesData[0].fromUserId,
-              sentAt: messagesData[0].sentAt,
-              isRead: messagesData[0].isRead,
-            }
-          : null,
-        lastMessage: messagesData[messagesData.length - 1]
-          ? {
-              id: messagesData[messagesData.length - 1].$id,
-              message: messagesData[messagesData.length - 1].message,
-            }
-          : null,
-      })
-
       // Ensure messages are sorted by sentAt
       const sortedMessages = [...messagesData].sort((a, b) => {
         const dateA = new Date(a.sentAt || a.$createdAt || 0)
@@ -519,12 +477,6 @@ export default function MessagesPage() {
   }
 
   const selectConversation = async (conversation: any) => {
-    console.log('🔍 Selecting conversation:', {
-      id: conversation.id,
-      partnerId: conversation.partnerId,
-      propertyTitle: conversation.propertyTitle,
-    })
-
     setSelectedConversation(conversation)
     await fetchMessages(conversation)
 
@@ -791,18 +743,6 @@ export default function MessagesPage() {
 
                         // Get sent time - prioritize sentAt, fallback to createdAt
                         const sentTime = message.sentAt || message.$createdAt
-
-                        console.log('📨 Rendering message bubble:', {
-                          key,
-                          messageContent: messageContent.substring(0, 50),
-                          sentTime,
-                          isFromCurrentUser,
-                          fromUserId: message.fromUserId,
-                          currentUserId: user?.$id,
-                          hasMessageField: !!message.message,
-                          messageLength: message.message?.length,
-                        })
-
                         return (
                           <div
                             key={key}
@@ -913,3 +853,4 @@ export default function MessagesPage() {
     </div>
   )
 }
+

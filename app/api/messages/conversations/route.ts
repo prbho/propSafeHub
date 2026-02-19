@@ -183,11 +183,18 @@ export async function GET(request: NextRequest) {
     const allMessages = [...sentMessages.documents, ...receivedMessages.documents]
 
     if (allMessages.length === 0) {
-      return NextResponse.json({
-        conversations: [],
-        groupedByPartner: {},
-        summary: { totalPartners: 0, totalConversations: 0 },
-      })
+      return NextResponse.json(
+        {
+          conversations: [],
+          groupedByPartner: {},
+          summary: { totalPartners: 0, totalConversations: 0 },
+        },
+        {
+          headers: {
+            'Cache-Control': 'private, max-age=3, stale-while-revalidate=10',
+          },
+        }
+      )
     }
 
     const userIds = new Set<string>()
@@ -286,14 +293,21 @@ export async function GET(request: NextRequest) {
       )
     })
 
-    return NextResponse.json({
-      conversations,
-      groupedByPartner,
-      summary: {
-        totalPartners: Object.keys(groupedByPartner).length,
-        totalConversations: conversations.length,
+    return NextResponse.json(
+      {
+        conversations,
+        groupedByPartner,
+        summary: {
+          totalPartners: Object.keys(groupedByPartner).length,
+          totalConversations: conversations.length,
+        },
       },
-    })
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=3, stale-while-revalidate=10',
+        },
+      }
+    )
   } catch (error) {
     console.error('Error fetching conversations:', error)
     return NextResponse.json(

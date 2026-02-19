@@ -14,7 +14,10 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const agentId = searchParams.get('agentId')
-    const limit = parseInt(searchParams.get('limit') || '50')
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get('limit') || '50', 10))
+    )
 
     if (!agentId) {
       return NextResponse.json(
@@ -32,6 +35,16 @@ export async function GET(request: NextRequest) {
         Query.equal('userId', agentId), // Use userId since that's what's stored
         Query.orderDesc('$createdAt'),
         Query.limit(limit),
+        Query.select([
+          '$id',
+          '$createdAt',
+          'title',
+          'message',
+          'type',
+          'isRead',
+          'actionUrl',
+          'actionText',
+        ]),
       ]
     )
 
@@ -44,7 +57,11 @@ export async function GET(request: NextRequest) {
         notification.actionUrl?.includes('/agent/')
     )
 
-    return NextResponse.json(agentNotifications)
+    return NextResponse.json(agentNotifications, {
+      headers: {
+        'Cache-Control': 'private, max-age=8, stale-while-revalidate=20',
+      },
+    })
   } catch {
     return NextResponse.json(
       { error: 'Failed to fetch notifications' },
