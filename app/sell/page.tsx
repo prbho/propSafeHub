@@ -23,7 +23,7 @@ export default function SellPage() {
       icon: <DollarSign className="h-6 w-6" />,
       title: 'Maximize Your Price',
       description:
-        'Get the best possible price for your property with our market analysis and pricing tools.',
+        'Get the best possible price for your property with our market analysis & pricing tools.',
     },
     {
       icon: <BarChart3 className="h-6 w-6" />,
