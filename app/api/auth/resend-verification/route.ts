@@ -36,8 +36,11 @@ function getResendClient() {
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json()
+    const normalizedEmail = String(email || '')
+      .trim()
+      .toLowerCase()
 
-    if (!email) {
+    if (!normalizedEmail) {
       console.error('❌ Missing email in request')
       return NextResponse.json(
         {
@@ -54,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // Use Query.equal() for proper query syntax
-      const usersQuery = [Query.equal('email', email)]
+      const usersQuery = [Query.equal('email', normalizedEmail)]
 
       // First check users collection
       const users = await databases.listDocuments(
@@ -77,14 +80,13 @@ export async function POST(request: NextRequest) {
           userDoc = agents.documents[0]
           collectionId = AGENTS_COLLECTION_ID
         } else {
-          console.error('❌ User not found in any collection:', email)
           return NextResponse.json(
             {
-              error: 'User not found',
-              code: 'USER_NOT_FOUND',
-              email,
+              success: true,
+              message:
+                'If an account exists with this email, a verification email has been sent.',
             },
-            { status: 404 }
+            { status: 200 }
           )
         }
       }
@@ -103,14 +105,11 @@ export async function POST(request: NextRequest) {
 
     // Check if already verified
     if (userDoc.emailVerified) {
-      return NextResponse.json(
-        {
-          error: 'Email is already verified',
-          code: 'ALREADY_VERIFIED',
-          email,
-        },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        success: true,
+        message:
+          'If an account exists with this email, a verification email has been sent.',
+      })
     }
 
     // Generate new verification token
@@ -227,14 +226,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: true,
           message: 'Verification email would be sent (build simulation)',
-          email: email,
+          email: normalizedEmail,
           simulated: true,
         })
       }
 
       const { error } = await resend.emails.send({
         from: 'PropSafeHub <noreply@notifications.propsafehub.com>',
-        to: email,
+        to: normalizedEmail,
         subject: 'Verify your email - PropSafeHub',
         html: emailHtml,
       })
@@ -264,7 +263,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Verification email sent successfully!',
-      email: email,
+      email: normalizedEmail,
     })
   } catch (error: any) {
     console.error('❌ Unhandled error in resend verification:', error.message)

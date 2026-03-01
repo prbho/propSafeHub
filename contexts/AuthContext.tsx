@@ -41,6 +41,12 @@ interface AuthContextType extends AuthState {
   checkVerificationStatus: () => Promise<boolean>
 }
 
+const debugLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(...args)
+  }
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -56,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch user document from database - UPDATED TO CHECK BOTH COLLECTIONS
   const fetchUserDocument = async (userId: string): Promise<User | null> => {
     try {
-      console.log('📄 Fetching user document for:', userId)
+      debugLog('📄 Fetching user document for:', userId)
 
       let userDoc
       let collectionId = USERS_COLLECTION_ID
@@ -88,7 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               // ✅ CRITICAL: Use agent's avatar if available
               avatarUrl = agentProfile.avatar || userDoc.avatar
 
-              console.log('✅ Found agent profile for user:', {
+              debugLog('✅ Found agent profile for user:', {
                 userAccountId: userId,
                 agentDocumentId: agentProfile.$id,
                 agentAvatar: agentProfile.avatar ? 'Set' : 'Not set',
@@ -96,11 +102,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 finalAvatar: avatarUrl ? 'Set' : 'Not set',
               })
             } else {
-              console.log('⚠️ User is agent type but no agent profile found')
+              debugLog('⚠️ User is agent type but no agent profile found')
               avatarUrl = userDoc.avatar // Fall back to user avatar
             }
           } catch (agentError) {
-            console.log('⚠️ Could not search for agent profile:', agentError)
+            debugLog('⚠️ Could not search for agent profile:', agentError)
             avatarUrl = userDoc.avatar // Fall back to user avatar
           }
         } else {
@@ -121,13 +127,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // ✅ Direct agent login - use agent's avatar
           avatarUrl = userDoc.avatar
 
-          console.log('✅ User found in AGENTS collection (direct agent login)')
+          debugLog('✅ User found in AGENTS collection (direct agent login)')
         } catch {
           return null
         }
       }
 
-      console.log('✅ User document fetched successfully:', {
+      debugLog('✅ User document fetched successfully:', {
         id: userDoc.$id,
         email: userDoc.email,
         name: userDoc.name,
@@ -204,7 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const createUserDocument = async (userId: string): Promise<User | null> => {
     try {
-      console.log('📝 Creating user document for:', userId)
+      debugLog('📝 Creating user document for:', userId)
 
       const appwriteUser = await account.get()
 
@@ -223,7 +229,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       )
 
-      console.log('✅ User document created:', userDoc)
+      debugLog('✅ User document created:', userDoc)
 
       return {
         $id: userDoc.$id,
@@ -254,19 +260,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuthStatus = useCallback(async () => {
     try {
-      console.log('🔍 Starting auth status check...')
+      debugLog('🔍 Starting auth status check...')
       setAuthState((prev) => ({ ...prev, isLoading: true }))
 
       // Check if we have a valid session first
       try {
         const session = await account.getSession('current')
-        console.log('✅ Session found:', {
+        debugLog('✅ Session found:', {
           id: session.$id,
           userId: session.userId,
           expire: session.expire,
         })
       } catch {
-        console.log('❌ No active session found')
+        debugLog('❌ No active session found')
         setAuthState({
           user: null,
           isLoading: false,
@@ -278,7 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Then get the Appwrite user
       const appwriteUser = await account.get()
-      console.log('✅ Appwrite user account found:', {
+      debugLog('✅ Appwrite user account found:', {
         id: appwriteUser.$id,
         email: appwriteUser.email,
         name: appwriteUser.name,
@@ -288,7 +294,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const userDoc = await fetchUserDocument(appwriteUser.$id)
 
       if (userDoc) {
-        console.log('🎯 Setting authenticated state with user:', {
+        debugLog('🎯 Setting authenticated state with user:', {
           email: userDoc.email,
           userType: userDoc.userType,
           emailVerified: userDoc.emailVerified,
@@ -304,14 +310,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Show verification modal if user is not verified and hasn't dismissed it
         if (!userDoc.emailVerified && !verificationDismissed) {
-          console.log('📧 Showing verification modal - user not verified')
+          debugLog('📧 Showing verification modal - user not verified')
           setShowVerificationModal(true)
         } else if (userDoc.emailVerified) {
-          console.log('✅ User is verified, hiding modal')
+          debugLog('✅ User is verified, hiding modal')
           setShowVerificationModal(false)
         }
       } else {
-        console.log('❌ Could not fetch user document')
+        debugLog('❌ Could not fetch user document')
         setAuthState({
           user: null,
           isLoading: false,
@@ -330,25 +336,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [verificationDismissed])
 
   useEffect(() => {
-    console.log('🚀 AuthProvider mounted - checking auth status')
+    debugLog('🚀 AuthProvider mounted - checking auth status')
     checkAuthStatus()
   }, [checkAuthStatus])
 
   const checkVerificationStatus = async (): Promise<boolean> => {
     try {
       if (!authState.user) {
-        console.log('❌ No user in auth state for verification check')
+        debugLog('❌ No user in auth state for verification check')
         return false
       }
 
-      console.log(
+      debugLog(
         '🔍 Checking verification status for user:',
         authState.user.$id
       )
       const updatedUser = await fetchUserDocument(authState.user.$id)
 
       if (updatedUser?.emailVerified) {
-        console.log('✅ User email is verified!')
+        debugLog('✅ User email is verified!')
         setAuthState((prev) => ({
           ...prev,
           user: updatedUser,
@@ -357,7 +363,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true
       }
 
-      console.log('📧 User email not yet verified')
+      debugLog('📧 User email not yet verified')
       return false
     } catch (error) {
       console.error('❌ Error checking verification status:', error)
@@ -368,17 +374,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // refreshUser function (single implementation)
   const refreshUser = async () => {
     try {
-      console.log('🔄 Refreshing user data...')
+      debugLog('🔄 Refreshing user data...')
 
       if (!authState.user) {
-        console.log('❌ No user to refresh')
+        debugLog('❌ No user to refresh')
         return
       }
 
       const updatedUserDoc = await fetchUserDocument(authState.user.$id)
 
       if (updatedUserDoc) {
-        console.log('✅ User data refreshed:', {
+        debugLog('✅ User data refreshed:', {
           name: updatedUserDoc.name,
           email: updatedUserDoc.email,
           userType: updatedUserDoc.userType,
@@ -398,84 +404,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkEmail = async (email: string): Promise<EmailCheckResult> => {
     try {
-      console.log('🔍 Checking email existence:', email)
-
+      debugLog('🔍 Checking email existence:', email)
       const normalizedEmail = email.toLowerCase().trim()
-
-      // Check BOTH collections
-      const [usersResponse, agentsResponse] = await Promise.all([
-        databases.listDocuments(DATABASE_ID, USERS_COLLECTION_ID, [
-          Query.equal('email', normalizedEmail),
-          Query.limit(1),
-        ]),
-        databases.listDocuments(DATABASE_ID, AGENTS_COLLECTION_ID, [
-          Query.equal('email', normalizedEmail),
-          Query.limit(1),
-        ]),
-      ])
-
-      console.log('📊 Database query results:', {
-        usersTotal: usersResponse.total,
-        usersFound: usersResponse.documents.length,
-        agentsTotal: agentsResponse.total,
-        agentsFound: agentsResponse.documents.length,
+      const response = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail }),
       })
 
-      // Check users collection first
-      if (usersResponse.documents.length > 0) {
-        const userDoc = usersResponse.documents[0]
-        console.log('✅ User found in USERS collection:', {
-          id: userDoc.$id,
-          userType: userDoc.userType,
-          emailVerified: userDoc.emailVerified,
-        })
-
-        return {
-          exists: true,
-          user: {
-            $id: userDoc.$id,
-            name: userDoc.name,
-            email: userDoc.email,
-            emailVerified: userDoc.emailVerified,
-            isActive: userDoc.isActive,
-            userType: userDoc.userType,
-            city: userDoc.city,
-            agency: userDoc.agency,
-          },
-        }
+      if (!response.ok) {
+        throw new Error('Unable to verify email at the moment')
       }
 
-      // Check agents collection
-      if (agentsResponse.documents.length > 0) {
-        const userDoc = agentsResponse.documents[0]
-        console.log('✅ User found in AGENTS collection:', {
-          id: userDoc.$id,
-          userType: userDoc.userType,
-          emailVerified: userDoc.emailVerified,
-          agency: userDoc.agency,
-          city: userDoc.city,
-        })
-
-        return {
-          exists: true,
-          user: {
-            $id: userDoc.$id,
-            name: userDoc.name,
-            email: userDoc.email,
-            emailVerified: userDoc.emailVerified,
-            isActive: userDoc.isActive,
-            userType: userDoc.userType,
-            agency: userDoc.agency,
-            city: userDoc.city,
-          },
-        }
-      }
-
-      console.log(
-        '❌ No user found with email in any collection:',
-        normalizedEmail
-      )
-      return { exists: false }
+      const data = await response.json()
+      return { exists: data.exists === true }
     } catch {
       return { exists: false }
     }
@@ -483,7 +425,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      console.log('🔐 Attempting login for:', credentials.email)
+      debugLog('🔐 Attempting login for:', credentials.email)
       setAuthState((prev) => ({ ...prev, isLoading: true }))
 
       await account.createEmailPasswordSession(
@@ -536,32 +478,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const register = async (data: RegisterData | FormData) => {
     try {
-      console.log('📝 Starting registration...')
+      debugLog('📝 Starting registration...')
       setAuthState((prev) => ({ ...prev, isLoading: true }))
 
       let response
+      let registrationEmail = ''
+      let registrationPassword = ''
 
       // Check if data is FormData (for file uploads)
       if (data instanceof FormData) {
-        console.log('📁 Using FormData for registration (with file)')
+        debugLog('📁 Using FormData for registration (with file)')
+        registrationEmail = String(data.get('email') || '')
+        registrationPassword = String(data.get('password') || '')
 
         // Add debug logging for FormData contents
-        console.log('📋 FormData entries:')
+        debugLog('📋 FormData entries:')
         for (const [key, value] of data.entries()) {
           if (key === 'avatar' && value instanceof File) {
-            console.log(`  ${key}:`, {
+            debugLog(`  ${key}:`, {
               name: value.name,
               type: value.type,
               size: value.size,
             })
           } else if (key === 'agentData' && typeof value === 'string') {
             try {
-              console.log(`  ${key}:`, JSON.parse(value))
+              debugLog(`  ${key}:`, JSON.parse(value))
             } catch {
-              console.log(`  ${key}:`, value)
+              debugLog(`  ${key}:`, value)
             }
           } else {
-            console.log(`  ${key}:`, value)
+            debugLog(`  ${key}:`, value)
           }
         }
 
@@ -572,8 +518,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         })
       } else {
         // Handle regular JSON data (backward compatibility)
-        console.log('📄 Using JSON for registration (no file)')
-        console.log('📋 Registration data:', {
+        debugLog('📄 Using JSON for registration (no file)')
+        registrationEmail = data.email || ''
+        registrationPassword = data.password || ''
+        debugLog('📋 Registration data:', {
           ...data,
           password: '[PROTECTED]',
           email: data.email ? `${data.email.substring(0, 3)}...` : 'none',
@@ -593,7 +541,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(result.error || 'Registration failed')
       }
 
-      console.log('✅ Registration successful, user:', {
+      debugLog('✅ Registration successful, user:', {
         id: result.user?.id,
         email: result.user?.email
           ? `${result.user.email.substring(0, 3)}...`
@@ -602,11 +550,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         hasAvatar: !!result.user?.avatar,
       })
 
-      // Immediately update auth state
+      // Try to create a real client session after successful registration.
+      // If session creation fails, keep the user in a non-authenticated state.
+      let sessionCreated = false
+      if (registrationEmail && registrationPassword) {
+        try {
+          await account.createEmailPasswordSession(
+            registrationEmail,
+            registrationPassword
+          )
+          sessionCreated = true
+        } catch (sessionError) {
+          console.warn('⚠️ Could not create session after registration:', {
+            email: registrationEmail.substring(0, 3) + '...',
+            error: sessionError,
+          })
+        }
+      }
+
+      // Update auth state
       setAuthState({
         user: result.user,
         isLoading: false,
-        isAuthenticated: true,
+        isAuthenticated: sessionCreated,
       })
       setAuthCheckComplete(true)
 
@@ -614,7 +580,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setVerificationDismissed(false)
       setShowVerificationModal(true)
 
-      console.log('📧 Verification modal shown')
+      debugLog('📧 Verification modal shown')
 
       return result // Return the result for the caller
     } catch (error: any) {
@@ -628,7 +594,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     email: string
   ): Promise<VerificationEmailResult> => {
     try {
-      console.log('📧 Resending verification email to:', email)
+      debugLog('📧 Resending verification email to:', email)
 
       if (!email) {
         throw new Error('Email is required')
@@ -643,11 +609,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email }),
       })
 
-      console.log('📡 Response status:', response.status, response.statusText)
+      debugLog('📡 Response status:', response.status, response.statusText)
 
       // Get response text first to see what we're getting
       const responseText = await response.text()
-      console.log(
+      debugLog(
         '📄 Raw response text:',
         responseText.substring(0, 200) + '...'
       )
@@ -687,7 +653,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(userMessage)
       }
 
-      console.log('✅ Verification email resent successfully:', errorData)
+      debugLog('✅ Verification email resent successfully:', errorData)
 
       return {
         success: true,
@@ -703,14 +669,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
   const dismissVerificationModal = () => {
-    console.log('📧 Verification modal dismissed')
+    debugLog('📧 Verification modal dismissed')
     setShowVerificationModal(false)
     setVerificationDismissed(true)
   }
 
   const logout = async () => {
     try {
-      console.log('🚪 Logging out...')
+      debugLog('🚪 Logging out...')
       setAuthState((prev) => ({ ...prev, isLoading: true }))
       await account.deleteSession('current')
     } catch (error) {
@@ -724,7 +690,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthCheckComplete(true)
       setShowVerificationModal(false)
       setVerificationDismissed(false)
-      console.log('✅ Logout completed')
+      debugLog('✅ Logout completed')
     }
   }
 
@@ -744,7 +710,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Debug: Log when auth state changes
   useEffect(() => {
-    console.log('🔄 Auth state updated:', {
+    debugLog('🔄 Auth state updated:', {
       isAuthenticated: authState.isAuthenticated,
       isLoading: authState.isLoading,
       authCheckComplete,
@@ -768,7 +734,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userEmail={authState.user?.email || ''}
         onClose={dismissVerificationModal}
         onResendEmail={() => {
-          console.log('📧 Resend email triggered for:', authState.user?.email)
+          debugLog('📧 Resend email triggered for:', authState.user?.email)
           return resendVerificationEmail(authState.user?.email || '')
         }}
         onCheckVerification={checkVerificationStatus}
@@ -784,3 +750,5 @@ export const useAuth = () => {
   }
   return context
 }
+
+

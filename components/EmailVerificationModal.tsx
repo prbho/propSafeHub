@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   CheckCircle2,
   Clock,
@@ -40,24 +40,12 @@ export default function EmailVerificationModal({
   const [lastChecked, setLastChecked] = useState<Date | null>(null)
   const [resendMessage, setResendMessage] = useState('')
   const [isVerified, setIsVerified] = useState(false)
+  const isCheckingRef = useRef(false)
+  const pollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Auto-check verification status every 10 seconds when modal is open
-  useEffect(() => {
-    if (!isOpen) return
-
-    // Initial check when modal opens
-    checkVerificationStatus()
-
-    const checkInterval = setInterval(async () => {
-      await checkVerificationStatus()
-    }, 10000) // Check every 10 seconds
-
-    return () => clearInterval(checkInterval)
-  }, [isOpen])
-
-  const checkVerificationStatus = async () => {
-    if (isChecking) return
-
+  const checkVerificationStatus = useCallback(async () => {
+    if (isCheckingRef.current) return
+    isCheckingRef.current = true
     setIsChecking(true)
     try {
       const isVerified = await onCheckVerification()
@@ -82,9 +70,37 @@ export default function EmailVerificationModal({
     } catch (error) {
       console.error('Error checking verification status:', error)
     } finally {
+      isCheckingRef.current = false
       setIsChecking(false)
     }
-  }
+  }, [onCheckVerification, onClose])
+
+  // Auto-check verification status every 10 seconds when modal is open.
+  // Uses recursive timeout so checks never overlap.
+  useEffect(() => {
+    if (!isOpen || isVerified) return
+
+    let cancelled = false
+
+    const runCheck = async () => {
+      if (cancelled) return
+
+      await checkVerificationStatus()
+
+      if (cancelled) return
+      pollTimeoutRef.current = setTimeout(runCheck, 10000)
+    }
+
+    runCheck()
+
+    return () => {
+      cancelled = true
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current)
+        pollTimeoutRef.current = null
+      }
+    }
+  }, [isOpen, isVerified, checkVerificationStatus])
 
   const handleResendVerification = async () => {
     try {

@@ -34,14 +34,16 @@ export default function LoadingLine({
   useEffect(() => {
     if (variant === 'progress') {
       const timer = setInterval(() => {
+        if (typeof document !== 'undefined' && document.hidden) return
+
         setProgress((oldProgress) => {
-          if (oldProgress === 100) {
-            return 0
+          if (oldProgress >= 95) {
+            return oldProgress
           }
-          const diff = Math.random() * 10
+          const diff = Math.random() * 6
           return Math.min(oldProgress + diff, 100)
         })
-      }, 200)
+      }, 400)
 
       return () => {
         clearInterval(timer)

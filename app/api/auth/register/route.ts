@@ -159,10 +159,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Normalize input
+    name = String(name || '').trim()
+    email = String(email || '')
+      .trim()
+      .toLowerCase()
+    password = String(password || '')
+
     // Validation
     if (!name || !email || !password) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+
+    // Password baseline policy (aligned with reset-password endpoint)
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: 'Password must be at least 8 characters long' },
+        { status: 400 }
+      )
+    }
+
+    const hasUpperCase = /[A-Z]/.test(password)
+    const hasLowerCase = /[a-z]/.test(password)
+    const hasNumbers = /\d/.test(password)
+
+    if (!hasUpperCase || !hasLowerCase || !hasNumbers) {
+      return NextResponse.json(
+        {
+          error:
+            'Password must contain at least one uppercase letter, one lowercase letter, and one number',
+        },
         { status: 400 }
       )
     }

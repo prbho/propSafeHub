@@ -24,6 +24,8 @@
 
 # Environment variables
 .env*
+.env.example
+!.env.example
 .env
 .env.local
 .env.development.local
@@ -89,3 +91,10 @@ next-env.d.ts
 
 # Misc
 *.pem
+
+# Backup tool artifacts / credentials
+scripts/appwrite-backup/node_modules/
+scripts/appwrite-backup/dist/
+scripts/appwrite-backup/backups/
+scripts/appwrite-backup/service-account.json
+!scripts/appwrite-backup/.env.example

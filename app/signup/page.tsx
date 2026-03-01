@@ -4,11 +4,13 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 
-import { MainRegistrationForm } from '@/components/auth/RegistrationForm'
+import { MainRegistrationForm } from '@/components/auth/MainRegistrationForm'
 
 export default function SignUpPage() {
   const [email] = useState('')
+  const router = useRouter()
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -28,8 +30,7 @@ export default function SignUpPage() {
           <MainRegistrationForm
             initialEmail={email}
             onRegistrationComplete={() => {
-              // Handle successful registration
-              // Redirect or show success message
+              router.push('/success?type=registration')
             }}
             showBackButton={false}
           />

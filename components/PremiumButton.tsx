@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { PlanType } from '@/types'
 import { Check, Clock, Crown, Loader2, Sparkles, Star, Zap } from 'lucide-react'
@@ -29,19 +29,7 @@ export default function PremiumButton({
   const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
-  const [pulse, setPulse] = useState(false)
   const { user } = useAuth()
-
-  // Add occasional pulse animation for attention
-  useEffect(() => {
-    if (variant === 'urgent' && !currentPlan) {
-      const interval = setInterval(() => {
-        setPulse(true)
-        setTimeout(() => setPulse(false), 1000)
-      }, 5000)
-      return () => clearInterval(interval)
-    }
-  }, [variant, currentPlan])
 
   const handleUpgrade = async (planType: PlanType) => {
     if (!user) {
@@ -139,13 +127,12 @@ export default function PremiumButton({
           onMouseLeave={() => setIsHovered(false)}
           disabled={isProcessing}
           className={`
-            relative flex items-center gap-2 rounded-lg font-bold transition-all duration-300
-            ${sizeClasses[size]}
-            ${variantStyles[variant]}
-            ${pulse && !currentPlan ? 'animate-pulse scale-105' : ''}
-            ${isHovered && !currentPlan ? 'scale-105 shadow-xl' : ''}
-            disabled:opacity-50 disabled:cursor-not-allowed
-            group overflow-hidden
+             relative flex items-center gap-2 rounded-lg font-bold transition-all duration-300
+             ${sizeClasses[size]}
+             ${variantStyles[variant]}
+             ${isHovered && !currentPlan ? 'scale-105 shadow-xl' : ''}
+             disabled:opacity-50 disabled:cursor-not-allowed
+             group overflow-hidden
           `}
         >
           {/* Animated background shine */}

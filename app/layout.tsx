@@ -9,7 +9,7 @@ import { AccessibilityProvider } from '@/contexts/AccessibilityContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { LoadingProvider } from '@/contexts/LoadingContext'
 
-import Chatbot from '@/components/chatbot/Chatbot'
+import LazyChatbot from '@/components/chatbot/LazyChatbot'
 import CookieConsent from '@/components/CookieConsent'
 // import { FloatingAccessibilityWidget } from '@/components/FloatingAccessibilityWidget'
 import Footer from '@/components/Footer'
@@ -322,7 +322,7 @@ export default function RootLayout({
                     {children}
                   </main>
                   <Footer />
-                  <Chatbot />
+                  <LazyChatbot />
                   {/* <FloatingAccessibilityWidget /> */}
                   <ToastProvider />
                   <CookieConsent />

@@ -45,32 +45,14 @@ export async function POST(request: NextRequest) {
 
       // Check if email exists in either collection
       if (usersResponse.documents.length > 0) {
-        const user = usersResponse.documents[0]
         return NextResponse.json({
           exists: true,
-          user: {
-            id: user.$id,
-            name: user.name,
-            email: user.email,
-            isActive: user.isActive !== false,
-            userType: user.userType || 'user',
-          },
         })
       }
 
       if (agentsResponse.documents.length > 0) {
-        const agent = agentsResponse.documents[0]
         return NextResponse.json({
           exists: true,
-          user: {
-            id: agent.$id,
-            name: agent.name,
-            email: agent.email,
-            isActive: agent.isActive !== false,
-            userType: agent.userType || 'agent',
-            agency: agent.agency,
-            city: agent.city,
-          },
         })
       }
 

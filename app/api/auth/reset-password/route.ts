@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { Query } from 'appwrite'
+import { createHash } from 'crypto'
 
 import {
   DATABASE_ID,
@@ -14,16 +15,24 @@ import { emailService } from '@/lib/services/email-service'
 // Collection for storing reset tokens
 const PASSWORD_RESET_TOKENS_COLLECTION = 'password_reset_tokens'
 
+function hashResetToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const { token, email, password, confirmPassword } = await request.json()
+    const normalizedEmail = String(email || '')
+      .trim()
+      .toLowerCase()
+    const tokenHash = hashResetToken(String(token || ''))
 
     // Validate required fields
-    if (!token || !email || !password || !confirmPassword) {
+    if (!token || !normalizedEmail || !password || !confirmPassword) {
       console.error('❌ Missing fields:', {
         hasToken: !!token,
-        hasEmail: !!email,
+        hasEmail: !!normalizedEmail,
         hasPassword: !!password,
         hasConfirmPassword: !!confirmPassword,
       })
@@ -66,16 +75,47 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // 1. Find the reset token in database
-      const tokens = await databases.listDocuments(
-        DATABASE_ID,
-        PASSWORD_RESET_TOKENS_COLLECTION,
-        [
-          Query.equal('token', token),
-          Query.equal('email', email),
-          Query.equal('used', false),
-        ]
-      )
+      // 1. Find the reset token in database.
+      // Migration-safe strategy:
+      //  - Prefer tokenHash lookup for new records
+      //  - Fallback to legacy plaintext token lookup for old records
+      let tokens
+      try {
+        tokens = await databases.listDocuments(
+          DATABASE_ID,
+          PASSWORD_RESET_TOKENS_COLLECTION,
+          [
+            Query.equal('tokenHash', tokenHash),
+            Query.equal('email', normalizedEmail),
+            Query.equal('used', false),
+          ]
+        )
+      } catch (hashQueryError: any) {
+        const message = String(hashQueryError?.message || '').toLowerCase()
+        const isUnknownAttrError =
+          message.includes('tokenhash') &&
+          (message.includes('unknown') ||
+            message.includes('attribute') ||
+            message.includes('invalid'))
+
+        if (!isUnknownAttrError) {
+          throw hashQueryError
+        }
+
+        tokens = { total: 0, documents: [] }
+      }
+
+      if (!tokens || tokens.total === 0) {
+        tokens = await databases.listDocuments(
+          DATABASE_ID,
+          PASSWORD_RESET_TOKENS_COLLECTION,
+          [
+            Query.equal('token', token),
+            Query.equal('email', normalizedEmail),
+            Query.equal('used', false),
+          ]
+        )
+      }
 
       if (tokens.total === 0) {
         console.error('❌ Token not found or already used')
@@ -89,6 +129,22 @@ export async function POST(request: NextRequest) {
       }
 
       const resetToken = tokens.documents[0]
+
+      // Opportunistic migration for legacy records:
+      // if this document was matched by plaintext token and schema supports tokenHash,
+      // backfill tokenHash for future secure lookups.
+      if (!resetToken.tokenHash) {
+        try {
+          await databases.updateDocument(
+            DATABASE_ID,
+            PASSWORD_RESET_TOKENS_COLLECTION,
+            resetToken.$id,
+            { tokenHash }
+          )
+        } catch {
+          // Ignore backfill failure to avoid interrupting valid password resets
+        }
+      }
 
       // 2. Check if token is expired
       const expiresAt = new Date(resetToken.expiresAt)
@@ -114,7 +170,7 @@ export async function POST(request: NextRequest) {
       // 3. Get user from appropriate collection
       const collection = resetToken.userCollection || 'users'
       const users = await databases.listDocuments(DATABASE_ID, collection, [
-        Query.equal('email', email),
+        Query.equal('email', normalizedEmail),
       ])
 
       if (users.total === 0) {
@@ -185,7 +241,7 @@ export async function POST(request: NextRequest) {
       try {
         await emailService.sendPasswordResetSuccessEmail({
           name: user.name || '',
-          email: email,
+          email: normalizedEmail,
           userType:
             user.userType || (collection === 'agents' ? 'agent' : 'user'),
         })
@@ -202,7 +258,7 @@ export async function POST(request: NextRequest) {
         message:
           'Password has been reset successfully. You can now sign in with your new password.',
         data: {
-          email: email,
+          email: normalizedEmail,
           updatedAt: new Date().toISOString(),
         },
       })

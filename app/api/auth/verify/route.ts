@@ -149,37 +149,20 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Debug info
-    // Check if user already verified
-    if (userDoc.emailVerified) {
-      return NextResponse.json({
-        success: true,
-        message: 'Email is already verified',
-        email: userDoc.email,
-        name: userDoc.name,
-        alreadyVerified: true,
-      })
-    }
-
-    // Verify token matches (if we found by userId, check token matches)
-    if (!foundByTokenSearch && userDoc.verificationToken !== token) {
-      console.error('❌ Token mismatch!')
-      console.error('   Provided token:', token)
-      console.error('   Stored token:', userDoc.verificationToken)
-
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Invalid verification token',
-          code: 'TOKEN_MISMATCH',
-          email: userDoc.email,
-        },
-        { status: 400 }
-      )
-    }
-
     // Check if token exists in user document
     if (!userDoc.verificationToken) {
+      // Allow idempotent success only when we located the account by token search.
+      // This prevents userId-based token forgery from returning success.
+      if (userDoc.emailVerified && foundByTokenSearch) {
+        return NextResponse.json({
+          success: true,
+          message: 'Email is already verified',
+          email: userDoc.email,
+          name: userDoc.name,
+          alreadyVerified: true,
+        })
+      }
+
       console.error('❌ No verification token in user document')
       return NextResponse.json(
         {
@@ -191,6 +174,31 @@ export async function POST(request: NextRequest) {
         },
         { status: 400 }
       )
+    }
+
+    // Verify token always matches stored token.
+    if (userDoc.verificationToken !== token) {
+      console.error('❌ Token mismatch during verification')
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Invalid verification token',
+          code: 'TOKEN_MISMATCH',
+          email: userDoc.email,
+        },
+        { status: 400 }
+      )
+    }
+
+    // Check if user already verified
+    if (userDoc.emailVerified) {
+      return NextResponse.json({
+        success: true,
+        message: 'Email is already verified',
+        email: userDoc.email,
+        name: userDoc.name,
+        alreadyVerified: true,
+      })
     }
 
     // Check if token is expired (24 hours)

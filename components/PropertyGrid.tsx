@@ -73,15 +73,6 @@ export default function PropertyGrid({
   }, [initialStatus])
 
   useEffect(() => {
-    // Reset filters when initialStatus changes
-    setFilters((prev) => ({
-      ...prev,
-      status: initialStatus,
-      page: 1, // Reset to first page
-    }))
-  }, [initialStatus])
-
-  useEffect(() => {
     fetchProperties(filters)
   }, [filters])
 

@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { ID, Query } from 'appwrite'
+import { createHash } from 'crypto'
 
 import { DATABASE_ID, databases } from '@/lib/appwrite-server'
 import { EmailTemplateParams } from '@/lib/email-templates'
@@ -10,6 +11,10 @@ import { emailService } from '@/lib/services/email-service'
 
 // Collection for storing reset tokens
 const PASSWORD_RESET_TOKENS_COLLECTION = 'password_reset_tokens'
+
+function hashResetToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex')
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -86,27 +91,50 @@ export async function POST(request: NextRequest) {
       const token = Array.from(crypto.getRandomValues(new Uint8Array(32)))
         .map((b) => b.toString(16).padStart(2, '0'))
         .join('')
+      const tokenHash = hashResetToken(token)
 
       // Calculate expiration (1 hour from now)
       const expiresAt = new Date(Date.now() + 3600000)
 
-      // Store token in database
-      await databases.createDocument(
-        DATABASE_ID,
-        PASSWORD_RESET_TOKENS_COLLECTION,
-        ID.unique(),
-        {
-          userId: user.userId || user.$id,
-          token: token,
-          email: email,
-          expiresAt: expiresAt.toISOString(),
-          used: false,
-          ipAddress: ipAddress,
-          userAgent: userAgent,
-          //   createdAt: new Date().toISOString(),
-          userCollection: collection,
+      // Store token in database as hash-only (hardening phase).
+      // Plaintext token is never persisted for new reset requests.
+      const baseTokenPayload = {
+        userId: user.userId || user.$id,
+        email: email,
+        expiresAt: expiresAt.toISOString(),
+        used: false,
+        ipAddress: ipAddress,
+        userAgent: userAgent,
+        userCollection: collection,
+      }
+
+      try {
+        await databases.createDocument(
+          DATABASE_ID,
+          PASSWORD_RESET_TOKENS_COLLECTION,
+          ID.unique(),
+          {
+            ...baseTokenPayload,
+            tokenHash,
+          }
+        )
+      } catch (createError: any) {
+        const message = String(createError?.message || '').toLowerCase()
+        const isUnknownAttrError =
+          message.includes('tokenhash') &&
+          (message.includes('unknown') ||
+            message.includes('attribute') ||
+            message.includes('invalid'))
+
+        if (!isUnknownAttrError) {
+          throw createError
         }
-      )
+
+        console.error(
+          '❌ password_reset_tokens.tokenHash attribute missing; hash-only reset tokens require this attribute'
+        )
+        throw new Error('Password reset token storage is not configured')
+      }
 
       // Create reset URL with our token
       const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}&email=${encodeURIComponent(email)}`

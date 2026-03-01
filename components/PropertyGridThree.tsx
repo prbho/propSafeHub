@@ -147,11 +147,6 @@ export default function PropertyGridThree({
         if (filters.bedrooms)
           queryParams.append('bedrooms', filters.bedrooms.toString())
 
-        console.log(
-          `📤 Fetching page ${page} with:`,
-          Object.fromEntries(queryParams.entries())
-        )
-
         const response = await fetch(`/api/properties?${queryParams}`)
 
         if (!response.ok) {
@@ -159,12 +154,6 @@ export default function PropertyGridThree({
         }
 
         const data = await response.json()
-        console.log(`📥 Page ${page} response:`, {
-          total: data.total,
-          received: data.documents?.length,
-          hasMore: data.hasMore,
-        })
-
         if (data.success) {
           const newProperties = data.documents || []
 
@@ -214,12 +203,11 @@ export default function PropertyGridThree({
   useEffect(() => {
     if (Object.keys(searchParams).length > 0) {
       const convertedFilters = convertSearchParamsToFilters(searchParams)
-      const newFilters = {
-        ...filters,
+      setFilters((prev) => ({
+        ...prev,
         ...convertedFilters,
         page: 1,
-      }
-      setFilters(newFilters)
+      }))
     }
   }, [searchParams])
 
@@ -247,7 +235,6 @@ export default function PropertyGridThree({
     observer.current = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting && hasMore && !loadingMore) {
-          console.log('🎯 Load more triggered for page:', currentPage + 1)
           fetchProperties(currentPage + 1, true)
         }
       },
@@ -271,12 +258,11 @@ export default function PropertyGridThree({
   useEffect(() => {
     const handleSearch = (event: Event) => {
       const customEvent = event as CustomEvent<PropertyFilters>
-      const newFilters = {
-        ...filters,
+      setFilters((prev) => ({
+        ...prev,
         ...customEvent.detail,
         page: 1,
-      }
-      setFilters(newFilters)
+      }))
       resetForNewSearch()
     }
 
@@ -286,7 +272,7 @@ export default function PropertyGridThree({
         'propertySearch',
         handleSearch as EventListener
       )
-  }, [filters, resetForNewSearch])
+  }, [resetForNewSearch])
 
   const handleClearFilters = () => {
     const resetFilters: PropertyFilters = {

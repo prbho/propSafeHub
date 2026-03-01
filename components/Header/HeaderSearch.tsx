@@ -30,6 +30,9 @@ export default function HeaderSearch() {
     data: SearchSuggestion[]
     timestamp: number
   } | null>(null)
+  const countCacheRef = useRef<Map<string, { count: number; timestamp: number }>>(
+    new Map()
+  )
   const router = useRouter()
 
   // Close suggestions when clicking outside
@@ -62,6 +65,10 @@ export default function HeaderSearch() {
     return Promise.all(
       suggestions.map(async (suggestion) => {
         try {
+          if (suggestion.count !== undefined) {
+            return suggestion
+          }
+
           const params = new URLSearchParams()
 
           switch (suggestion.type) {
@@ -78,15 +85,26 @@ export default function HeaderSearch() {
             return suggestion
           }
 
+          const cacheKey = params.toString()
+          const cached = countCacheRef.current.get(cacheKey)
+          if (cached && Date.now() - cached.timestamp < 2 * 60 * 1000) {
+            return { ...suggestion, count: cached.count }
+          }
+
           const response = await fetch(`/api/properties/count?${params}`)
           if (!response.ok) {
             return suggestion
           }
 
           const countData = await response.json()
+          const count = countData.count || 0
+          countCacheRef.current.set(cacheKey, {
+            count,
+            timestamp: Date.now(),
+          })
           return {
             ...suggestion,
-            count: countData.count || 0,
+            count,
           }
         } catch (error) {
           console.error(`Error fetching count for ${suggestion.display}:`, error)

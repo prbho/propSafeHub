@@ -1,6 +1,7 @@
 // components/Header/HeaderMobile.tsx
 'use client'
 
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useAuth } from '@/contexts/AuthContext'
@@ -19,6 +20,15 @@ interface HeaderMobileProps {
 
 export default function HeaderMobile({ openAuth }: HeaderMobileProps) {
   const { isAuthenticated } = useAuth()
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
+
+  useEffect(() => {
+    const handleSheetClose = () => setIsSheetOpen(false)
+    document.addEventListener('sheet-close', handleSheetClose)
+    return () => {
+      document.removeEventListener('sheet-close', handleSheetClose)
+    }
+  }, [])
 
   return (
     <div className="md:hidden flex max-w-7xl mx-auto h-16 items-center justify-between px-4">
@@ -34,7 +44,7 @@ export default function HeaderMobile({ openAuth }: HeaderMobileProps) {
       </Link>
 
       {/* Mobile Menu Button */}
-      <Sheet>
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetTrigger asChild>
           <Button variant="ghost" size="icon">
             <Menu className="h-5 w-5" />
@@ -42,10 +52,12 @@ export default function HeaderMobile({ openAuth }: HeaderMobileProps) {
         </SheetTrigger>
 
         <SheetContent side="right" className="w-[300px] sm:w-[400px]">
-          <MobileNavContent
-            openAuth={openAuth}
-            isAuthenticated={isAuthenticated}
-          />
+          {isSheetOpen ? (
+            <MobileNavContent
+              openAuth={openAuth}
+              isAuthenticated={isAuthenticated}
+            />
+          ) : null}
         </SheetContent>
       </Sheet>
     </div>
