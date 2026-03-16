@@ -116,7 +116,6 @@ export async function POST(request: NextRequest) {
 
       // Force listedBy to 'owner' for sellers
       cleanPropertyData.listedBy = 'owner'
-
     }
 
     // Validate required fields
@@ -201,6 +200,9 @@ export async function POST(request: NextRequest) {
       videos: Array.isArray(cleanPropertyData.videos)
         ? cleanPropertyData.videos
         : [],
+
+      // ADD THIS: YouTube URL field
+      youtubeUrl: cleanPropertyData.youtubeUrl || '',
 
       // ADD THIS LINE: Include titles field
       titles: Array.isArray(cleanPropertyData.titles)
@@ -319,6 +321,7 @@ export async function POST(request: NextRequest) {
         city: property.city,
         state: property.state,
         titles: property.titles,
+        youtubeUrl: property.youtubeUrl, // Add this to response
         userType: cleanPropertyData.userType,
         ...(cleanPropertyData.userType === 'agent' && {
           agentId: documentData.agentId,
@@ -343,4 +346,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-

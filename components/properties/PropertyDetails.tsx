@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useAuth } from '@/contexts/AuthContext' // Add this import
+import { useAuth } from '@/contexts/AuthContext'
 import { Property } from '@/types'
 import {
   Bath,
@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   Home,
   MapPin,
+  PlayCircle, // Add this import
   Share2,
   Square,
 } from 'lucide-react'
@@ -28,9 +29,48 @@ interface PropertyDetailsProps {
   property: Property
 }
 
+// Helper function to extract YouTube video ID from URL
+const getYouTubeVideoId = (url: string) => {
+  if (!url) return null
+
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/watch\?.*&v=)([^#\&\?]*).*/,
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/,
+  ]
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match && (match[1]?.length === 11 || match[2]?.length === 11)) {
+      return match[1] || match[2]
+    }
+  }
+
+  return null
+}
+
+// Helper function to get YouTube embed URL
+const getYouTubeEmbedUrl = (url: string) => {
+  const videoId = getYouTubeVideoId(url)
+  if (videoId) {
+    // Use youtube-nocookie.com for privacy-enhanced mode
+    return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=0`
+  }
+  return null
+}
+
+// Helper function to get YouTube thumbnail
+const getYouTubeThumbnail = (url: string) => {
+  const videoId = getYouTubeVideoId(url)
+  if (videoId) {
+    return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+  }
+  return null
+}
+
 export default function PropertyDetails({ property }: PropertyDetailsProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
-  const { user } = useAuth() // Add this to get the user
+  const [showVideo, setShowVideo] = useState(false)
+  const { user } = useAuth()
 
   const handleShare = async () => {
     try {
@@ -52,6 +92,13 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
 
   const mainImage =
     property.images[activeImageIndex] || '/placeholder-property.jpg'
+
+  const youtubeEmbedUrl = property.youtubeUrl
+    ? getYouTubeEmbedUrl(property.youtubeUrl)
+    : null
+  const youtubeThumbnail = property.youtubeUrl
+    ? getYouTubeThumbnail(property.youtubeUrl)
+    : null
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -76,7 +123,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
               </Button>
               <PropertyFavoriteButton
                 property={property}
-                userId={user?.$id} // Pass the user ID as prop
+                userId={user?.$id}
                 size="md"
               />
             </div>
@@ -89,53 +136,143 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Image Gallery */}
+            {/* Image Gallery with Video Option */}
             <div className="bg-white rounded-xl overflow-hidden border border-white-200">
-              <div className="relative aspect-16/10 bg-white-100">
-                <Image
-                  src={mainImage}
-                  alt={property.title}
-                  fill
-                  className="object-cover"
-                  priority
-                />
-                <div className="absolute top-4 left-4 flex gap-2">
-                  {property.isFeatured && (
-                    <span className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg">
-                      Featured
-                    </span>
-                  )}
-                  {property.isVerified && (
-                    <span className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
-                      <Check className="h-3 w-3" />
-                      Verified
-                    </span>
-                  )}
-                </div>
-              </div>
+              {!showVideo ? (
+                <>
+                  <div className="relative aspect-16/10 bg-white-100">
+                    <Image
+                      src={mainImage}
+                      alt={property.title}
+                      fill
+                      className="object-cover"
+                      priority
+                    />
 
-              {/* Image Thumbnails */}
-              {property.images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto p-4 bg-white-50">
-                  {property.images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setActiveImageIndex(index)}
-                      className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                        activeImageIndex === index
-                          ? 'border-emerald-500 shadow-md'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                    {/* YouTube Video Button - Show if property has YouTube URL */}
+                    {youtubeEmbedUrl && (
+                      <button
+                        onClick={() => setShowVideo(true)}
+                        className="absolute inset-0 w-full h-full group flex items-center justify-center"
+                      >
+                        <div className="relative">
+                          {/* Play button overlay */}
+                          <div className="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-2xl transform transition-transform group-hover:scale-110">
+                            <PlayCircle className="w-12 h-12 text-white fill-white" />
+                          </div>
+                          <span className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-white font-medium bg-black/50 px-3 py-1 rounded-full text-sm whitespace-nowrap">
+                            Watch Video Tour
+                          </span>
+                        </div>
+                      </button>
+                    )}
+
+                    <div className="absolute top-4 left-4 flex gap-2">
+                      {property.isFeatured && (
+                        <span className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg">
+                          Featured
+                        </span>
+                      )}
+                      {property.isVerified && (
+                        <span className="bg-emerald-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          Verified
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Image Thumbnails */}
+                  {property.images.length > 1 && (
+                    <div className="flex gap-2 overflow-x-auto p-4 bg-white-50">
+                      {property.images.map((image, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setActiveImageIndex(index)
+                            setShowVideo(false)
+                          }}
+                          className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                            activeImageIndex === index && !showVideo
+                              ? 'border-emerald-500 shadow-md'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <Image
+                            src={image}
+                            alt={`${property.title} - Image ${index + 1}`}
+                            width={80}
+                            height={80}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+
+                      {/* YouTube thumbnail in thumbnails */}
+                      {youtubeThumbnail && (
+                        <button
+                          onClick={() => setShowVideo(true)}
+                          className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative ${
+                            showVideo
+                              ? 'border-red-500 shadow-md'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          <Image
+                            src={youtubeThumbnail}
+                            alt="Video tour"
+                            width={80}
+                            height={80}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Fallback to medium quality thumbnail
+                              const videoId = getYouTubeVideoId(
+                                property.youtubeUrl || ''
+                              )
+                              if (videoId) {
+                                e.currentTarget.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+                              }
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <PlayCircle className="w-8 h-8 text-white" />
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                // Video Player
+                <div className="relative aspect-16/10 bg-black">
+                  {youtubeEmbedUrl && (
+                    <iframe
+                      src={youtubeEmbedUrl}
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  )}
+
+                  {/* Close video button */}
+                  <button
+                    onClick={() => setShowVideo(false)}
+                    className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors z-10"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <Image
-                        src={image}
-                        alt={`${property.title} - Image ${index + 1}`}
-                        width={80}
-                        height={80}
-                        className="w-full h-full object-cover"
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
                       />
-                    </button>
-                  ))}
+                    </svg>
+                  </button>
                 </div>
               )}
             </div>

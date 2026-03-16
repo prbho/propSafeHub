@@ -39,7 +39,8 @@ const nextConfig = {
               "font-src 'self' https://fonts.gstatic.com; " +
               "connect-src 'self' https://cloud.appwrite.io https://*.appwrite.io https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://static.cloudflareinsights.com; " +
               "manifest-src 'self'; " +
-              "frame-src 'self'; " +
+              // Updated frame-src to allow YouTube embeds
+              "frame-src 'self' https://www.youtube.com https://youtube.com https://*.youtube.com https://www.youtube-nocookie.com; " +
               "object-src 'none'; " +
               "base-uri 'self'; " +
               "form-action 'self';",
@@ -76,6 +77,13 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'fra.cloud.appwrite.io',
+        port: '',
+        pathname: '/**',
+      },
+      // Add YouTube thumbnail domain
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
         port: '',
         pathname: '/**',
       },

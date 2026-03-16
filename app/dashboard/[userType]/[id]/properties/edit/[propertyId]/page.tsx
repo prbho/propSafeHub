@@ -101,6 +101,7 @@ export default function DashboardPropertyEditPage() {
           squareFeet: propertyDoc.squareFeet || 0,
           lotSize: propertyDoc.lotSize,
           yearBuilt: propertyDoc.yearBuilt,
+          youtubeUrl: propertyDoc.youtubeUrl || '',
           titles: propertyDoc.titles || [],
           features: propertyDoc.features || [],
           amenities: propertyDoc.amenities || [],

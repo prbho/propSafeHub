@@ -58,6 +58,7 @@ export interface Property {
   tags: string[]
   views: number
   favorites: number
+  youtubeUrl?: string
 
   // FOR SHORT-LET
   minimumStay?: number // Minimum nights
@@ -113,6 +114,7 @@ export interface PropertyFormData {
   price: number
   priceUnit: 'daily' | 'weekly' | 'monthly' | 'yearly' | 'total'
   originalPrice?: number
+  youtubeUrl?: string
 
   // SHORT-LET SPECIFIC FIELDS
   minimumStay?: number

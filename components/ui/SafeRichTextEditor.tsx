@@ -253,7 +253,6 @@ export function SafeRichTextEditor({
     <div className="space-y-2">
       {/* Toolbar */}
       <div className="flex flex-wrap gap-1 p-2 border border-gray-300 rounded-t-lg bg-gray-50">
-        {/* eslint-disable-next-line react-hooks/rules-of-hooks */}
         {toolbarButtons.map((btn, index) => (
           <Button
             key={index}

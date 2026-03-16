@@ -127,6 +127,7 @@ export default function PropertyPostForm({
     // Media
     images: [],
     videos: [],
+    youtubeUrl: '',
 
     // Listing Details
     listedBy: 'agent',
@@ -599,6 +600,28 @@ export default function PropertyPostForm({
     )
   }
 
+  // Helper function to convert YouTube URL to embed URL
+  const getYouTubeEmbedUrl = (url: string) => {
+    if (!url) return ''
+
+    // Regular expressions to extract YouTube video ID
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
+    const match = url.match(regExp)
+
+    if (match && match[2].length === 11) {
+      // Use youtube-nocookie.com for privacy-enhanced mode
+      return `https://www.youtube-nocookie.com/embed/${match[2]}?rel=0&modestbranding=1`
+    }
+
+    // If it's already an embed URL, convert to nocookie version
+    if (url.includes('/embed/')) {
+      return url.replace('youtube.com', 'youtube-nocookie.com')
+    }
+
+    return ''
+  }
+
   return (
     <div className="space-y-6">
       {/* Show agent profile warning only for agents */}
@@ -716,6 +739,62 @@ export default function PropertyPostForm({
                     </p>
                   </div>
                 </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* YOUTUBE VIDEO SECTION */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <svg
+                className="w-5 h-5 text-red-600"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+              </svg>
+              YouTube Video (Optional)
+            </CardTitle>
+            <CardDescription>
+              Add a YouTube video to showcase your property (walkthrough, tour,
+              or highlights)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="youtubeUrl">YouTube Video URL</Label>
+              <Input
+                id="youtubeUrl"
+                type="url"
+                value={formData.youtubeUrl || ''}
+                onChange={(e) =>
+                  handleInputChange('youtubeUrl', e.target.value)
+                }
+                placeholder="https://www.youtube.com/watch?v=... or https://youtu.be/..."
+              />
+              <p className="text-sm text-gray-500">
+                Paste any YouTube video link. It will be automatically converted
+                to an embedded player.
+              </p>
+            </div>
+
+            {/* Preview the video if URL is valid */}
+            {formData.youtubeUrl && (
+              <div className="mt-4">
+                <Label className="mb-2 block">Preview</Label>
+                <div className="aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                  <iframe
+                    src={getYouTubeEmbedUrl(formData.youtubeUrl)}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  This is how the video will appear on your property listing.
+                </p>
               </div>
             )}
           </CardContent>

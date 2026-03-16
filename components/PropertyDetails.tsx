@@ -17,11 +17,10 @@ import {
   Key,
   MapPin,
   Moon,
+  PlayCircle,
   Share2,
   Shield,
   Square,
-  Star,
-  Wifi,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -37,32 +36,61 @@ interface PropertyDetailsProps {
   property: Property
 }
 
+// Helper function to extract YouTube video ID from URL
+const getYouTubeVideoId = (url: string) => {
+  if (!url) return null
+
+  const patterns = [
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/|youtube\.com\/watch\?.*&v=)([^#\&\?]*).*/,
+    /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/,
+  ]
+
+  for (const pattern of patterns) {
+    const match = url.match(pattern)
+    if (match && (match[1]?.length === 11 || match[2]?.length === 11)) {
+      return match[1] || match[2]
+    }
+  }
+
+  return null
+}
+
+// Helper function to get YouTube embed URL
+const getYouTubeEmbedUrl = (url: string) => {
+  const videoId = getYouTubeVideoId(url)
+  if (videoId) {
+    return `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&modestbranding=1&autoplay=0`
+  }
+  return null
+}
+
+// Helper function to get YouTube thumbnail with fallback
+const getYouTubeThumbnail = (
+  url: string,
+  quality: 'maxresdefault' | 'mqdefault' | 'hqdefault' = 'mqdefault'
+) => {
+  const videoId = getYouTubeVideoId(url)
+  if (videoId) {
+    return `https://img.youtube.com/vi/${videoId}/${quality}.jpg`
+  }
+  return null
+}
+
 export default function PropertyDetails({ property }: PropertyDetailsProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0)
+  const [showVideo, setShowVideo] = useState(false)
+  const [thumbnailError, setThumbnailError] = useState(false)
   const { user } = useAuth()
 
   const isShortLet = property.status === 'short-let'
 
-  // Add debug useEffect
+  // Debug for YouTube URL
   useEffect(() => {
-    console.log('🔄 PropertyDetails rendered')
-  }, [])
-
-  useEffect(() => {
-    console.log('👤 User updated:', user?.$id)
-  }, [user])
-
-  useEffect(() => {
-    console.log('📍 Property Location Data:', {
-      address: property.address,
-      city: property.city,
-      state: property.state,
-      country: property.country,
-      latitude: property.latitude,
-      longitude: property.longitude,
-      fullAddress: `${property.address}, ${property.city}, ${property.state}, ${property.country}`,
-    })
-  }, [property])
+    console.log('🎥 YouTube URL:', property.youtubeUrl)
+    if (property.youtubeUrl) {
+      console.log('🎬 Video ID:', getYouTubeVideoId(property.youtubeUrl))
+    }
+  }, [property.youtubeUrl])
 
   const formatPrice = (price: number, unit: string) => {
     const formatter = new Intl.NumberFormat('en-NG', {
@@ -100,24 +128,38 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
       }
     } else {
       navigator.clipboard.writeText(window.location.href)
-      toast.success('Link copied to clipboard!') // Changed from error to success
+      toast.success('Link copied to clipboard!')
     }
   }
 
   const mainImage =
     property.images[activeImageIndex] || '/placeholder-property.jpg'
 
+  const youtubeEmbedUrl = property.youtubeUrl
+    ? getYouTubeEmbedUrl(property.youtubeUrl)
+    : null
+
+  // Get thumbnail with fallback logic
+  const getVideoThumbnail = () => {
+    if (!property.youtubeUrl) return null
+
+    if (thumbnailError) {
+      // If maxresdefault failed, try mqdefault
+      return getYouTubeThumbnail(property.youtubeUrl, 'mqdefault')
+    }
+    // Try maxresdefault first
+    return getYouTubeThumbnail(property.youtubeUrl, 'maxresdefault')
+  }
+
+  const youtubeThumbnail = getVideoThumbnail()
+
   const formatAppwriteTime = (dateTime: string | undefined): string => {
     if (!dateTime) return ''
 
     try {
-      // Appwrite DateTime format: "2025-12-18T14:00:00.000+00:00"
       const date = new Date(dateTime)
-
-      // Extract just the time part (HH:mm)
       const hours = date.getUTCHours().toString().padStart(2, '0')
       const minutes = date.getUTCMinutes().toString().padStart(2, '0')
-
       return `${hours}:${minutes}`
     } catch (error) {
       console.error('Error formatting Appwrite time:', error)
@@ -198,72 +240,173 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Image Gallery */}
+            {/* Image Gallery with Video Option */}
             <div className="bg-white rounded-xl overflow-hidden border border-gray-200">
-              <div className="relative aspect-16/10 bg-white">
-                <Image
-                  src={mainImage}
-                  alt={property.title}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 50vw"
-                />
-                <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                  {getStatusBadge()}
-                  {property.isFeatured && (
-                    <span className="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg">
-                      Featured
-                    </span>
-                  )}
-                  {property.isVerified && (
-                    <span className="bg-emerald-600 border border-emerald-700 text-emerald-50 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
-                      <Check className="h-3 w-3" />
-                      Verified
-                    </span>
-                  )}
-                  {/* Short-Let Specific Badges */}
-                  {isShortLet && property.instantBooking && (
-                    <span className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Instant Book
-                    </span>
-                  )}
-                  {isShortLet && property.minimumStay && (
-                    <span className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
-                      <Calendar className="h-3 w-3" />
-                      Min {property.minimumStay} night
-                      {property.minimumStay > 1 ? 's' : ''}
-                    </span>
-                  )}
-                </div>
-              </div>
+              {!showVideo ? (
+                <>
+                  <div className="relative aspect-16/10 bg-white">
+                    <Image
+                      src={mainImage}
+                      alt={property.title}
+                      fill
+                      className="object-cover"
+                      priority
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 50vw"
+                    />
 
-              {/* Image Thumbnails */}
-              {property.images.length > 1 && (
-                <div className="flex gap-2 overflow-x-auto p-4">
-                  {property.images.map((image, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setActiveImageIndex(index)}
-                      className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
-                        activeImageIndex === index
-                          ? isShortLet
-                            ? 'border-purple-500 shadow-md'
-                            : 'border-emerald-500 shadow-md'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                      aria-label={`View image ${index + 1}`}
+                    {/* YouTube Video Button - Bottom Right Position */}
+                    {youtubeEmbedUrl && (
+                      <button
+                        onClick={() => setShowVideo(true)}
+                        className="absolute bottom-4 right-4 flex items-center gap-2 bg-black/70 hover:bg-black/90 text-white px-4 py-2 rounded-lg transition-all shadow-lg group"
+                      >
+                        <PlayCircle className="w-5 h-5 text-red-500 group-hover:scale-110 transition-transform" />
+                        <span className="text-sm font-medium">Watch Video</span>
+                      </button>
+                    )}
+
+                    <div className="absolute top-4 left-4 flex flex-wrap gap-2">
+                      {getStatusBadge()}
+                      {property.isFeatured && (
+                        <span className="bg-amber-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg">
+                          Featured
+                        </span>
+                      )}
+                      {property.isVerified && (
+                        <span className="bg-emerald-600 border border-emerald-700 text-emerald-50 px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+                          <Check className="h-3 w-3" />
+                          Verified
+                        </span>
+                      )}
+                      {/* Short-Let Specific Badges */}
+                      {isShortLet && property.instantBooking && (
+                        <span className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          Instant Book
+                        </span>
+                      )}
+                      {isShortLet && property.minimumStay && (
+                        <span className="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+                          <Calendar className="h-3 w-3" />
+                          Min {property.minimumStay} night
+                          {property.minimumStay > 1 ? 's' : ''}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Image and Video Thumbnails */}
+                  {(property.images.length > 1 || youtubeThumbnail) && (
+                    <div className="flex gap-2 overflow-x-auto p-4">
+                      {/* Image Thumbnails */}
+                      {property.images.map((image, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setActiveImageIndex(index)
+                            setShowVideo(false)
+                          }}
+                          className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                            activeImageIndex === index && !showVideo
+                              ? isShortLet
+                                ? 'border-purple-500 shadow-md'
+                                : 'border-emerald-500 shadow-md'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          aria-label={`View image ${index + 1}`}
+                        >
+                          <Image
+                            src={image}
+                            alt={`${property.title} - Image ${index + 1}`}
+                            width={80}
+                            height={80}
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      ))}
+
+                      {/* YouTube Video Thumbnail with multiple fallbacks */}
+                      {youtubeThumbnail && (
+                        <button
+                          onClick={() => setShowVideo(true)}
+                          className={`shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all relative ${
+                            showVideo
+                              ? 'border-red-500 shadow-md'
+                              : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                          aria-label="Watch video tour"
+                        >
+                          <img
+                            src={youtubeThumbnail}
+                            alt="Video tour thumbnail"
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const videoId = getYouTubeVideoId(
+                                property.youtubeUrl || ''
+                              )
+                              const target = e.currentTarget
+
+                              // Chain of fallbacks: maxresdefault -> mqdefault -> hqdefault -> default
+                              if (target.src.includes('maxresdefault')) {
+                                target.src = `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`
+                              } else if (target.src.includes('mqdefault')) {
+                                target.src = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`
+                              } else if (target.src.includes('hqdefault')) {
+                                target.src = `https://img.youtube.com/vi/${videoId}/default.jpg`
+                              } else {
+                                // If all thumbnails fail, show a placeholder
+                                target.src = '/video-placeholder.jpg' // Make sure this exists in your public folder
+                              }
+                              setThumbnailError(true)
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                            <PlayCircle className="w-8 h-8 text-white" />
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                // Video Player
+                <div className="relative aspect-16/10 bg-black">
+                  {youtubeEmbedUrl && (
+                    <iframe
+                      src={youtubeEmbedUrl}
+                      className="absolute inset-0 w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      title={`${property.title} - Video Tour`}
+                    />
+                  )}
+
+                  {/* Close video button */}
+                  <button
+                    onClick={() => setShowVideo(false)}
+                    className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white rounded-full p-2 transition-colors z-10"
+                    aria-label="Close video"
+                  >
+                    <svg
+                      className="w-6 h-6"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
                     >
-                      <Image
-                        src={image}
-                        alt={`${property.title} - Image ${index + 1}`}
-                        width={80}
-                        height={80}
-                        className="w-full h-full object-cover"
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
                       />
-                    </button>
-                  ))}
+                    </svg>
+                  </button>
+
+                  {/* Video indicator */}
+                  <div className="absolute top-4 left-4 bg-red-600 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-lg flex items-center gap-1">
+                    <PlayCircle className="h-3 w-3" />
+                    Video Tour
+                  </div>
                 </div>
               )}
             </div>
@@ -280,19 +423,6 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                   {property.state}
                 </span>
               </div>
-
-              {/* Short-Let Rating - Commented out since property.rating might not exist */}
-              {/* {isShortLet && property.rating && (
-                <div className="flex items-center mt-3">
-                  <div className="flex items-center bg-amber-50 text-amber-700 px-3 py-1.5 rounded-lg">
-                    <Star className="w-4 h-4 mr-1 fill-current" />
-                    <span className="font-semibold">
-                      {property.rating.toFixed(1)}
-                    </span>
-                    <span className="text-gray-600 ml-1">• Guest rating</span>
-                  </div>
-                </div>
-              )} */}
             </div>
 
             {/* SHORT-LET AVAILABILITY SECTION */}
@@ -580,49 +710,6 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
                 Location Details
               </h3>
 
-              {/* REMOVE OR COMMENT OUT THIS DEBUG INFO IN PRODUCTION */}
-              {/* 
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="text-sm font-medium text-gray-700 mb-2">
-                  Location Data
-                </h4>
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <span className="text-gray-500">Address:</span>
-                    <span className="ml-2 font-medium">
-                      {property.address || 'Not set'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">City:</span>
-                    <span className="ml-2 font-medium">
-                      {property.city || 'Not set'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">State:</span>
-                    <span className="ml-2 font-medium">
-                      {property.state || 'Not set'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Country:</span>
-                    <span className="ml-2 font-medium">
-                      {property.country || 'Nigeria'}
-                    </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="text-gray-500">Coordinates:</span>
-                    <span className="ml-2 font-medium">
-                      {property.latitude && property.longitude
-                        ? `${property.latitude}, ${property.longitude}`
-                        : 'Not available'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              */}
-
               <div className="space-y-3 text-gray-700 mb-5">
                 <div className="flex items-start">
                   <MapPin className="h-4 w-4 mr-3 mt-1 shrink-0 text-emerald-600" />
@@ -663,7 +750,7 @@ export default function PropertyDetails({ property }: PropertyDetailsProps) {
             className="lg:sticky lg:top-24 space-y-6"
             style={{ height: 'fit-content' }}
           >
-            {/* Price Card - Updated to handle short-let */}
+            {/* Price Card */}
             <PropertySidebar property={property} />
           </div>
         </div>

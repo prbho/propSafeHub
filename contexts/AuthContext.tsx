@@ -42,7 +42,8 @@ interface AuthContextType extends AuthState {
 }
 
 const debugLog = (...args: unknown[]) => {
-  if (process.env.NODE_ENV !== 'production') {
+  // Only log in development mode
+  if (process.env.NODE_ENV === 'development') {
     console.log(...args)
   }
 }
@@ -60,6 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authCheckComplete, setAuthCheckComplete] = useState(false)
 
   // Fetch user document from database - UPDATED TO CHECK BOTH COLLECTIONS
+
   const fetchUserDocument = async (userId: string): Promise<User | null> => {
     try {
       debugLog('📄 Fetching user document for:', userId)
@@ -67,54 +69,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       let userDoc
       let collectionId = USERS_COLLECTION_ID
       let agentDocumentId: string | undefined = undefined
-      let avatarUrl: string | undefined = undefined // Add this variable
+      let avatarUrl: string | undefined = undefined
 
-      // First try users collection
+      // First, get the Appwrite account to know the user's type
+      let userType = 'user' // default
       try {
-        userDoc = await databases.getDocument(
-          DATABASE_ID,
-          USERS_COLLECTION_ID,
-          userId
-        )
-
-        // If user is an agent, try to find their agent profile
-        if (userDoc.userType === 'agent') {
-          try {
-            // Search for agent profile by userId field
-            const agentProfiles = await databases.listDocuments(
-              DATABASE_ID,
-              AGENTS_COLLECTION_ID,
-              [Query.equal('userId', userId)]
-            )
-
-            if (agentProfiles.documents.length > 0) {
-              const agentProfile = agentProfiles.documents[0]
-              agentDocumentId = agentProfile.$id
-
-              // ✅ CRITICAL: Use agent's avatar if available
-              avatarUrl = agentProfile.avatar || userDoc.avatar
-
-              debugLog('✅ Found agent profile for user:', {
-                userAccountId: userId,
-                agentDocumentId: agentProfile.$id,
-                agentAvatar: agentProfile.avatar ? 'Set' : 'Not set',
-                userAvatar: userDoc.avatar ? 'Set' : 'Not set',
-                finalAvatar: avatarUrl ? 'Set' : 'Not set',
-              })
-            } else {
-              debugLog('⚠️ User is agent type but no agent profile found')
-              avatarUrl = userDoc.avatar // Fall back to user avatar
-            }
-          } catch (agentError) {
-            debugLog('⚠️ Could not search for agent profile:', agentError)
-            avatarUrl = userDoc.avatar // Fall back to user avatar
-          }
-        } else {
-          // Regular user - use user's avatar
-          avatarUrl = userDoc.avatar
-        }
+        const appwriteUser = await account.get()
+        userType = appwriteUser.labels?.includes('agent') ? 'agent' : 'user'
       } catch {
-        // If not found in users, try agents collection
+        // If can't get account, proceed with fallback method
+      }
+
+      // If user is likely an agent, try agents collection first
+      if (userType === 'agent') {
         try {
           userDoc = await databases.getDocument(
             DATABASE_ID,
@@ -122,14 +89,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             userId
           )
           collectionId = AGENTS_COLLECTION_ID
-          agentDocumentId = userDoc.$id // This IS the agent document
-
-          // ✅ Direct agent login - use agent's avatar
+          agentDocumentId = userDoc.$id
           avatarUrl = userDoc.avatar
 
           debugLog('✅ User found in AGENTS collection (direct agent login)')
         } catch {
-          return null
+          // If not found in agents, fall back to users collection
+          try {
+            userDoc = await databases.getDocument(
+              DATABASE_ID,
+              USERS_COLLECTION_ID,
+              userId
+            )
+            collectionId = USERS_COLLECTION_ID
+            avatarUrl = userDoc.avatar
+
+            debugLog('✅ User found in USERS collection (fallback)')
+          } catch {
+            return null
+          }
+        }
+      } else {
+        // For regular users, try users collection first
+        try {
+          userDoc = await databases.getDocument(
+            DATABASE_ID,
+            USERS_COLLECTION_ID,
+            userId
+          )
+          collectionId = USERS_COLLECTION_ID
+          avatarUrl = userDoc.avatar
+
+          // If user is an agent type but not found in agents, try to find agent profile
+          if (userDoc.userType === 'agent') {
+            try {
+              const agentProfiles = await databases.listDocuments(
+                DATABASE_ID,
+                AGENTS_COLLECTION_ID,
+                [Query.equal('userId', userId)]
+              )
+
+              if (agentProfiles.documents.length > 0) {
+                const agentProfile = agentProfiles.documents[0]
+                agentDocumentId = agentProfile.$id
+                avatarUrl = agentProfile.avatar || userDoc.avatar
+
+                debugLog('✅ Found agent profile for user:', {
+                  userAccountId: userId,
+                  agentDocumentId: agentProfile.$id,
+                })
+              }
+            } catch (agentError) {
+              debugLog('⚠️ Could not search for agent profile:', agentError)
+            }
+          }
+        } catch {
+          // If not found in users, try agents as last resort
+          try {
+            userDoc = await databases.getDocument(
+              DATABASE_ID,
+              AGENTS_COLLECTION_ID,
+              userId
+            )
+            collectionId = AGENTS_COLLECTION_ID
+            agentDocumentId = userDoc.$id
+            avatarUrl = userDoc.avatar
+
+            debugLog('✅ User found in AGENTS collection (last resort)')
+          } catch {
+            return null
+          }
         }
       }
 
@@ -138,13 +167,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: userDoc.email,
         name: userDoc.name,
         userType: userDoc.userType,
-        emailVerified: userDoc.emailVerified,
-        avatar: avatarUrl ? 'Set' : 'Not set', // Log the determined avatar
         collection: collectionId === USERS_COLLECTION_ID ? 'users' : 'agents',
-        agentDocumentId,
       })
 
-      // Build user object with all fields
+      // Build user object (rest of your existing code)
       const userObject: User = {
         $id: userDoc.$id,
         $createdAt: userDoc.$createdAt,
@@ -161,7 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         emailVerifiedAt: userDoc.emailVerifiedAt,
         savedSearches: userDoc.savedSearches || [],
         favoriteProperties: userDoc.favoriteProperties || [],
-        avatar: avatarUrl || userDoc.avatar || '', // ✅ Use the determined avatar URL
+        avatar: avatarUrl || userDoc.avatar || '',
         bio: userDoc.bio,
         city: userDoc.city,
         state: userDoc.state,
@@ -172,13 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userObject.agentDocumentId = agentDocumentId
       }
 
-      // Add optional fields
-      if (userDoc.bio) userObject.bio = userDoc.bio
-      if (userDoc.city) userObject.city = userDoc.city
-      if (userDoc.state) userObject.state = userDoc.state
-
       // Add agent-specific fields if user is an agent
-      // Check both collectionId AND userType for agent-specific fields
       if (
         collectionId === AGENTS_COLLECTION_ID ||
         userDoc.userType === 'agent'
@@ -208,55 +228,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Create user document if it doesn't exist
   // This function is kept for potential future use, but eslint warning is suppressed
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const createUserDocument = async (userId: string): Promise<User | null> => {
-    try {
-      debugLog('📝 Creating user document for:', userId)
+  // const createUserDocument = async (userId: string): Promise<User | null> => {
+  //   try {
+  //     debugLog('📝 Creating user document for:', userId)
 
-      const appwriteUser = await account.get()
+  //     const appwriteUser = await account.get()
 
-      const userDoc = await databases.createDocument(
-        DATABASE_ID,
-        USERS_COLLECTION_ID,
-        userId,
-        {
-          name: appwriteUser.name,
-          email: appwriteUser.email,
-          emailVerified: false,
-          userType: 'buyer',
-          isActive: true,
-          savedSearches: [],
-          favoriteProperties: [],
-        }
-      )
+  //     const userDoc = await databases.createDocument(
+  //       DATABASE_ID,
+  //       USERS_COLLECTION_ID,
+  //       userId,
+  //       {
+  //         name: appwriteUser.name,
+  //         email: appwriteUser.email,
+  //         emailVerified: false,
+  //         userType: 'buyer',
+  //         isActive: true,
+  //         savedSearches: [],
+  //         favoriteProperties: [],
+  //       }
+  //     )
 
-      debugLog('✅ User document created:', userDoc)
+  //     debugLog('✅ User document created:', userDoc)
 
-      return {
-        $id: userDoc.$id,
-        $createdAt: userDoc.$createdAt,
-        $updatedAt: userDoc.$updatedAt,
-        name: userDoc.name,
-        email: userDoc.email,
-        bio: userDoc.bio,
-        state: userDoc.state,
-        city: userDoc.city,
-        emailVerified: userDoc.emailVerified,
-        phone: userDoc.phone,
-        mobilePhone: userDoc.mobilePhone,
-        userType: userDoc.userType,
-        isActive: userDoc.isActive,
-        verificationToken: userDoc.verificationToken,
-        lastVerificationRequest: userDoc.lastVerificationRequest,
-        emailVerifiedAt: userDoc.emailVerifiedAt,
-        savedSearches: userDoc.savedSearches || [],
-        favoriteProperties: userDoc.favoriteProperties || [],
-        avatar: userDoc.avatar,
-      }
-    } catch (error) {
-      console.error('❌ Error creating user document:', error)
-      return null
-    }
-  }
+  //     return {
+  //       $id: userDoc.$id,
+  //       $createdAt: userDoc.$createdAt,
+  //       $updatedAt: userDoc.$updatedAt,
+  //       name: userDoc.name,
+  //       email: userDoc.email,
+  //       bio: userDoc.bio,
+  //       state: userDoc.state,
+  //       city: userDoc.city,
+  //       emailVerified: userDoc.emailVerified,
+  //       phone: userDoc.phone,
+  //       mobilePhone: userDoc.mobilePhone,
+  //       userType: userDoc.userType,
+  //       isActive: userDoc.isActive,
+  //       verificationToken: userDoc.verificationToken,
+  //       lastVerificationRequest: userDoc.lastVerificationRequest,
+  //       emailVerifiedAt: userDoc.emailVerifiedAt,
+  //       savedSearches: userDoc.savedSearches || [],
+  //       favoriteProperties: userDoc.favoriteProperties || [],
+  //       avatar: userDoc.avatar,
+  //     }
+  //   } catch (error) {
+  //     console.error('❌ Error creating user document:', error)
+  //     return null
+  //   }
+  // }
 
   const checkAuthStatus = useCallback(async () => {
     try {
@@ -347,10 +367,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return false
       }
 
-      debugLog(
-        '🔍 Checking verification status for user:',
-        authState.user.$id
-      )
+      debugLog('🔍 Checking verification status for user:', authState.user.$id)
       const updatedUser = await fetchUserDocument(authState.user.$id)
 
       if (updatedUser?.emailVerified) {
@@ -613,10 +630,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Get response text first to see what we're getting
       const responseText = await response.text()
-      debugLog(
-        '📄 Raw response text:',
-        responseText.substring(0, 200) + '...'
-      )
+      debugLog('📄 Raw response text:', responseText.substring(0, 200) + '...')
 
       let errorData
       try {
@@ -750,5 +764,3 @@ export const useAuth = () => {
   }
   return context
 }
-
-

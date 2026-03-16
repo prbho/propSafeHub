@@ -26,47 +26,50 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Since your notifications use userId for both users and agents,
-    // we need to filter by userId AND check if it's an agent notification
-    const notifications = await databases.listDocuments(
-      DATABASE_ID,
-      NOTIFICATIONS_COLLECTION_ID,
-      [
-        Query.equal('userId', agentId), // Use userId since that's what's stored
-        Query.orderDesc('$createdAt'),
-        Query.limit(limit),
-        Query.select([
-          '$id',
-          '$createdAt',
-          'title',
-          'message',
-          'type',
-          'isRead',
-          'actionUrl',
-          'actionText',
-        ]),
-      ]
-    )
+    try {
+      // Try to fetch notifications with error handling
+      const notifications = await databases.listDocuments(
+        DATABASE_ID,
+        NOTIFICATIONS_COLLECTION_ID,
+        [
+          Query.equal('userId', agentId),
+          Query.orderDesc('$createdAt'),
+          Query.limit(limit),
+        ]
+      )
 
-    // Filter to only show agent-specific notifications
-    const agentNotifications = notifications.documents.filter(
-      (notification) =>
-        notification.type === 'userMessage' || // This seems to be your agent notification type
-        notification.type?.includes('agent') ||
-        notification.title?.includes('Viewing Request') ||
-        notification.actionUrl?.includes('/agent/')
-    )
+      // Filter to only show agent-specific notifications
+      const agentNotifications = notifications.documents.filter(
+        (notification) =>
+          notification.type === 'userMessage' ||
+          notification.type?.includes('agent') ||
+          notification.title?.includes('Viewing Request') ||
+          notification.actionUrl?.includes('/agent/')
+      )
 
-    return NextResponse.json(agentNotifications, {
-      headers: {
-        'Cache-Control': 'private, max-age=8, stale-while-revalidate=20',
-      },
-    })
-  } catch {
-    return NextResponse.json(
-      { error: 'Failed to fetch notifications' },
-      { status: 500 }
-    )
+      return NextResponse.json(agentNotifications, {
+        headers: {
+          'Cache-Control': 'private, max-age=8, stale-while-revalidate=20',
+        },
+      })
+    } catch (dbError: any) {
+      // Check if it's a 404 error (collection or document not found)
+      if (dbError?.code === 404) {
+        console.log(
+          'Notifications collection or document not found, returning empty array'
+        )
+        return NextResponse.json([], {
+          headers: {
+            'Cache-Control': 'private, max-age=8',
+          },
+        })
+      }
+      throw dbError // Re-throw other errors
+    }
+  } catch (error) {
+    console.error('Error fetching notifications:', error)
+    // Return empty array instead of error to prevent UI breaking
+    return NextResponse.json([], { status: 200 })
   }
 }
 
@@ -91,36 +94,47 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Use userId field since that's what your schema uses
-    const notificationData: any = {
-      userId: agentId, // Store agent ID in userId field
-      title,
-      message,
-      type: type || 'agent_general',
-      isRead: false,
-      priority: 'medium',
+    try {
+      const notificationData: any = {
+        userId: agentId,
+        title,
+        message,
+        type: type || 'agent_general',
+        isRead: false,
+        priority: 'medium',
+      }
+
+      if (relatedEntityId) notificationData.relatedId = relatedEntityId
+      if (relatedEntityType)
+        notificationData.relatedEntityType = relatedEntityType
+      if (actionUrl) notificationData.actionUrl = actionUrl
+      if (actionText) notificationData.actionText = actionText
+
+      const notification = await databases.createDocument(
+        DATABASE_ID,
+        NOTIFICATIONS_COLLECTION_ID,
+        'unique()',
+        notificationData
+      )
+
+      return NextResponse.json(notification)
+    } catch (dbError: any) {
+      if (dbError?.code === 404) {
+        return NextResponse.json(
+          {
+            error:
+              'Notifications collection not found. Please create it in your Appwrite database.',
+          },
+          { status: 404 }
+        )
+      }
+      throw dbError
     }
-
-    // Add optional fields if provided
-    if (relatedEntityId) notificationData.relatedId = relatedEntityId
-    if (relatedEntityType)
-      notificationData.relatedEntityType = relatedEntityType
-    if (actionUrl) notificationData.actionUrl = actionUrl
-    if (actionText) notificationData.actionText = actionText
-
-    const notification = await databases.createDocument(
-      DATABASE_ID,
-      NOTIFICATIONS_COLLECTION_ID,
-      'unique()',
-      notificationData
-    )
-
-    return NextResponse.json(notification)
-  } catch {
+  } catch (error) {
+    console.error('Error creating notification:', error)
     return NextResponse.json(
       { error: 'Failed to create notification' },
       { status: 500 }
     )
   }
 }
-
