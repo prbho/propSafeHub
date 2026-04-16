@@ -120,9 +120,9 @@ export async function POST(req: Request) {
 
       // Send guide to user with download page link
       await transporter.sendMail({
-        from: `"Property Safety Hub" <${emailUser}>`,
+        from: `"PropSafeHub" <${emailUser}>`,
         to: email,
-        subject: 'Your Free Property Safety Guide 🇳🇬',
+        subject: 'Your Free Property Safety Guide',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #0D2A52;">Hi ${name},</h2>
@@ -139,7 +139,7 @@ export async function POST(req: Request) {
             <p>If the button doesn't work, copy and paste this link into your browser:</p>
             <p style="word-break: break-all; font-size: 12px; color: #666;">${downloadLink}</p>
             <hr style="margin: 30px 0;" />
-            <p style="font-size: 12px; color: #666;">Stay safe,<br/>The Property Safety Hub Team</p>
+            <p style="font-size: 12px; color: #666;">Stay safe,<br/>The PropSafeHub Team</p>
           </div>
         `,
       })
@@ -148,7 +148,7 @@ export async function POST(req: Request) {
 
       // Send notification to admin
       await transporter.sendMail({
-        from: `"Property Safety Hub" <${emailUser}>`,
+        from: `"PropSafeHub" <${emailUser}>`,
         to: emailUser,
         subject: '🔔 New Lead Received!',
         html: `
