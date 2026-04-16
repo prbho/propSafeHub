@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     try {
       // Get base URL from environment
       const baseUrl =
-        process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+        process.env.NEXT_PUBLIC_BASE_URL || 'https://propsafehub.com'
 
       // Get PDF info from environment
       const pdfPath =
