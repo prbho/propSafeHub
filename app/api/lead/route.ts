@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
         const databases = new Databases(client)
 
-        // Save lead to Appwrite
+        // Save lead to Appwrite - send intent as array, not string
         const document = await databases.createDocument(
           databaseId,
           leadsSiteCollectionId,
@@ -65,8 +65,8 @@ export async function POST(req: Request) {
             email,
             phone: phone || '',
             country: country || '',
-            intent: intent?.join(', ') || '',
-            createdAt: new Date().toISOString(),
+            intent: intent || [], // Send as array, not string
+            $createdAt: new Date().toISOString(),
           }
         )
 
@@ -81,7 +81,21 @@ export async function POST(req: Request) {
 
     // Send emails
     try {
-      const pdfUrl = process.env.PDF_URL || 'https://yourdomain.com/guide.pdf'
+      // Get base URL from environment
+      const baseUrl =
+        process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
+
+      // Get PDF info from environment
+      const pdfPath =
+        process.env.NEXT_PUBLIC_PDF_PATH ||
+        '/doc/10-Checks-to-Do-Before-You-Send-Money-for-Land-in-Nigeria.pdf'
+      const pdfTitle =
+        process.env.PDF_TITLE ||
+        '10 Checks to Do Before You Send Money for Land in Nigeria'
+
+      // Create download link to the page with PDF info
+      const firstName = name.split(' ')[0]
+      const downloadLink = `${baseUrl}/download-lead?name=${encodeURIComponent(firstName)}&email=${encodeURIComponent(email)}&pdfPath=${encodeURIComponent(pdfPath)}&pdfTitle=${encodeURIComponent(pdfTitle)}`
 
       // Check email credentials
       const emailUser = process.env.EMAIL_USER
@@ -104,7 +118,7 @@ export async function POST(req: Request) {
       await transporter.verify()
       console.log('✅ Email transporter verified')
 
-      // Send guide to user
+      // Send guide to user with download page link
       await transporter.sendMail({
         from: `"Property Safety Hub" <${emailUser}>`,
         to: email,
@@ -113,14 +127,17 @@ export async function POST(req: Request) {
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <h2 style="color: #0D2A52;">Hi ${name},</h2>
             <p>Thank you for requesting your <strong>Free Property Safety Guide</strong>!</p>
-            <p>Click the button below to download your guide:</p>
+            <p><strong>${pdfTitle}</strong></p>
+            <p>Click the button below to access your guide:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${pdfUrl}" 
+              <a href="${downloadLink}" 
                  style="background-color: #0D2A52; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                Download Your Guide
+                Access Your Guide
               </a>
             </div>
-            <p>We'll also send you verified property listings and safety tips to your email.</p>
+            <p>The guide will automatically download when you click the link above.</p>
+            <p>If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="word-break: break-all; font-size: 12px; color: #666;">${downloadLink}</p>
             <hr style="margin: 30px 0;" />
             <p style="font-size: 12px; color: #666;">Stay safe,<br/>The Property Safety Hub Team</p>
           </div>
@@ -138,11 +155,24 @@ export async function POST(req: Request) {
           <div style="font-family: Arial, sans-serif;">
             <h2>New Lead Details:</h2>
             <table style="border-collapse: collapse; width: 100%;">
-              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Name:</strong></td><td>${name}</td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Email:</strong></td><td>${email}</td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Phone:</strong></td><td>${phone || 'Not provided'}</td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Country:</strong></td><td>${country || 'Not provided'}</td></tr>
-              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Intent:</strong></td><td>${intent?.join(', ') || 'Not specified'}</td></tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Name:</strong></td>
+              <td>${name}</td>
+              </tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Email:</strong></td>
+              <td>${email}</td>
+              </tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Phone:</strong></td>
+              <td>${phone || 'Not provided'}</td>
+              </tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Country:</strong></td>
+              <td>${country || 'Not provided'}</td>
+              </tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>Intent:</strong></td>
+              <td>${Array.isArray(intent) ? intent.join(', ') : intent || 'Not specified'}</td>
+              </tr>
+              <tr><td style="padding: 8px; border-bottom: 1px solid #ddd;"><strong>PDF Guide:</strong></td>
+              <td>${pdfTitle}</td>
+              </tr>
             </table>
           </div>
         `,
@@ -159,7 +189,7 @@ export async function POST(req: Request) {
       return NextResponse.json(
         {
           success: false,
-          message: 'Lead saved but email failed. We will contact you shortly.',
+          message: 'Failed to send email. Please try again.',
           error:
             emailError instanceof Error
               ? emailError.message
